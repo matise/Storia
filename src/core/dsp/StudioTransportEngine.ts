@@ -96,6 +96,8 @@ export class StudioTransportEngine {
   private speakerChains = new Map<string, SpeakerDspChain>();
   private activeSource: AudioBufferSourceNode | null = null;
   private activeBlockId: string | null = null;
+  /** Bumped on every trigger/stop so stale async triggers never start audio. */
+  private triggerGeneration = 0;
   private activeStartCtxTime = 0;
   private activeStartOffsetSec = 0;
   private activeRawPcmCache = new Map<
@@ -297,13 +299,17 @@ export class StudioTransportEngine {
       }
     }
     this.stopCurrentSourceOnly();
+    const myTrigger = ++this.triggerGeneration;
     this.activeBlockId = block.id;
     this.activeStartOffsetSec = offsetWithinBlockSec;
     this.activeStartCtxTime = this.ctx ? this.ctx.currentTime : 0;
 
     const speaker = project.speakers.find((s) => s.id === block.speakerId);
     const { samples, sampleRate } = await this.resolveBlockPcm(block, speaker);
-    if (this.activeBlockId !== block.id || samples.length === 0) return;
+    // Abort if stop() or a newer trigger (seek / next block) happened while decoding,
+    // otherwise two sources of the same or adjacent blocks would overlap.
+    if (myTrigger !== this.triggerGeneration || this.activeBlockId !== block.id) return;
+    if (samples.length === 0) return;
 
     // Measure post-DSP ITU-R BS.1770-4 loudness & True Peak
     const measurement = this.measureSpeakerProcessedLoudness(
@@ -402,6 +408,7 @@ export class StudioTransportEngine {
   }
 
   public stop(): void {
+    this.triggerGeneration++;
     this.stopCurrentSourceOnly();
     this.activeBlockId = null;
   }

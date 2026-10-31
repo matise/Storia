@@ -46,7 +46,9 @@ export const ScriptWorkbench: React.FC = () => {
     (s) => s.setEpisodePropertiesModalOpen
   );
 
-  const [isPlaying, setIsPlaying] = React.useState(false);
+  // Episode "Play All" state lives in the store so single-block audition can stop it atomically
+  const isPlaying = useStoriaStore((s) => s.isMasterPlaying);
+  const setMasterPlaying = useStoriaStore((s) => s.setMasterPlaying);
   const [isLooping, setIsLooping] = React.useState(false);
   const [isScrubbing, setIsScrubbing] = React.useState(false);
   const [playheadSec, setPlayheadSec] = React.useState(0);
@@ -110,7 +112,7 @@ export const ScriptWorkbench: React.FC = () => {
           transientPlaybackRef.current.playheadTimeSec = 0;
           setPlayheadSec(0);
         } else {
-          setIsPlaying(false);
+          useStoriaStore.getState().setMasterPlaying(false);
           loop.pause();
           transientPlaybackRef.current.playheadTimeSec = maxDur;
           setPlayheadSec(maxDur);
@@ -158,22 +160,19 @@ export const ScriptWorkbench: React.FC = () => {
   }, [isPlaying, playingBlockId, isScrubbing]);
 
   const handleToggleMasterPlay = React.useCallback(() => {
-    if (playingBlockId) {
-      stopAudioPreview();
+    if (isPlaying) {
+      setMasterPlaying(false);
+      return;
     }
-    setIsPlaying((prev) => {
-      const next = !prev;
-      if (next) {
-        const current = clockRef.current.getRenderTimeSec();
-        if (current >= totalDurationSec - 0.05 && totalDurationSec > 0) {
-          clockRef.current.seek(0);
-          transientPlaybackRef.current.playheadTimeSec = 0;
-          setPlayheadSec(0);
-        }
-      }
-      return next;
-    });
-  }, [playingBlockId, stopAudioPreview, totalDurationSec]);
+    // Starting Play All: setMasterPlaying(true) also stops any block audition / speaker preview
+    const current = clockRef.current.getRenderTimeSec();
+    if (current >= totalDurationSec - 0.05 && totalDurationSec > 0) {
+      clockRef.current.seek(0);
+      transientPlaybackRef.current.playheadTimeSec = 0;
+      setPlayheadSec(0);
+    }
+    setMasterPlaying(true);
+  }, [isPlaying, setMasterPlaying, totalDurationSec]);
 
   // O(log N) 1D BVH lookup at current interpolated playhead
   const bvhHit = React.useMemo(
@@ -236,7 +235,10 @@ export const ScriptWorkbench: React.FC = () => {
   );
 
   const handleStopTransport = React.useCallback(() => {
-    setIsPlaying(false);
+    setMasterPlaying(false);
+    if (useStoriaStore.getState().playingBlockId) {
+      stopAudioPreview();
+    }
     studioTransportEngine.stop();
     clockRef.current.seek(0);
     transientPlaybackRef.current.playheadTimeSec = 0;

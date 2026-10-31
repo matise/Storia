@@ -61,6 +61,14 @@ import {
   stopAllAudioPlayback,
   updateLiveDspIfPlaying,
 } from '../core/dsp/LiveAudioPreviewer';
+import { studioTransportEngine } from '../core/dsp/StudioTransportEngine';
+
+/**
+ * Monotonic token identifying the most recent single-block audition request.
+ * Any async audition step that resumes after the token changed (because another block,
+ * "Play All", or Stop was triggered in the meantime) must abort without producing sound.
+ */
+let auditionSessionToken = 0;
 
 const PROJECT_STORAGE_KEY = 'storia_active_project_v1';
 const PROJECTS_LIBRARY_STORAGE_KEY = 'storia_projects_library_v1';
@@ -218,6 +226,9 @@ export interface StoriaStoreState {
   isBatchSynthesizing: boolean;
   previewingSpeakerId: string | null;
   playingBlockId: string | null;
+  /** Episode-wide "Play All" transport state (mutually exclusive with single-block audition) */
+  isMasterPlaying: boolean;
+  setMasterPlaying: (playing: boolean) => void;
   ttsErrorMessage: string | null;
   undoCount: number;
   redoCount: number;
@@ -346,6 +357,18 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
     isBatchSynthesizing: false,
     previewingSpeakerId: null,
     playingBlockId: null,
+    isMasterPlaying: false,
+    setMasterPlaying: (playing: boolean) => {
+      if (playing) {
+        // Starting "Play All" must silence any single-block audition or speaker preview first
+        auditionSessionToken++;
+        stopAllAudioPlayback();
+        set({ isMasterPlaying: true, playingBlockId: null, previewingSpeakerId: null });
+      } else {
+        studioTransportEngine.stop();
+        set({ isMasterPlaying: false });
+      }
+    },
     ttsErrorMessage: null,
     undoCount: 0,
     redoCount: 0,
@@ -1019,6 +1042,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
     },
 
     stopAudioPreview: () => {
+      auditionSessionToken++;
       stopAllAudioPlayback();
       set({ previewingSpeakerId: null, playingBlockId: null });
     },
@@ -1122,13 +1146,34 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
       if (!block) return;
       const speaker = project.speakers.find((s) => s.id === block.speakerId);
 
+      // Claim a fresh audition session; any older in-flight audition becomes stale.
+      const myToken = ++auditionSessionToken;
+      const isStale = () =>
+        myToken !== auditionSessionToken || get().playingBlockId !== block.id;
+
+      // Single-block audition and episode "Play All" are mutually exclusive:
+      // stop the master transport atomically with claiming the audition.
       stopAllAudioPlayback();
-      set({ playingBlockId: block.id, previewingSpeakerId: null });
+      set({ playingBlockId: block.id, previewingSpeakerId: null, isMasterPlaying: false });
 
       const handleDone = () => {
-        if (get().playingBlockId === block.id) {
+        if (myToken === auditionSessionToken && get().playingBlockId === block.id) {
           set({ playingBlockId: null });
         }
+      };
+      const clearIfCurrent = () => {
+        if (!isStale()) set({ playingBlockId: null });
+      };
+      const speakFallback = () => {
+        if (isStale()) return;
+        const started = speakWithBrowserTts({
+          text: block.text,
+          speaker,
+          language: project.defaultLanguage,
+          startOffsetSec,
+          onEnded: handleDone,
+        });
+        if (!started) clearIfCurrent();
       };
 
       // SFX blocks always play their rendered or synthesized WAV audio (never speech synthesis)
@@ -1136,6 +1181,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         let sfxBlob: Blob | undefined;
         if (!block.generatedAudioUrl) {
           const cached = await getLatestBlockAudioEntry(block.id);
+          if (isStale()) return;
           if (cached?.audioBlob) {
             sfxBlob = cached.audioBlob;
           } else {
@@ -1144,6 +1190,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
               language: project.defaultLanguage,
               useAiCompiler: false,
             });
+            if (isStale()) return;
             sfxBlob = synth.audioBlob;
           }
         }
@@ -1155,10 +1202,9 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           volumeGainDb: block.volumeGainDb,
           startOffsetSec,
           onEnded: handleDone,
+          isCancelled: isStale,
         });
-        if (!played) {
-          set({ playingBlockId: null });
-        }
+        if (!played) clearIfCurrent();
         return;
       }
 
@@ -1166,22 +1212,14 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         block.renderedWithProvider === 'browser_tts' ||
         (!block.generatedAudioUrl && get().ttsProvider === 'browser_tts')
       ) {
-        const started = speakWithBrowserTts({
-          text: block.text,
-          speaker,
-          language: project.defaultLanguage,
-          startOffsetSec,
-          onEnded: handleDone,
-        });
-        if (!started) {
-          set({ playingBlockId: null });
-        }
+        speakFallback();
         return;
       }
 
       const cachedEntry = !block.generatedAudioUrl
         ? await getLatestBlockAudioEntry(block.id)
         : null;
+      if (isStale()) return;
 
       if (block.generatedAudioUrl || cachedEntry?.audioBlob) {
         const played = await playAudioWithSpeakerDsp({
@@ -1191,31 +1229,12 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           volumeGainDb: block.volumeGainDb,
           startOffsetSec,
           onEnded: handleDone,
+          isCancelled: isStale,
         });
-        if (!played) {
-          const started = speakWithBrowserTts({
-            text: block.text,
-            speaker,
-            language: project.defaultLanguage,
-            startOffsetSec,
-            onEnded: handleDone,
-          });
-          if (!started) {
-            set({ playingBlockId: null });
-          }
-        }
+        if (!played) speakFallback();
       } else {
-        // Unrendered dialogue/narration block: audition immediately via Browser TTS or procedural Web Audio
-        const started = speakWithBrowserTts({
-          text: block.text,
-          speaker,
-          language: project.defaultLanguage,
-          startOffsetSec,
-          onEnded: handleDone,
-        });
-        if (!started) {
-          set({ playingBlockId: null });
-        }
+        // Unrendered dialogue/narration block: audition immediately via Browser TTS
+        speakFallback();
       }
     },
 

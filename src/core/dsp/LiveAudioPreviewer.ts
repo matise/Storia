@@ -25,6 +25,8 @@ let activeWebAudioSession: ActiveWebAudioSession | null = null;
 let activeBrowserTtsStartMs: number | null = null;
 let activeBrowserTtsOffsetSec = 0;
 let sharedAudioCtx: AudioContext | null = null;
+/** Incremented on every stop; async preview starts compare against it to avoid late, overlapping playback. */
+let previewGeneration = 0;
 
 function getOrCreateAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -119,6 +121,7 @@ export function selectBrowserVoiceForSpeaker(
  * Stops any currently playing Web Audio buffer or Local Browser SpeechSynthesis utterance.
  */
 export function stopAllAudioPlayback(): void {
+  previewGeneration++;
   studioTransportEngine.stop();
   activeBrowserTtsStartMs = null;
   activeBrowserTtsOffsetSec = 0;
@@ -228,6 +231,7 @@ export async function playAudioWithSpeakerDsp({
   volumeGainDb,
   startOffsetSec = 0,
   onEnded,
+  isCancelled,
 }: {
   audioUrl?: string;
   audioBlob?: Blob;
@@ -235,8 +239,13 @@ export async function playAudioWithSpeakerDsp({
   volumeGainDb?: number;
   startOffsetSec?: number;
   onEnded?: () => void;
+  /** Optional caller-side cancellation check evaluated after every async step. */
+  isCancelled?: () => boolean;
 }): Promise<boolean> {
   stopAllAudioPlayback();
+  const myGeneration = previewGeneration;
+  const superseded = () =>
+    myGeneration !== previewGeneration || Boolean(isCancelled?.());
 
   const ctx = getOrCreateAudioContext();
   if (!ctx) return false;
@@ -249,9 +258,12 @@ export async function playAudioWithSpeakerDsp({
       const resp = await fetch(audioUrl);
       arrayBuffer = await resp.arrayBuffer();
     }
+    // Treat a superseded request as "handled" so callers don't start a fallback voice
+    if (superseded()) return true;
     if (!arrayBuffer || arrayBuffer.byteLength <= 44) return false;
 
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    if (superseded()) return true;
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
 

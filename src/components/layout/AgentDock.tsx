@@ -347,7 +347,7 @@ export const AgentDock: React.FC = () => {
               ) : (
                 <Search className="w-3.5 h-3.5" />
               )}
-              <span>[ {t('researchViaGoogle')} ]</span>
+              <span>{t('researchViaGoogle')}</span>
             </button>
 
             {displayedRecord && (
@@ -409,7 +409,7 @@ export const AgentDock: React.FC = () => {
                   className="w-full py-1.5 px-2.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <MessageSquarePlus className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>[ {t('insertAsDialogue')} ]</span>
+                  <span>{t('insertAsDialogue')}</span>
                 </button>
               </div>
             )}
@@ -480,7 +480,7 @@ export const AgentDock: React.FC = () => {
               ) : (
                 <Sparkles className="w-3.5 h-3.5" />
               )}
-              <span>[ {t('generateBeatsBtn')} ]</span>
+              <span>{t('generateBeatsBtn')}</span>
             </button>
 
             <div className="space-y-2.5">
@@ -516,7 +516,7 @@ export const AgentDock: React.FC = () => {
                     className="w-full py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <MessageSquarePlus className="w-3 h-3 text-emerald-400" />
-                    <span>[ {t('insertBeatBtn')} ({beat.blocks.length}) ]</span>
+                    <span>{t('insertBeatBtn')} ({beat.blocks.length})</span>
                   </button>
                 </div>
               ))}
@@ -563,7 +563,7 @@ export const AgentDock: React.FC = () => {
               ) : (
                 <Wand2 className="w-3.5 h-3.5" />
               )}
-              <span>[ {t('runDoctorBtn')} ]</span>
+              <span>{t('runDoctorBtn')}</span>
             </button>
 
             <div className="space-y-2">
@@ -596,7 +596,7 @@ export const AgentDock: React.FC = () => {
                     className="w-full py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Check className="w-3 h-3 text-emerald-400" />
-                    <span>[ {t('applyPolishBtn')} ]</span>
+                    <span>{t('applyPolishBtn')}</span>
                   </button>
                 </div>
               ))}
@@ -651,7 +651,7 @@ export const AgentDock: React.FC = () => {
               ) : (
                 <Languages className="w-3.5 h-3.5" />
               )}
-              <span>[ {t('runAdapterBtn')} ]</span>
+              <span>{t('runAdapterBtn')}</span>
             </button>
 
             {adaptationResult && (
@@ -678,7 +678,7 @@ export const AgentDock: React.FC = () => {
                   className="w-full py-1.5 px-2.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>[ {t('applyTranslationBtn')} ]</span>
+                  <span>{t('applyTranslationBtn')}</span>
                 </button>
               </div>
             )}

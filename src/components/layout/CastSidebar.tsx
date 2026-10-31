@@ -99,7 +99,7 @@ export const CastSidebar: React.FC = () => {
           className="w-full py-1.5 px-3 rounded-md border border-dashed border-slate-700 hover:border-indigo-500/70 bg-slate-900/60 hover:bg-slate-900 text-xs font-medium text-indigo-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <UserPlus className="w-3.5 h-3.5" />
-          <span>[{t('newSpeaker')}]</span>
+          <span>{t('newSpeaker')}</span>
         </button>
 
         {/* Speaker Cards */}

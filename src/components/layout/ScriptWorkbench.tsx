@@ -285,12 +285,12 @@ export const ScriptWorkbench: React.FC = () => {
             {isPlaying ? (
               <>
                 <Pause className="w-3.5 h-3.5" />
-                <span>[ || {t('pause')} ]</span>
+                <span>{t('pause')}</span>
               </>
             ) : (
               <>
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>[ &gt; {t('playAll')} ]</span>
+                <span>{t('playAll')}</span>
               </>
             )}
           </button>
@@ -305,7 +305,7 @@ export const ScriptWorkbench: React.FC = () => {
             }`}
           >
             <Repeat className="w-3.5 h-3.5" />
-            <span>[ {t('loop')} ]</span>
+            <span>{t('loop')}</span>
           </button>
 
           <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300">
@@ -321,7 +321,7 @@ export const ScriptWorkbench: React.FC = () => {
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-indigo-400" />
-            <span>[ {t('addLine')} ]</span>
+            <span>{t('addLine')}</span>
           </button>
 
           <div className="h-4 w-px bg-slate-800 mx-0.5" />

@@ -96,9 +96,9 @@ export const CastSidebar: React.FC = () => {
         <button
           type="button"
           onClick={() => addSpeaker()}
-          className="w-full py-1.5 px-3 rounded-md border border-dashed border-slate-700 hover:border-indigo-500/70 bg-slate-900/60 hover:bg-slate-900 text-xs font-medium text-indigo-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="w-full py-1.5 px-3 rounded-md border border-dashed border-slate-700 hover:border-indigo-500/70 bg-slate-900/60 hover:bg-slate-900 text-xs font-medium text-indigo-300 flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
         >
-          <UserPlus className="w-3.5 h-3.5" />
+          <UserPlus className="w-3.5 h-3.5 shrink-0" />
           <span>{t('newSpeaker')}</span>
         </button>
 
@@ -186,7 +186,7 @@ export const CastSidebar: React.FC = () => {
                     title={
                       isPreviewing ? t('stopSpeakerPreview') : t('previewSpeakerVoice')
                     }
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                       isPreviewing
                         ? 'bg-emerald-600 border-emerald-500 text-white'
                         : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-indigo-300'
@@ -194,19 +194,19 @@ export const CastSidebar: React.FC = () => {
                   >
                     {isPreviewing ? (
                       <>
-                        <Square className="w-2.5 h-2.5 fill-current" />
+                        <Square className="w-2.5 h-2.5 fill-current shrink-0" />
                         <span>{t('stopSpeakerPreview')}</span>
                       </>
                     ) : (
                       <>
-                        <Play className="w-2.5 h-2.5 fill-current" />
+                        <Play className="w-2.5 h-2.5 fill-current shrink-0" />
                         <span>{t('previewSpeakerVoice')}</span>
                       </>
                     )}
                   </button>
 
                   {/* EQ & Dynamics Toggles + Quick Trim Drawer Trigger */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -214,7 +214,7 @@ export const CastSidebar: React.FC = () => {
                         toggleSpeakerEq(speaker.id);
                       }}
                       title="Toggle 3-Band Biquad EQ (120Hz / 2.5kHz / 8kHz)"
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border whitespace-nowrap transition-colors cursor-pointer ${
                         eqEnabled
                           ? 'bg-indigo-950/80 border-indigo-600/60 text-indigo-300'
                           : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
@@ -230,7 +230,7 @@ export const CastSidebar: React.FC = () => {
                         toggleSpeakerDynamics(speaker.id);
                       }}
                       title="Toggle Dynamics Compressor"
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border whitespace-nowrap transition-colors cursor-pointer ${
                         dynEnabled
                           ? 'bg-emerald-950/80 border-emerald-600/60 text-emerald-300'
                           : 'bg-slate-950 border-slate-800 text-slate-500 line-through'

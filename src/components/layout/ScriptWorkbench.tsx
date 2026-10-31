@@ -276,7 +276,7 @@ export const ScriptWorkbench: React.FC = () => {
           <button
             type="button"
             onClick={handleToggleMasterPlay}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               isPlaying
                 ? 'bg-emerald-600 text-white'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700'
@@ -284,12 +284,12 @@ export const ScriptWorkbench: React.FC = () => {
           >
             {isPlaying ? (
               <>
-                <Pause className="w-3.5 h-3.5" />
+                <Pause className="w-3.5 h-3.5 shrink-0" />
                 <span>{t('pause')}</span>
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5 fill-current" />
+                <Play className="w-3.5 h-3.5 fill-current shrink-0" />
                 <span>{t('playAll')}</span>
               </>
             )}
@@ -298,44 +298,44 @@ export const ScriptWorkbench: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsLooping((l) => !l)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               isLooping
                 ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-300'
                 : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Repeat className="w-3.5 h-3.5" />
+            <Repeat className="w-3.5 h-3.5 shrink-0" />
             <span>{t('loop')}</span>
           </button>
 
-          <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300">
+          <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 whitespace-nowrap shrink-0">
             {formatDurationReadout(playheadSec, true)} /{' '}
             {formatDurationReadout(totalDurationSec, true)}
           </span>
 
-          <div className="h-4 w-px bg-slate-800 mx-0.5" />
+          <div className="h-4 w-px bg-slate-800 mx-0.5 shrink-0" />
 
           <button
             type="button"
             onClick={() => addBlock('dialogue')}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5 text-indigo-400" />
+            <Plus className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span>{t('addLine')}</span>
           </button>
 
-          <div className="h-4 w-px bg-slate-800 mx-0.5" />
+          <div className="h-4 w-px bg-slate-800 mx-0.5 shrink-0" />
 
           {/* Episode-Wide Audio & Waveform Management Tools */}
-          <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-md p-0.5">
+          <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-md p-0.5 shrink-0">
             <button
               type="button"
               data-testid="regen-all-audio-btn"
               disabled={isBatchSynthesizing}
               onClick={() => void regenerateAllBlocksAudio()}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:bg-indigo-950/80 disabled:opacity-40 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:bg-indigo-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="w-3 h-3 shrink-0" />
               <span>{t('regenAllAudio')}</span>
             </button>
 
@@ -344,9 +344,9 @@ export const ScriptWorkbench: React.FC = () => {
               data-testid="rebuild-all-waveforms-btn"
               disabled={isBatchSynthesizing}
               onClick={() => void rebuildAllWaveforms()}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-emerald-300 hover:bg-emerald-950/80 disabled:opacity-40 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-emerald-300 hover:bg-emerald-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
             >
-              <Activity className="w-3 h-3" />
+              <Activity className="w-3 h-3 shrink-0" />
               <span>{t('rebuildAllWaveforms')}</span>
             </button>
 
@@ -355,9 +355,9 @@ export const ScriptWorkbench: React.FC = () => {
               data-testid="clear-all-audio-btn"
               disabled={isBatchSynthesizing}
               onClick={() => void purgeAudioCache()}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-rose-300 hover:bg-rose-950/80 disabled:opacity-40 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-rose-300 hover:bg-rose-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-3 h-3 shrink-0" />
               <span>{t('clearAllAudio')}</span>
             </button>
           </div>
@@ -367,18 +367,18 @@ export const ScriptWorkbench: React.FC = () => {
             data-testid="toggle-episode-banner-btn"
             onClick={() => setShowEpisodeBanner((prev) => !prev)}
             title={t('toggleEpisodeMetaTooltip')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               showEpisodeBanner
                 ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
                 : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            <SlidersHorizontal className="w-3 h-3" />
+            <SlidersHorizontal className="w-3 h-3 shrink-0" />
             <span>{t('episodePropertiesBtn')}</span>
             {showEpisodeBanner ? (
-              <ChevronUp className="w-3 h-3" />
+              <ChevronUp className="w-3 h-3 shrink-0" />
             ) : (
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className="w-3 h-3 shrink-0" />
             )}
           </button>
 
@@ -386,25 +386,25 @@ export const ScriptWorkbench: React.FC = () => {
             type="button"
             data-testid="toggle-waveform-transport-btn"
             onClick={() => setShowWaveformTransport((prev) => !prev)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               showWaveformTransport
                 ? 'bg-emerald-950/70 border-emerald-600/50 text-emerald-200'
                 : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Activity className="w-3 h-3" />
+            <Activity className="w-3 h-3 shrink-0" />
             <span>{t('waveformTransportBtn')}</span>
             {showWaveformTransport ? (
-              <ChevronUp className="w-3 h-3" />
+              <ChevronUp className="w-3 h-3 shrink-0" />
             ) : (
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className="w-3 h-3 shrink-0" />
             )}
           </button>
         </div>
 
         {/* On-Demand Render Loop Status Pill */}
         <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-mono transition-colors ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-mono whitespace-nowrap shrink-0 transition-colors ${
             isPlaying || isScrubbing
               ? 'bg-emerald-950/60 border-emerald-700/60 text-emerald-300'
               : 'bg-slate-900 border-slate-800 text-slate-400'

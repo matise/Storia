@@ -76,23 +76,23 @@ export const TopBar: React.FC = () => {
 
   return (
     <div className="shrink-0 select-none">
-      <header className="h-13 border-b border-slate-800/90 bg-slate-950/95 px-4 flex items-center justify-between gap-3">
+      <header className="h-13 border-b border-slate-800/90 bg-slate-950/95 px-3 sm:px-4 flex items-center justify-between gap-2 overflow-x-auto overflow-y-hidden select-none min-w-0">
         {/* Brand & Active Episode Selector */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 shadow-md shadow-indigo-950/40">
               <StoriaAppBrandIcon size={32} />
             </div>
-            <span className="font-bold tracking-tight text-slate-100 text-base">
+            <span className="font-bold tracking-tight text-slate-100 text-base hidden sm:inline">
               {t('appTitle')}
             </span>
           </div>
 
-          <div className="h-4 w-px bg-slate-800" />
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
 
           {/* Multi-Episode Switcher & Episode Properties Controls */}
-          <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-md px-2 py-0.5 text-xs text-slate-200 font-medium">
-            <span className="px-1 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/50 text-[10px] font-mono text-indigo-300 uppercase">
+          <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-md px-2 py-0.5 text-xs text-slate-200 font-medium min-w-0 shrink">
+            <span className="px-1 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/50 text-[10px] font-mono text-indigo-300 uppercase shrink-0">
               {project.defaultLanguage}
             </span>
             <select
@@ -100,7 +100,7 @@ export const TopBar: React.FC = () => {
               data-testid="episode-switcher-select"
               value={project.id}
               onChange={(e) => switchProject(e.target.value)}
-              className="bg-transparent text-xs text-slate-100 font-medium focus:outline-none max-w-56 truncate cursor-pointer"
+              className="bg-transparent text-xs text-slate-100 font-medium focus:outline-none max-w-28 sm:max-w-40 md:max-w-56 truncate cursor-pointer"
             >
               {projects.map((ep) => (
                 <option
@@ -118,7 +118,7 @@ export const TopBar: React.FC = () => {
               data-testid="create-episode-btn"
               onClick={() => createProject()}
               title={t('newEpisodeBtn')}
-              className="p-1 rounded hover:bg-slate-800 text-indigo-400 hover:text-indigo-200 transition-colors cursor-pointer"
+              className="p-1 rounded hover:bg-slate-800 text-indigo-400 hover:text-indigo-200 transition-colors cursor-pointer shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -128,7 +128,7 @@ export const TopBar: React.FC = () => {
               data-testid="open-episode-properties-btn"
               onClick={() => setEpisodePropertiesModalOpen(true)}
               title={t('episodePropertiesBtn')}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer shrink-0"
             >
               <Settings2 className="w-3.5 h-3.5" />
             </button>
@@ -139,27 +139,27 @@ export const TopBar: React.FC = () => {
             type="button"
             onClick={toggleLanguage}
             title="Switch English / Croatian (EN/HR)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-indigo-300 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-indigo-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Globe className="w-3.5 h-3.5 text-indigo-400" />
+            <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span>{uiLanguage === 'en' ? 'EN / hr' : 'en / HR'}</span>
           </button>
         </div>
 
         {/* Center Command History Stack Controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             type="button"
             onClick={undo}
             disabled={undoCount === 0}
             title={`${t('undo')} (Ctrl+Z)`}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Undo2 className="w-3.5 h-3.5 text-slate-400" />
-            <span>{t('undo')}</span>
-            <span className="text-[10px] text-slate-500 font-mono">(Ctrl+Z)</span>
+            <Undo2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="hidden xl:inline">{t('undo')}</span>
+            <span className="text-[10px] text-slate-500 font-mono hidden 2xl:inline">(Ctrl+Z)</span>
             {undoCount > 0 && (
-              <span className="px-1 rounded bg-slate-800 text-[10px] text-slate-400">
+              <span className="px-1 rounded bg-slate-800 text-[10px] text-slate-400 font-mono">
                 {undoCount}
               </span>
             )}
@@ -170,13 +170,13 @@ export const TopBar: React.FC = () => {
             onClick={redo}
             disabled={redoCount === 0}
             title={`${t('redo')} (Ctrl+Y)`}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Redo2 className="w-3.5 h-3.5 text-slate-400" />
-            <span>{t('redo')}</span>
-            <span className="text-[10px] text-slate-500 font-mono">(Ctrl+Y)</span>
+            <Redo2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="hidden xl:inline">{t('redo')}</span>
+            <span className="text-[10px] text-slate-500 font-mono hidden 2xl:inline">(Ctrl+Y)</span>
             {redoCount > 0 && (
-              <span className="px-1 rounded bg-slate-800 text-[10px] text-slate-400">
+              <span className="px-1 rounded bg-slate-800 text-[10px] text-slate-400 font-mono">
                 {redoCount}
               </span>
             )}
@@ -186,16 +186,16 @@ export const TopBar: React.FC = () => {
             type="button"
             onClick={resetToSampleProject}
             title={t('resetSample')}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors cursor-pointer shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Right Studio Actions: Gemini Model Picker, TTS Engine Switcher, BYOK Status, Batch TTS, Master Export */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Quick Gemini Model Picker */}
-          <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-md px-2 py-1">
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-md px-2 py-1 shrink-0">
             <Cpu className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <select
               aria-label={t('geminiModelPickerLabel')}
@@ -204,7 +204,7 @@ export const TopBar: React.FC = () => {
               onChange={(e) =>
                 setGeminiTextModel(e.target.value as GeminiTextModelId)
               }
-              className="bg-transparent text-[11px] font-mono text-indigo-200 focus:outline-none cursor-pointer"
+              className="bg-transparent text-[11px] font-mono text-indigo-200 focus:outline-none cursor-pointer max-w-40 sm:max-w-48 truncate"
             >
               {GEMINI_TEXT_MODELS.map((m) => (
                 <option
@@ -219,29 +219,29 @@ export const TopBar: React.FC = () => {
           </div>
 
           {/* Quick TTS Engine Switcher: Gemini 2.5 TTS vs Local Browser TTS */}
-          <div className="flex items-center rounded-md bg-slate-900 border border-slate-800 p-0.5 text-[11px] font-medium">
+          <div className="flex items-center rounded-md bg-slate-900 border border-slate-800 p-0.5 text-[11px] font-medium shrink-0">
             <button
               type="button"
               onClick={() => setActiveTtsProvider('gemini_tts')}
-              className={`px-2 py-0.5 rounded flex items-center gap-1 transition-colors cursor-pointer ${
+              className={`px-2 py-0.5 rounded flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 ttsProvider === 'gemini_tts'
                   ? 'bg-indigo-600 text-white font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="w-3 h-3 shrink-0" />
               <span>{t('engineGeminiTts')}</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTtsProvider('browser_tts')}
-              className={`px-2 py-0.5 rounded flex items-center gap-1 transition-colors cursor-pointer ${
+              className={`px-2 py-0.5 rounded flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 ttsProvider === 'browser_tts'
                   ? 'bg-emerald-600 text-white font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Volume2 className="w-3 h-3" />
+              <Volume2 className="w-3 h-3 shrink-0" />
               <span>{t('engineBrowserTts')}</span>
             </button>
           </div>
@@ -249,7 +249,7 @@ export const TopBar: React.FC = () => {
           <button
             type="button"
             onClick={() => setApiKeyModalOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               hasConfiguredApiKey
                 ? 'bg-emerald-950/50 hover:bg-emerald-900/60 border-emerald-800/60 text-emerald-300'
                 : ttsProvider === 'browser_tts'
@@ -258,9 +258,9 @@ export const TopBar: React.FC = () => {
             }`}
           >
             {ttsProvider === 'browser_tts' && !hasConfiguredApiKey ? (
-              <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+              <Cpu className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             ) : (
-              <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+              <KeyRound className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             )}
             <span>{apiKeyBadgeText}</span>
           </button>
@@ -269,16 +269,16 @@ export const TopBar: React.FC = () => {
             type="button"
             disabled={isBatchSynthesizing}
             onClick={() => void synthesizeAllBlocks()}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-60 text-white shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-60 text-white shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             {isBatchSynthesizing ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                 <span>{t('generatingAudio')}</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   {t('genAllAudio')} ({formattedTokens} {t('tokensAbbrev')})
                 </span>
@@ -290,7 +290,7 @@ export const TopBar: React.FC = () => {
             type="button"
             data-testid="topbar-export-master-btn"
             onClick={() => setExportMasterModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             <MasterBroadcastDiskIcon size={16} />
             <span>{t('exportMaster')}</span>

@@ -236,18 +236,18 @@ export const AgentDock: React.FC = () => {
         </div>
 
         {/* 4 Mode Tabs */}
-        <div className="grid grid-cols-4 gap-1 p-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-medium">
+        <div className="grid grid-cols-4 gap-1 p-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-medium shrink-0">
           <button
             type="button"
             data-testid="tab-persona-research"
             onClick={() => setActiveMode('persona_research')}
-            className={`py-1 px-1.5 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+            className={`py-1 px-1 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap min-w-0 ${
               activeMode === 'persona_research'
                 ? 'bg-indigo-600 text-white'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Search className="w-3 h-3" />
+            <Search className="w-3 h-3 shrink-0" />
             <span className="truncate">{t('tabPersonaPov')}</span>
           </button>
 
@@ -255,13 +255,13 @@ export const AgentDock: React.FC = () => {
             type="button"
             data-testid="tab-cowriter"
             onClick={() => setActiveMode('cowriter')}
-            className={`py-1 px-1.5 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+            className={`py-1 px-1 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap min-w-0 ${
               activeMode === 'cowriter'
                 ? 'bg-indigo-600 text-white'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Sparkles className="w-3 h-3" />
+            <Sparkles className="w-3 h-3 shrink-0" />
             <span className="truncate">{t('tabCoWriter')}</span>
           </button>
 
@@ -269,13 +269,13 @@ export const AgentDock: React.FC = () => {
             type="button"
             data-testid="tab-dialogue-doctor"
             onClick={() => setActiveMode('dialogue_doctor')}
-            className={`py-1 px-1.5 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+            className={`py-1 px-1 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap min-w-0 ${
               activeMode === 'dialogue_doctor'
                 ? 'bg-indigo-600 text-white'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Wand2 className="w-3 h-3" />
+            <Wand2 className="w-3 h-3 shrink-0" />
             <span className="truncate">{t('tabDoctor')}</span>
           </button>
 
@@ -283,13 +283,13 @@ export const AgentDock: React.FC = () => {
             type="button"
             data-testid="tab-bilingual-adapter"
             onClick={() => setActiveMode('bilingual_adapter')}
-            className={`py-1 px-1.5 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+            className={`py-1 px-1 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap min-w-0 ${
               activeMode === 'bilingual_adapter'
                 ? 'bg-indigo-600 text-white'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Languages className="w-3 h-3" />
+            <Languages className="w-3 h-3 shrink-0" />
             <span className="truncate">{t('tabAdapter')}</span>
           </button>
         </div>

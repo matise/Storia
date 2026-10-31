@@ -234,11 +234,23 @@ export interface CoWriterBeatBlockDraft {
   pauseAfterMs?: number;
 }
 
+export interface CoWriterAttachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  dataUrl?: string; // base64 data url for images / PDFs
+  textContent?: string; // extracted text content for documents (.txt, .md, .fountain, .json)
+  isImage: boolean;
+}
+
 export interface CoWriterBeatCandidate {
   id: string;
   title: string;
   rationale: string;
   blocks: CoWriterBeatBlockDraft[];
+  deepResearchUsed?: boolean;
+  analyzedFiles?: string[];
 }
 
 export interface ScriptDoctorOption {

@@ -2,19 +2,25 @@ import React from 'react';
 import {
   BookOpen,
   Check,
+  Compass,
   Cpu,
   ExternalLink,
+  FileText,
   Globe,
   Languages,
   Loader2,
   MessageSquarePlus,
+  Paperclip,
   Search,
   Sparkles,
+  Upload,
   Wand2,
+  X,
 } from 'lucide-react';
 import {
   AIAgentMode,
   BilingualAdaptationResult,
+  CoWriterAttachment,
   CoWriterBeatCandidate,
   GEMINI_TEXT_MODELS,
   GeminiTextModelId,
@@ -61,6 +67,10 @@ export const AgentDock: React.FC = () => {
   // Mode 2: Co-Writer State
   const [directionHint, setDirectionHint] = React.useState<string>('');
   const [sceneBeats, setSceneBeats] = React.useState<CoWriterBeatCandidate[]>([]);
+  const [coWriterAttachments, setCoWriterAttachments] = React.useState<CoWriterAttachment[]>([]);
+  const [isDeepResearchEnabled, setIsDeepResearchEnabled] = React.useState<boolean>(false);
+  const [isDraggingOver, setIsDraggingOver] = React.useState<boolean>(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Mode 3: Script Doctor State
   const [doctorOptions, setDoctorOptions] = React.useState<ScriptDoctorOption[]>([]);
@@ -118,6 +128,59 @@ export const AgentDock: React.FC = () => {
     });
   };
 
+  const handleFilesAdded = async (fileList: FileList | File[] | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const newAttachments: CoWriterAttachment[] = [];
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+
+      if (isImage || isPdf) {
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result ?? ''));
+          reader.readAsDataURL(file);
+        });
+        newAttachments.push({
+          id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          name: file.name,
+          mimeType: file.type || (isImage ? 'image/png' : 'application/pdf'),
+          sizeBytes: file.size,
+          dataUrl,
+          isImage,
+        });
+      } else {
+        const textContent = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result ?? ''));
+          reader.readAsText(file);
+        });
+        newAttachments.push({
+          id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          name: file.name,
+          mimeType: file.type || 'text/plain',
+          sizeBytes: file.size,
+          textContent,
+          isImage: false,
+        });
+      }
+    }
+
+    setCoWriterAttachments((prev) => [...prev, ...newAttachments]);
+  };
+
+  const removeAttachment = (id: string) => {
+    setCoWriterAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const handleGenerateSceneBeats = async () => {
     setIsLoading(true);
     try {
@@ -128,6 +191,8 @@ export const AgentDock: React.FC = () => {
         apiKey: getApiKey(),
         modelId: activeTextModel,
         directionHint,
+        attachments: coWriterAttachments,
+        deepResearch: isDeepResearchEnabled,
       });
       setSceneBeats(beats);
     } finally {
@@ -451,38 +516,179 @@ export const AgentDock: React.FC = () => {
         {activeMode === 'cowriter' && (
           <div className="space-y-3 text-xs">
             <div className="flex items-center justify-between text-slate-300 font-medium border-b border-slate-800/80 pb-2">
-              <span>{t('modeCoWriter')}</span>
+              <span className="font-semibold text-slate-200">{t('modeCoWriter')}</span>
+
+              {/* Deep Research Toggle */}
+              <button
+                type="button"
+                data-testid="cowriter-deep-research-toggle"
+                onClick={() => setIsDeepResearchEnabled((prev) => !prev)}
+                title={t('coWriterDeepResearchTooltip')}
+                className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border transition-all cursor-pointer whitespace-nowrap ${
+                  isDeepResearchEnabled
+                    ? 'bg-cyan-950/80 border-cyan-500/70 text-cyan-300 shadow-sm shadow-cyan-950/50'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Compass
+                  className={`w-3 h-3 shrink-0 ${
+                    isDeepResearchEnabled ? 'text-cyan-400 animate-spin-slow' : 'text-slate-500'
+                  }`}
+                />
+                <span>
+                  {isDeepResearchEnabled
+                    ? t('coWriterDeepResearchActive')
+                    : t('coWriterDeepResearchIdle')}
+                </span>
+              </button>
             </div>
 
+            {/* Prompt / Scene Direction Input */}
             <div className="space-y-1">
               <label className="text-[11px] text-slate-400 font-medium">
                 {t('coWriterDirectionHintLabel')}:
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={2}
                 data-testid="cowriter-direction-input"
                 value={directionHint}
                 onChange={(e) => setDirectionHint(e.target.value)}
                 placeholder={t('coWriterDirectionHintPlaceholder')}
-                className="w-full rounded-md bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full rounded-md bg-slate-900 border border-slate-800 p-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"
               />
             </div>
 
+            {/* Drag and Drop File Upload Area */}
+            <div
+              data-testid="cowriter-dropzone"
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(true);
+              }}
+              onDragLeave={() => setIsDraggingOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(false);
+                void handleFilesAdded(e.dataTransfer.files);
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-3 rounded-lg border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer ${
+                isDraggingOver
+                  ? 'border-indigo-400 bg-indigo-950/50 text-indigo-200'
+                  : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                data-testid="cowriter-file-input"
+                accept="image/*,.pdf,.txt,.md,.fountain,.json"
+                onChange={(e) => void handleFilesAdded(e.target.files)}
+                className="hidden"
+              />
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-medium">
+                  {isDraggingOver
+                    ? t('coWriterDropzoneActive')
+                    : t('coWriterDropzoneLabel')}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">
+                PNG, JPG, WebP, PDF, TXT, MD, Fountain, JSON
+              </span>
+            </div>
+
+            {/* Attached Files Badges */}
+            {coWriterAttachments.length > 0 && (
+              <div
+                data-testid="cowriter-attached-files-list"
+                className="space-y-1.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800"
+              >
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                  <div className="flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>
+                      {t('coWriterAttachedFilesLabel')} ({coWriterAttachments.length})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCoWriterAttachments([])}
+                    className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                  >
+                    {t('coWriterClearFiles')}
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {coWriterAttachments.map((att) => (
+                    <div
+                      key={att.id}
+                      data-testid={`attachment-pill-${att.id}`}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-200 font-mono"
+                    >
+                      {att.isImage && att.dataUrl ? (
+                        <img
+                          src={att.dataUrl}
+                          alt={att.name}
+                          className="w-5 h-5 rounded object-cover shrink-0"
+                        />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      )}
+                      <span className="truncate max-w-[120px]" title={att.name}>
+                        {att.name}
+                      </span>
+                      <span className="text-[9px] text-slate-500">
+                        ({formatFileSize(att.sizeBytes)})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeAttachment(att.id);
+                        }}
+                        title={t('coWriterRemoveFile')}
+                        className="text-slate-500 hover:text-rose-400 ml-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Generate Beats Action Button */}
             <button
               type="button"
               data-testid="generate-beats-btn"
               disabled={isLoading}
               onClick={() => void handleGenerateSceneBeats()}
-              className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className={`w-full py-2 px-3 rounded-md text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${
+                isDeepResearchEnabled
+                  ? 'bg-cyan-600 hover:bg-cyan-500 shadow-md shadow-cyan-950/40'
+                  : 'bg-indigo-600/90 hover:bg-indigo-500'
+              }`}
             >
               {isLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : isDeepResearchEnabled ? (
+                <Compass className="w-3.5 h-3.5" />
               ) : (
                 <Sparkles className="w-3.5 h-3.5" />
               )}
-              <span>{t('generateBeatsBtn')}</span>
+              <span>
+                {t('generateBeatsBtn')}
+                {coWriterAttachments.length > 0
+                  ? ` (${coWriterAttachments.length})`
+                  : ''}
+              </span>
             </button>
 
+            {/* Generated Scene Beats Cards */}
             <div className="space-y-2.5">
               {sceneBeats.map((beat, bIdx) => (
                 <div
@@ -490,9 +696,27 @@ export const AgentDock: React.FC = () => {
                   data-testid={`cowriter-beat-card-${bIdx}`}
                   className="rounded-lg bg-slate-900/90 border border-slate-800 p-2.5 space-y-2"
                 >
-                  <div className="font-semibold text-indigo-300 text-xs">
-                    {beat.title}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-indigo-300 text-xs">
+                      {beat.title}
+                    </div>
+                    {beat.deepResearchUsed && (
+                      <span className="px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-700/60 text-[9px] font-mono text-cyan-300 uppercase shrink-0">
+                        Deep Research
+                      </span>
+                    )}
                   </div>
+
+                  {beat.analyzedFiles && beat.analyzedFiles.length > 0 && (
+                    <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                      <Paperclip className="w-3 h-3 text-slate-500 shrink-0" />
+                      <span>{t('analyzedFilesLabel')}:</span>
+                      <span className="text-slate-300 truncate">
+                        {beat.analyzedFiles.join(', ')}
+                      </span>
+                    </div>
+                  )}
+
                   <p className="text-[11px] text-slate-400 leading-snug">
                     {beat.rationale}
                   </p>

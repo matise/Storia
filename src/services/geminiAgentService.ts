@@ -1,5 +1,6 @@
 import {
   BilingualAdaptationResult,
+  CoWriterAttachment,
   CoWriterBeatCandidate,
   GeminiTextModelId,
   GroundingSource,
@@ -280,7 +281,9 @@ export async function runPersonaResearch(options: {
 function buildFallbackSceneBeats(
   speakers: Speaker[],
   language: SupportedLanguage,
-  directionHint?: string
+  directionHint?: string,
+  attachments?: CoWriterAttachment[],
+  deepResearch?: boolean
 ): CoWriterBeatCandidate[] {
   const s1 = speakers[0]?.id ?? 'spk_marko';
   const s2 = speakers[1]?.id ?? speakers[0]?.id ?? 'spk_ana';
@@ -288,31 +291,45 @@ function buildFallbackSceneBeats(
     speakers.find((s) => s.name.toLowerCase().includes('narrat'))?.id ?? s1;
   const hintNote = directionHint?.trim() ? ` (${directionHint.trim()})` : '';
 
+  const hasFiles = Boolean(attachments && attachments.length > 0);
+  const firstFile = hasFiles ? attachments![0] : undefined;
+
+  let baseBeats: CoWriterBeatCandidate[];
+
   if (language === 'hr') {
-    return [
+    baseBeats = [
       {
         id: 'beat_1',
-        title: `1. Eskalacija napetosti${hintNote}`,
-        rationale:
-          'Podiže dramski ulog uvođenjem konkretnog zvučnog traga na stubištu i brze izmjene replika.',
+        title: hasFiles
+          ? `1. Analiza nalaza: ${firstFile!.name}${hintNote}`
+          : `1. Eskalacija napetosti${hintNote}`,
+        rationale: hasFiles
+          ? `Proučava priloženi ${firstFile!.isImage ? 'vizualni zapis' : 'dokument'} "${firstFile!.name}" i otkriva ključni dramski trag.`
+          : 'Podiže dramski ulog uvođenjem konkretnog zvučnog traga na stubištu i brze izmjene replika.',
         blocks: [
           {
             type: 'sound_effect',
-            text: 'Kratko škripanje drvene stepenice u hodniku i prigušeni koraci.',
+            text: hasFiles
+              ? 'Šuštanje pergamenta i tihi metalni zveket istraživačke opreme.'
+              : 'Kratko škripanje drvene stepenice u hodniku i prigušeni koraci.',
             directorNotes: 'blizu / close mic',
             pauseAfterMs: 350,
           },
           {
             type: 'dialogue',
             speakerId: s1,
-            text: 'Jesi li čula ovo? Netko stoji ravno pred našim vratima.',
+            text: hasFiles
+              ? `Pogledaj pažljivo ovaj detalj na "${firstFile!.name}". Netko je namjerno ostavio šifriranu bilješku na margini.`
+              : 'Jesi li čula ovo? Netko stoji ravno pred našim vratima.',
             directorNotes: 'napeto, šapatom / tense whisper',
             pauseAfterMs: 400,
           },
           {
             type: 'dialogue',
             speakerId: s2,
-            text: 'Ne miči se. Ako pritisne kvaku, izlazi kroz dvorišni prozor.',
+            text: hasFiles
+              ? 'Usporedi to s arhivskim registrom. Datum se poklapa s noći kada je zapečaćen trezor.'
+              : 'Ne miči se. Ako pritisne kvaku, izlazi kroz dvorišni prozor.',
             directorNotes: 'odlučno / resolute',
             pauseAfterMs: 500,
           },
@@ -320,21 +337,28 @@ function buildFallbackSceneBeats(
       },
       {
         id: 'beat_2',
-        title: `2. Atmosferska introspekcija i otkriće${hintNote}`,
-        rationale:
-          'Usporava ritam kroz pripovjedačev opis prostora prije nego što lik otkrije ključni dokaz.',
+        title: deepResearch
+          ? `2. Dubinsko istraživanje i arhivska sinteza${hintNote}`
+          : `2. Atmosferska introspekcija i otkriće${hintNote}`,
+        rationale: deepResearch
+          ? 'Kroz dubinsku analizu izvora i povijesnih činjenica povezuje skrivene motive likova.'
+          : 'Usporava ritam kroz pripovjedačev opis prostora prije nego što lik otkrije ključni dokaz.',
         blocks: [
           {
             type: 'narration',
             speakerId: narrator,
-            text: 'Svjetlost ulične plinske svjetiljke probijala se kroz rolete, režući sobu na oštre pruge sjene.',
+            text: deepResearch
+              ? 'Duboka analiza zapisa otkriva obrazac koji su suvremenici prešutjeli: sva pisma potpisana su istim pseudonimom.'
+              : 'Svjetlost ulične plinske svjetiljke probijala se kroz rolete, režući sobu na oštre pruge sjene.',
             directorNotes: 'smireno, filmično / cinematic',
             pauseAfterMs: 650,
           },
           {
             type: 'dialogue',
             speakerId: s2,
-            text: 'Pogledaj omotnicu na stolu. Pečat je još topao — bili su ovdje prije nas.',
+            text: hasFiles
+              ? `Znači dokumenti iz "${firstFile!.name}" nisu slučajno dospjeli u naše ruke.`
+              : 'Pogledaj omotnicu na stolu. Pečat je još topao — bili su ovdje prije nas.',
             directorNotes: 'iznenađeno / startled',
             pauseAfterMs: 500,
           },
@@ -349,15 +373,110 @@ function buildFallbackSceneBeats(
           {
             type: 'dialogue',
             speakerId: s1,
-            text: 'Znači, cijeli grad traži taj spis, a on nam je cijelo vrijeme u džepu.',
+            text: hasFiles
+              ? `Znači cijeli grad traži trag, a nama je bio pred očima u "${firstFile!.name}".`
+              : 'Znači, cijeli grad traži taj spis, a on nam je cijelo vrijeme u džepu.',
             directorNotes: 'ironično / sardonically',
             pauseAfterMs: 450,
           },
           {
             type: 'dialogue',
             speakerId: s2,
-            text: 'Nemoj se prerano veseliti. Najteže je izaći iz Ilice dok još traje policijski sat.',
+            text: 'Nemoj se prerano veseliti. Najteže je izaći iz grada dok još traje policijski sat.',
             directorNotes: 'oprezno / cautious',
+            pauseAfterMs: 500,
+          },
+        ],
+      },
+    ];
+  } else {
+    baseBeats = [
+      {
+        id: 'beat_1',
+        title: hasFiles
+          ? `1. Analysis of Attached Evidence: ${firstFile!.name}${hintNote}`
+          : `1. Escalating Suspense${hintNote}`,
+        rationale: hasFiles
+          ? `Examines the attached ${firstFile!.isImage ? 'image' : 'document'} "${firstFile!.name}" to unearth an urgent dramatic clue.`
+          : 'Raises immediate tension with a close-mic hallway foley cue and rapid dialogue exchange.',
+        blocks: [
+          {
+            type: 'sound_effect',
+            text: hasFiles
+              ? 'Rustle of parchment and a faint metallic click of magnifying tools on glass.'
+              : 'Sharp creak of a wooden floorboard outside the door and slow footsteps.',
+            directorNotes: 'close stereo field',
+            pauseAfterMs: 350,
+          },
+          {
+            type: 'dialogue',
+            speakerId: s1,
+            text: hasFiles
+              ? `Look closely at this mark on "${firstFile!.name}". Someone deliberately inscribed a cipher along the margin.`
+              : 'Did you hear that? Someone is standing right outside the door.',
+            directorNotes: 'whispered, urgent',
+            pauseAfterMs: 400,
+          },
+          {
+            type: 'dialogue',
+            speakerId: s2,
+            text: hasFiles
+              ? 'Cross-reference it with the courier ledger. The date matches the night the consulate archives burned.'
+              : 'Hold your breath. If that handle turns, we go out the courtyard window.',
+            directorNotes: 'focused, low voice',
+            pauseAfterMs: 500,
+          },
+        ],
+      },
+      {
+        id: 'beat_2',
+        title: deepResearch
+          ? `2. Deep Research Synthesis${hintNote}`
+          : `2. Atmospheric Discovery${hintNote}`,
+        rationale: deepResearch
+          ? 'Deep research across sources reveals a hidden geopolitical pattern behind the event.'
+          : 'Uses the narrator to establish noir room tone before revealing a physical clue.',
+        blocks: [
+          {
+            type: 'narration',
+            speakerId: narrator,
+            text: deepResearch
+              ? 'Deeper investigation of the records reveals a concealed fact: every dispatch was sent through the same diplomatic backchannel.'
+              : 'Amber light from the streetlamp sliced through the blinds, painting the desk in narrow shadows.',
+            directorNotes: 'composed, atmospheric',
+            pauseAfterMs: 650,
+          },
+          {
+            type: 'dialogue',
+            speakerId: s2,
+            text: hasFiles
+              ? `Then "${firstFile!.name}" wasn't left behind by accident. It was a decoy.`
+              : 'Look at the wax seal on this ledger. It is still warm—they were here five minutes ago.',
+            directorNotes: 'startled, quiet',
+            pauseAfterMs: 500,
+          },
+        ],
+      },
+      {
+        id: 'beat_3',
+        title: `3. Cynical Reversal${hintNote}`,
+        rationale:
+          'Plays off character subtext and dry humor to pivot the scene toward the next location.',
+        blocks: [
+          {
+            type: 'dialogue',
+            speakerId: s1,
+            text: hasFiles
+              ? `Half the precinct is tearing the city apart for this clue, and we had it in "${firstFile!.name}".`
+              : 'Half the precinct is tearing the city apart for that dossier, and it was sitting on our coat rack.',
+            directorNotes: 'sardonically',
+            pauseAfterMs: 450,
+          },
+          {
+            type: 'dialogue',
+            speakerId: s2,
+            text: 'Save the victory speech until we make it past the last checkpoint.',
+            directorNotes: 'dryly',
             pauseAfterMs: 500,
           },
         ],
@@ -365,85 +484,16 @@ function buildFallbackSceneBeats(
     ];
   }
 
-  return [
-    {
-      id: 'beat_1',
-      title: `1. Escalating Suspense${hintNote}`,
-      rationale:
-        'Raises immediate tension with a close-mic hallway foley cue and rapid dialogue exchange.',
-      blocks: [
-        {
-          type: 'sound_effect',
-          text: 'Sharp creak of a wooden floorboard outside the door and slow footsteps.',
-          directorNotes: 'close stereo field',
-          pauseAfterMs: 350,
-        },
-        {
-          type: 'dialogue',
-          speakerId: s1,
-          text: 'Did you hear that? Someone is standing right outside the door.',
-          directorNotes: 'whispered, urgent',
-          pauseAfterMs: 400,
-        },
-        {
-          type: 'dialogue',
-          speakerId: s2,
-          text: 'Hold your breath. If that handle turns, we go out the courtyard window.',
-          directorNotes: 'focused, low voice',
-          pauseAfterMs: 500,
-        },
-      ],
-    },
-    {
-      id: 'beat_2',
-      title: `2. Atmospheric Discovery${hintNote}`,
-      rationale:
-        'Uses the narrator to establish noir room tone before revealing a physical clue.',
-      blocks: [
-        {
-          type: 'narration',
-          speakerId: narrator,
-          text: 'Amber light from the streetlamp sliced through the blinds, painting the desk in narrow shadows.',
-          directorNotes: 'composed, atmospheric',
-          pauseAfterMs: 650,
-        },
-        {
-          type: 'dialogue',
-          speakerId: s2,
-          text: 'Look at the wax seal on this ledger. It is still warm—they were here five minutes ago.',
-          directorNotes: 'startled, quiet',
-          pauseAfterMs: 500,
-        },
-      ],
-    },
-    {
-      id: 'beat_3',
-      title: `3. Cynical Reversal${hintNote}`,
-      rationale:
-        'Plays off character subtext and dry humor to pivot the scene toward the next location.',
-      blocks: [
-        {
-          type: 'dialogue',
-          speakerId: s1,
-          text: 'Half the precinct is tearing the city apart for that dossier, and it was sitting on our coat rack.',
-          directorNotes: 'sardonically',
-          pauseAfterMs: 450,
-        },
-        {
-          type: 'dialogue',
-          speakerId: s2,
-          text: 'Save the victory speech until we make it past the last tram checkpoint.',
-          directorNotes: 'dryly',
-          pauseAfterMs: 500,
-        },
-      ],
-    },
-  ];
+  return baseBeats.map((b) => ({
+    ...b,
+    deepResearchUsed: Boolean(deepResearch),
+    analyzedFiles: attachments?.map((a) => a.name),
+  }));
 }
 
 /**
  * Step 4.2: Co-Writer Structured Scene Beat Generator.
- * Analyzes preceding script blocks and active cast profiles to propose 3 structured scene continuations.
+ * Analyzes preceding script blocks, active cast profiles, attached files, and deep research to propose 3 structured scene continuations.
  */
 export async function generateNextSceneBeats(options: {
   precedingBlocks: ScriptBlock[];
@@ -452,6 +502,8 @@ export async function generateNextSceneBeats(options: {
   apiKey?: string | null;
   modelId?: GeminiTextModelId;
   directionHint?: string;
+  attachments?: CoWriterAttachment[];
+  deepResearch?: boolean;
   fetchImpl?: typeof fetch;
 }): Promise<CoWriterBeatCandidate[]> {
   const {
@@ -461,11 +513,13 @@ export async function generateNextSceneBeats(options: {
     apiKey,
     modelId = 'gemini-3-flash-preview',
     directionHint,
+    attachments,
+    deepResearch = false,
     fetchImpl = fetch,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
-    return buildFallbackSceneBeats(speakers, language, directionHint);
+    return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch);
   }
 
   const contextLines = precedingBlocks
@@ -480,49 +534,106 @@ export async function generateNextSceneBeats(options: {
     .map((s) => `${s.id}: ${s.name} (${s.personaPrompt})`)
     .join('\n');
 
-  const prompt = [
-    `You are an audio drama Co-Writer generating 3 candidate narrative continuation beats in ${
+  const attachmentDescriptions = attachments && attachments.length > 0
+    ? `ATTACHED FILES (${attachments.length}):\n` +
+      attachments
+        .map(
+          (a) =>
+            `- ${a.name} (${a.mimeType}, ${a.sizeBytes} bytes)${
+              a.textContent ? `:\n"""${a.textContent.slice(0, 1000)}..."""` : ''
+            }`
+        )
+        .join('\n')
+    : '';
+
+  const deepResearchInstructions = deepResearch
+    ? 'DEEP RESEARCH MODE IS ACTIVE: Conduct thorough analytical research (using Google Search grounding if relevant) and deep multimodal document/visual examination. Extract hidden dramatic clues, subtext, period-accurate details, and geopolitical context.'
+    : '';
+
+  const promptText = [
+    `You are an expert audio drama Co-Writer generating 3 candidate narrative continuation beats in ${
       language === 'hr' ? 'Croatian (hr)' : 'English (en)'
     }.`,
     `Available Speakers:\n${speakerList}`,
     `Recent Script Context:\n${contextLines}`,
-    directionHint ? `Director Hint: ${directionHint}` : '',
-    'Return ONLY a JSON object with property "beats" containing an array of 3 beat objects:',
+    directionHint ? `Director Hint / Prompt: ${directionHint}` : '',
+    attachmentDescriptions,
+    deepResearchInstructions,
+    'CRITICAL INSTRUCTION: Return ONLY a valid JSON object with a "beats" array of 3 beat objects. Do not wrap in markdown or backticks.',
     '{ "beats": [ { "id": "beat_1", "title": "...", "rationale": "...", "blocks": [ { "type": "dialogue" | "narration" | "sound_effect", "speakerId": "...", "text": "...", "directorNotes": "...", "pauseAfterMs": 450 } ] } ] }',
   ]
     .filter(Boolean)
     .join('\n\n');
 
+  const parts: Array<
+    | { text: string }
+    | { inlineData: { mimeType: string; data: string } }
+  > = [{ text: promptText }];
+
+  if (attachments && attachments.length > 0) {
+    for (const att of attachments) {
+      if (att.dataUrl && att.dataUrl.startsWith('data:')) {
+        const commaIdx = att.dataUrl.indexOf(',');
+        const base64Data = att.dataUrl.slice(commaIdx + 1);
+        parts.push({
+          inlineData: {
+            mimeType: att.mimeType || (att.isImage ? 'image/png' : 'application/pdf'),
+            data: base64Data,
+          },
+        });
+      } else if (att.textContent) {
+        parts.push({
+          text: `[ATTACHED DOCUMENT: ${att.name}]\n${att.textContent.slice(0, 15000)}\n[END ATTACHED DOCUMENT: ${att.name}]`,
+        });
+      }
+    }
+  }
+
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     modelId
   )}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+
+  const requestPayload: Record<string, unknown> = {
+    contents: [{ role: 'user', parts }],
+    generationConfig: {
+      temperature: 0.75,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  if (deepResearch) {
+    requestPayload.tools = [{ googleSearch: {} }];
+  }
 
   try {
     const response = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.75,
-          responseMimeType: 'application/json',
-        },
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
     if (!response.ok) {
-      return buildFallbackSceneBeats(speakers, language, directionHint);
+      return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch);
     }
 
     const data = await response.json();
-    const rawJson = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let rawJson = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (typeof rawJson !== 'string') {
-      return buildFallbackSceneBeats(speakers, language, directionHint);
+      return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch);
+    }
+
+    // Clean any markdown wrapper if present
+    rawJson = rawJson.trim();
+    if (rawJson.startsWith('```')) {
+      rawJson = rawJson
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/```\s*$/, '')
+        .trim();
     }
 
     const parsed = JSON.parse(rawJson) as { beats?: unknown[] };
     if (!Array.isArray(parsed.beats) || parsed.beats.length === 0) {
-      return buildFallbackSceneBeats(speakers, language, directionHint);
+      return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch);
     }
 
     const validSpeakerIds = new Set(speakers.map((s) => s.id));
@@ -580,12 +691,14 @@ export async function generateNextSceneBeats(options: {
           title: beatObj.title || `Beat ${bIdx + 1}`,
           rationale: beatObj.rationale || '',
           blocks: validBlocks,
+          deepResearchUsed: Boolean(deepResearch),
+          analyzedFiles: attachments?.map((a) => a.name),
         };
       });
 
     return hydratedBeats;
   } catch {
-    return buildFallbackSceneBeats(speakers, language, directionHint);
+    return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch);
   }
 }
 

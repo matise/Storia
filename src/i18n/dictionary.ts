@@ -120,6 +120,17 @@ export interface TranslationDictionary {
   modeCoWriter: string;
   coWriterDirectionHintLabel: string;
   coWriterDirectionHintPlaceholder: string;
+  coWriterDeepResearchToggle: string;
+  coWriterDeepResearchActive: string;
+  coWriterDeepResearchIdle: string;
+  coWriterDeepResearchTooltip: string;
+  coWriterDropzoneLabel: string;
+  coWriterDropzoneActive: string;
+  coWriterUploadBtn: string;
+  coWriterAttachedFilesLabel: string;
+  coWriterRemoveFile: string;
+  coWriterClearFiles: string;
+  analyzedFilesLabel: string;
   generateBeatsBtn: string;
   insertBeatBtn: string;
   modeScriptDoctor: string;
@@ -383,6 +394,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     modeCoWriter: 'Mode: Scene Co-Writer (3 Beats)',
     coWriterDirectionHintLabel: 'Scene Direction Hint (Optional)',
     coWriterDirectionHintPlaceholder: 'e.g., Introduce a sudden phone call or reveal a clue...',
+    coWriterDeepResearchToggle: 'Deep Research',
+    coWriterDeepResearchActive: 'Deep Research: ON',
+    coWriterDeepResearchIdle: 'Deep Research: OFF',
+    coWriterDeepResearchTooltip: 'Enables Google Search Grounding and deep multimodal document/image analysis',
+    coWriterDropzoneLabel: 'Drag & drop image, document or screenplay here, or click to upload',
+    coWriterDropzoneActive: 'Release to attach file to Co-Writer...',
+    coWriterUploadBtn: 'Attach File',
+    coWriterAttachedFilesLabel: 'Attached Evidence & Files',
+    coWriterRemoveFile: 'Remove file',
+    coWriterClearFiles: 'Clear All',
+    analyzedFilesLabel: 'Analyzed Files',
     generateBeatsBtn: 'Brainstorm 3 Next Beats',
     insertBeatBtn: 'Insert Beat into Script',
     modeScriptDoctor: 'Mode: Script Doctor & Vocal Cadence',
@@ -639,6 +661,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     modeCoWriter: 'Način: Scenski koautor (3 nastavka)',
     coWriterDirectionHintLabel: 'Smjernica za scenu (Opcionalno)',
     coWriterDirectionHintPlaceholder: 'npr. Uvedi iznenadni telefonski poziv ili otkrij trag...',
+    coWriterDeepResearchToggle: 'Dubinsko istraživanje',
+    coWriterDeepResearchActive: 'Dubinsko istraživanje: UKLJ',
+    coWriterDeepResearchIdle: 'Dubinsko istraživanje: ISKLJ',
+    coWriterDeepResearchTooltip: 'Uključuje Google Search Grounding i dubinsku multimodalnu analizu dokumenata i slika',
+    coWriterDropzoneLabel: 'Dovuci sliku, dokument ili scenarij ovdje ili klikni za odabir',
+    coWriterDropzoneActive: 'Otpusti datoteku za prilaganje Koautoru...',
+    coWriterUploadBtn: 'Priloži datoteku',
+    coWriterAttachedFilesLabel: 'Priloženi dokumenti i dokazi',
+    coWriterRemoveFile: 'Ukloni datoteku',
+    coWriterClearFiles: 'Očisti sve',
+    analyzedFilesLabel: 'Analizirane datoteke',
     generateBeatsBtn: 'Generiraj 3 prijedloga scene',
     insertBeatBtn: 'Umetni prijedlog u scenarij',
     modeScriptDoctor: 'Način: Lektor dijaloga i govorni ritam',

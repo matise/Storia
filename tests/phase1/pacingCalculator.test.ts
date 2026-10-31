@@ -116,5 +116,51 @@ describe('Phase 1 — Spoken Pacing & Audio Token Calculator', () => {
     expect(summary.totalDurationSec).toBeCloseTo(expectedStart, 3);
     expect(summary.totalAudioTokens).toBeGreaterThan(0);
   });
+
+  it('recalculateProjectTimeline preserves actual rendered audio duration from TTS or waveform peaks', () => {
+    const project = createSampleProject();
+    // Simulate that block 0 has been synthesized with Gemini 2.5 TTS:
+    // Real speech took 15.4 seconds (22 words with pauses) instead of generic ~10s pacing estimate
+    const renderedBlock: ScriptBlock = {
+      ...project.blocks[0],
+      ttsStatus: 'ok',
+      estimatedDurationSec: 15.4,
+      audioTokenEstimate: 385,
+    };
+
+    const nextBlocks = [renderedBlock, ...project.blocks.slice(1)];
+    const summary = recalculateProjectTimeline(nextBlocks, project.speakers, 140);
+
+    const firstBlock = summary.blocks[0];
+    expect(firstBlock.estimatedDurationSec).toBe(15.4);
+    expect(firstBlock.startTimeSec).toBe(0);
+    expect(firstBlock.endTimeSec).toBe(15.4);
+    expect(firstBlock.audioTokenEstimate).toBe(385);
+
+    // Subsequent block must start exactly at 15.4s without drift or overlap
+    const secondBlock = summary.blocks[1];
+    expect(secondBlock.startTimeSec).toBe(15.4);
+
+    // Also verify derivation when WaveformPeakData is attached
+    const waveformBlock: ScriptBlock = {
+      ...project.blocks[1],
+      ttsStatus: 'ok',
+      waveformPeaks: {
+        sampleRate: 20,
+        length: 296, // 296 / 20 = 14.8 seconds
+        minPeaks: new Float32Array(296),
+        maxPeaks: new Float32Array(296),
+        rmsLevels: new Float32Array(296),
+      },
+    };
+    const summaryWithPeaks = recalculateProjectTimeline(
+      [firstBlock, waveformBlock],
+      project.speakers,
+      140
+    );
+    expect(summaryWithPeaks.blocks[1].estimatedDurationSec).toBe(14.8);
+    expect(summaryWithPeaks.blocks[1].startTimeSec).toBe(15.4);
+    expect(summaryWithPeaks.blocks[1].endTimeSec).toBeCloseTo(15.4 + 14.8, 3);
+  });
 });
 

@@ -6,10 +6,8 @@ import {
   Clock,
   Headphones,
   Loader2,
-  Play,
   RefreshCw,
   Sparkles,
-  Square,
   Trash2,
   Upload,
   Volume2,
@@ -89,8 +87,6 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
     isSelected || isActivePlayheadBlock || playingBlockId === block.id
       ? blockPlayheadProgress
       : localScrubProgress;
-  const currentLocalSec =
-    durationSec * Math.max(0, Math.min(1, effectiveProgress));
   const isPlayingThisBlock = playingBlockId === block.id;
   const isPreviewingThisSpeaker =
     Boolean(activeSpeaker) && previewingSpeakerId === activeSpeaker?.id;
@@ -136,20 +132,6 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
     const cleaned = stripNonSpokenTokens(block.text);
     return cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
   }, [block.text]);
-
-  const handleAuditionPlay = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    selectBlock(block.id);
-    const startOffset =
-      effectiveProgress >= 0.98 ? 0 : effectiveProgress * durationSec;
-    if (effectiveProgress >= 0.98) {
-      setLocalScrubProgress(0);
-      onSeekWithinBlock?.(block, 0);
-    } else {
-      onSeekWithinBlock?.(block, effectiveProgress);
-    }
-    void auditionBlock(block.id, startOffset);
-  };
 
   const handleAutoRestoreCroatianDiacritics = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -531,28 +513,8 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             onScrubStateChange={onScrubStateChange}
           />
 
-          {/* Primary Audition / Render Line or SFX Button */}
-          {block.ttsStatus === 'ok' ? (
-            <button
-              type="button"
-              onClick={handleAuditionPlay}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[11px] shrink-0 transition-colors cursor-pointer ${
-                isPlayingThisBlock
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-              }`}
-            >
-              {isPlayingThisBlock ? (
-                <Square className="w-3 h-3 fill-current" />
-              ) : (
-                <Play className="w-3 h-3 text-emerald-400 fill-emerald-400" />
-              )}
-              <span>
-                {formatDurationReadout(currentLocalSec, true)} /{' '}
-                {formatDurationReadout(durationSec, true)}
-              </span>
-            </button>
-          ) : (
+          {/* Primary Generation / Synthesis Button (shown when unrendered or stale) */}
+          {block.ttsStatus !== 'ok' && (
             <button
               type="button"
               data-testid={`generate-block-btn-${block.id}`}

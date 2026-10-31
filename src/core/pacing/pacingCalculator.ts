@@ -155,11 +155,47 @@ export function recalculateProjectTimeline(
     const speaker = block.speakerId ? speakerMap.get(block.speakerId) : undefined;
     const pacing = calculateBlockPacing(block, speaker, targetWpm);
 
+    // If block has already rendered real audio or has extracted waveform peaks,
+    // preserve its exact duration and token counts instead of overwriting with word count estimates!
+    let renderedDurationSec: number | null = null;
+
+    if (
+      block.waveformPeaks &&
+      typeof block.waveformPeaks === 'object' &&
+      'length' in block.waveformPeaks &&
+      'sampleRate' in block.waveformPeaks &&
+      block.waveformPeaks.sampleRate > 0 &&
+      block.waveformPeaks.length > 0
+    ) {
+      renderedDurationSec = Number(
+        (block.waveformPeaks.length / block.waveformPeaks.sampleRate).toFixed(3)
+      );
+    } else if (
+      (block.ttsStatus === 'ok' || Boolean(block.generatedAudioUrl)) &&
+      typeof block.estimatedDurationSec === 'number' &&
+      block.estimatedDurationSec > 0
+    ) {
+      renderedDurationSec = Number(block.estimatedDurationSec.toFixed(3));
+    }
+
+    const hasRenderedAudio = renderedDurationSec !== null && renderedDurationSec > 0;
+    const effectiveDurationSec: number =
+      hasRenderedAudio && renderedDurationSec !== null
+        ? renderedDurationSec
+        : pacing.estimatedDurationSec;
+
+    const effectiveAudioTokens =
+      hasRenderedAudio &&
+      typeof block.audioTokenEstimate === 'number' &&
+      block.audioTokenEstimate > 0
+        ? block.audioTokenEstimate
+        : pacing.audioTokenEstimate;
+
     const startTimeSec = Number(cursorSec.toFixed(3));
-    const endTimeSec = Number((cursorSec + pacing.estimatedDurationSec).toFixed(3));
+    const endTimeSec = Number((cursorSec + effectiveDurationSec).toFixed(3));
     cursorSec = endTimeSec;
 
-    totalAudioTokens += pacing.audioTokenEstimate;
+    totalAudioTokens += effectiveAudioTokens;
 
     if (block.speakerId) {
       if (!speakerStats[block.speakerId]) {
@@ -167,16 +203,16 @@ export function recalculateProjectTimeline(
       }
       speakerStats[block.speakerId].lineCount += 1;
       speakerStats[block.speakerId].durationSec = Number(
-        (speakerStats[block.speakerId].durationSec + pacing.estimatedDurationSec).toFixed(3)
+        (speakerStats[block.speakerId].durationSec + effectiveDurationSec).toFixed(3)
       );
-      speakerStats[block.speakerId].audioTokens += pacing.audioTokenEstimate;
+      speakerStats[block.speakerId].audioTokens += effectiveAudioTokens;
     }
 
     return {
       ...block,
       order: index,
-      estimatedDurationSec: pacing.estimatedDurationSec,
-      audioTokenEstimate: pacing.audioTokenEstimate,
+      estimatedDurationSec: effectiveDurationSec,
+      audioTokenEstimate: effectiveAudioTokens,
       startTimeSec,
       endTimeSec,
     };

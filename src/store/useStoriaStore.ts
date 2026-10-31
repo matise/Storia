@@ -1383,6 +1383,8 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
             cacheKey: savedEntry.cacheKey,
             renderedWithProvider: result.providerUsed,
             ttsStatus: 'ok' as const,
+            estimatedDurationSec: savedEntry.durationSec,
+            audioTokenEstimate: savedEntry.tokensUsed,
           };
         });
 
@@ -1588,17 +1590,25 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           waveformPeaks: nextPeaks,
         });
 
-        const nextBlocks = get().project.blocks.map((b) =>
+        const nextRawBlocks = get().project.blocks.map((b) =>
           b.id === blockId
             ? {
                 ...b,
                 waveformPeaks: saved.waveformPeaks,
                 timepoints: saved.timepoints,
                 generatedAudioUrl: saved.audioUrl,
+                estimatedDurationSec: saved.durationSec,
+                audioTokenEstimate: saved.tokensUsed,
+                ttsStatus: 'ok' as const,
               }
             : b
         );
-        const nextProject = { ...get().project, blocks: nextBlocks, updatedAt: Date.now() };
+        const { blocks } = recalculateProjectTimeline(
+          nextRawBlocks,
+          get().project.speakers,
+          get().project.metadata?.targetWpm ?? 140
+        );
+        const nextProject = { ...get().project, blocks, updatedAt: Date.now() };
         persistProject(nextProject);
         set({ project: nextProject });
         return;
@@ -1622,7 +1632,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           waveformPeaks: sfxResult.waveformPeaks,
         });
 
-        const nextBlocks = get().project.blocks.map((b) =>
+        const nextRawBlocks = get().project.blocks.map((b) =>
           b.id === blockId
             ? {
                 ...b,
@@ -1630,10 +1640,18 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
                 timepoints: saved.timepoints,
                 generatedAudioUrl: saved.audioUrl,
                 cacheKey: saved.cacheKey,
+                estimatedDurationSec: saved.durationSec,
+                audioTokenEstimate: saved.tokensUsed,
+                ttsStatus: 'ok' as const,
               }
             : b
         );
-        const nextProject = { ...get().project, blocks: nextBlocks, updatedAt: Date.now() };
+        const { blocks } = recalculateProjectTimeline(
+          nextRawBlocks,
+          get().project.speakers,
+          get().project.metadata?.targetWpm ?? 140
+        );
+        const nextProject = { ...get().project, blocks, updatedAt: Date.now() };
         persistProject(nextProject);
         set({ project: nextProject });
         return;
@@ -1665,7 +1683,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         waveformPeaks,
       });
 
-      const nextBlocks = get().project.blocks.map((b) =>
+      const nextRawBlocks = get().project.blocks.map((b) =>
         b.id === blockId
           ? {
               ...b,
@@ -1673,10 +1691,18 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
               timepoints: saved.timepoints,
               generatedAudioUrl: saved.audioUrl,
               cacheKey: saved.cacheKey,
+              estimatedDurationSec: saved.durationSec,
+              audioTokenEstimate: saved.tokensUsed,
+              ttsStatus: 'ok' as const,
             }
           : b
       );
-      const nextProject = { ...get().project, blocks: nextBlocks, updatedAt: Date.now() };
+      const { blocks } = recalculateProjectTimeline(
+        nextRawBlocks,
+        get().project.speakers,
+        get().project.metadata?.targetWpm ?? 140
+      );
+      const nextProject = { ...get().project, blocks, updatedAt: Date.now() };
       persistProject(nextProject);
       set({ project: nextProject });
     },

@@ -22,6 +22,7 @@ import {
   BilingualAdaptationResult,
   CoWriterAttachment,
   CoWriterBeatCandidate,
+  CoWriterWorkflowMode,
   GEMINI_TEXT_MODELS,
   GeminiTextModelId,
   ScriptDoctorOption,
@@ -38,7 +39,11 @@ import {
 } from '../../services/geminiAgentService';
 import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
 
-export const AgentDock: React.FC = () => {
+export interface AgentDockProps {
+  width?: number;
+}
+
+export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   const { t } = useTranslation();
   const project = useStoriaStore((s) => s.project);
   const selectedBlockId = useStoriaStore((s) => s.selectedBlockId);
@@ -66,6 +71,8 @@ export const AgentDock: React.FC = () => {
 
   // Mode 2: Co-Writer State
   const [directionHint, setDirectionHint] = React.useState<string>('');
+  const [coWriterMode, setCoWriterMode] =
+    React.useState<CoWriterWorkflowMode>('scene_beats');
   const [sceneBeats, setSceneBeats] = React.useState<CoWriterBeatCandidate[]>([]);
   const [coWriterAttachments, setCoWriterAttachments] = React.useState<CoWriterAttachment[]>([]);
   const [isDeepResearchEnabled, setIsDeepResearchEnabled] = React.useState<boolean>(false);
@@ -193,6 +200,7 @@ export const AgentDock: React.FC = () => {
         directionHint,
         attachments: coWriterAttachments,
         deepResearch: isDeepResearchEnabled,
+        mode: coWriterMode,
       });
       setSceneBeats(beats);
     } finally {
@@ -255,7 +263,10 @@ export const AgentDock: React.FC = () => {
   };
 
   return (
-    <aside className="w-85 border-l border-slate-800/90 bg-slate-950 flex flex-col justify-between shrink-0 select-none">
+    <aside
+      style={{ width, minWidth: width, maxWidth: width }}
+      className="border-l border-slate-800/90 bg-slate-950 flex flex-col justify-between shrink-0 select-none overflow-hidden"
+    >
       <div className="p-3 flex flex-col gap-3 overflow-y-auto">
         {/* Header + Inline Gemini Model Picker */}
         <div className="space-y-2 border-b border-slate-800/80 pb-2.5">
@@ -515,32 +526,84 @@ export const AgentDock: React.FC = () => {
         {/* ================================================================= */}
         {activeMode === 'cowriter' && (
           <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between text-slate-300 font-medium border-b border-slate-800/80 pb-2">
-              <span className="font-semibold text-slate-200">{t('modeCoWriter')}</span>
-
-              {/* Deep Research Toggle */}
-              <button
-                type="button"
-                data-testid="cowriter-deep-research-toggle"
-                onClick={() => setIsDeepResearchEnabled((prev) => !prev)}
-                title={t('coWriterDeepResearchTooltip')}
-                className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border transition-all cursor-pointer whitespace-nowrap ${
-                  isDeepResearchEnabled
-                    ? 'bg-cyan-950/80 border-cyan-500/70 text-cyan-300 shadow-sm shadow-cyan-950/50'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Compass
-                  className={`w-3 h-3 shrink-0 ${
-                    isDeepResearchEnabled ? 'text-cyan-400 animate-spin-slow' : 'text-slate-500'
-                  }`}
-                />
-                <span>
-                  {isDeepResearchEnabled
-                    ? t('coWriterDeepResearchActive')
-                    : t('coWriterDeepResearchIdle')}
+            {/* Co-Writer Workflow Mode Selector Strip */}
+            <div className="space-y-2 border-b border-slate-800/80 pb-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{t('coWriterWorkflowLabel')}</span>
                 </span>
-              </button>
+
+                {/* Deep Research Toggle */}
+                <button
+                  type="button"
+                  data-testid="cowriter-deep-research-toggle"
+                  onClick={() => setIsDeepResearchEnabled((prev) => !prev)}
+                  title={t('coWriterDeepResearchTooltip')}
+                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border transition-all cursor-pointer whitespace-nowrap ${
+                    isDeepResearchEnabled
+                      ? 'bg-cyan-950/80 border-cyan-500/70 text-cyan-300 shadow-sm shadow-cyan-950/50'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Compass
+                    className={`w-3 h-3 shrink-0 ${
+                      isDeepResearchEnabled ? 'text-cyan-400 animate-spin-slow' : 'text-slate-500'
+                    }`}
+                  />
+                  <span>
+                    {isDeepResearchEnabled
+                      ? t('coWriterDeepResearchActive')
+                      : t('coWriterDeepResearchIdle')}
+                  </span>
+                </button>
+              </div>
+
+              {/* 3-way Mode Segmented Pill Buttons */}
+              <div
+                data-testid="cowriter-mode-selector"
+                className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-800"
+              >
+                <button
+                  type="button"
+                  data-testid="cowriter-mode-scene_beats"
+                  onClick={() => setCoWriterMode('scene_beats')}
+                  className={`px-1.5 py-1 rounded text-[10px] font-medium transition-all text-center truncate cursor-pointer ${
+                    coWriterMode === 'scene_beats'
+                      ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  }`}
+                  title={t('coWriterModeSceneBeatsDesc')}
+                >
+                  {t('coWriterModeSceneBeats')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="cowriter-mode-complete_story"
+                  onClick={() => setCoWriterMode('complete_story')}
+                  className={`px-1.5 py-1 rounded text-[10px] font-medium transition-all text-center truncate cursor-pointer ${
+                    coWriterMode === 'complete_story'
+                      ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  }`}
+                  title={t('coWriterModeCompleteStoryDesc')}
+                >
+                  {t('coWriterModeCompleteStory')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="cowriter-mode-podcast_episode"
+                  onClick={() => setCoWriterMode('podcast_episode')}
+                  className={`px-1.5 py-1 rounded text-[10px] font-medium transition-all text-center truncate cursor-pointer ${
+                    coWriterMode === 'podcast_episode'
+                      ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  }`}
+                  title={t('coWriterModePodcastEpisodeDesc')}
+                >
+                  {t('coWriterModePodcastEpisode')}
+                </button>
+              </div>
             </div>
 
             {/* Prompt / Scene Direction Input */}
@@ -681,7 +744,11 @@ export const AgentDock: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5" />
               )}
               <span>
-                {t('generateBeatsBtn')}
+                {coWriterMode === 'complete_story'
+                  ? t('coWriterGenerateStoryBtn')
+                  : coWriterMode === 'podcast_episode'
+                    ? t('coWriterGeneratePodcastBtn')
+                    : t('generateBeatsBtn')}
                 {coWriterAttachments.length > 0
                   ? ` (${coWriterAttachments.length})`
                   : ''}

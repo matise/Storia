@@ -226,6 +226,8 @@ export interface PersonaResearchRecord {
   timestamp: number;
 }
 
+export type CoWriterWorkflowMode = 'scene_beats' | 'complete_story' | 'podcast_episode';
+
 export interface CoWriterBeatBlockDraft {
   type: BlockType;
   speakerId?: string;
@@ -251,6 +253,7 @@ export interface CoWriterBeatCandidate {
   blocks: CoWriterBeatBlockDraft[];
   deepResearchUsed?: boolean;
   analyzedFiles?: string[];
+  mode?: CoWriterWorkflowMode;
 }
 
 export interface ScriptDoctorOption {

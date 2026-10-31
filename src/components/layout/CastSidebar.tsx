@@ -22,7 +22,11 @@ import {
   studioTransportEngine,
 } from '../../core/dsp/StudioTransportEngine';
 
-export const CastSidebar: React.FC = () => {
+export interface CastSidebarProps {
+  width?: number;
+}
+
+export const CastSidebar: React.FC<CastSidebarProps> = ({ width = 280 }) => {
   const { t } = useTranslation();
   const project = useStoriaStore((s) => s.project);
   const addSpeaker = useStoriaStore((s) => s.addSpeaker);
@@ -81,7 +85,10 @@ export const CastSidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-68 border-r border-slate-800/90 bg-slate-950 flex flex-col justify-between shrink-0 select-none">
+    <aside
+      style={{ width, minWidth: width, maxWidth: width }}
+      className="border-r border-slate-800/90 bg-slate-950 flex flex-col justify-between shrink-0 select-none overflow-hidden"
+    >
       {/* Header & Speaker Roster */}
       <div className="p-3 flex flex-col gap-3 overflow-y-auto">
         <div className="flex items-center justify-between">

@@ -118,6 +118,17 @@ export interface TranslationDictionary {
   insertAsDialogue: string;
   researchNotebookTitle: string;
   modeCoWriter: string;
+  coWriterWorkflowLabel: string;
+  coWriterModeSceneBeats: string;
+  coWriterModeCompleteStory: string;
+  coWriterModePodcastEpisode: string;
+  coWriterModeSceneBeatsDesc: string;
+  coWriterModeCompleteStoryDesc: string;
+  coWriterModePodcastEpisodeDesc: string;
+  coWriterGenerateStoryBtn: string;
+  coWriterGeneratePodcastBtn: string;
+  leftSplitterTooltip: string;
+  rightSplitterTooltip: string;
   coWriterDirectionHintLabel: string;
   coWriterDirectionHintPlaceholder: string;
   coWriterDeepResearchToggle: string;
@@ -392,6 +403,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     insertAsDialogue: 'Insert as Dialogue Line',
     researchNotebookTitle: 'Research Notebook History',
     modeCoWriter: 'Mode: Scene Co-Writer (3 Beats)',
+    coWriterWorkflowLabel: 'Co-Writer Mode',
+    coWriterModeSceneBeats: 'Scene (3 Beats)',
+    coWriterModeCompleteStory: 'Long Story',
+    coWriterModePodcastEpisode: 'Podcast',
+    coWriterModeSceneBeatsDesc: 'Generates 3 scene beat continuation options',
+    coWriterModeCompleteStoryDesc: 'Generates a long complete episodic story arc',
+    coWriterModePodcastEpisodeDesc: 'Generates an engaging conversational podcast episode',
+    coWriterGenerateStoryBtn: 'Generate Complete Story',
+    coWriterGeneratePodcastBtn: 'Generate Podcast Episode',
+    leftSplitterTooltip: 'Drag to resize Cast & Speakers panel',
+    rightSplitterTooltip: 'Drag to resize AI Agent & Research panel',
     coWriterDirectionHintLabel: 'Scene Direction Hint (Optional)',
     coWriterDirectionHintPlaceholder: 'e.g., Introduce a sudden phone call or reveal a clue...',
     coWriterDeepResearchToggle: 'Deep Research',
@@ -659,6 +681,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     insertAsDialogue: 'Umetni kao repliku dijaloga',
     researchNotebookTitle: 'Povijest istraživačke bilježnice',
     modeCoWriter: 'Način: Scenski koautor (3 nastavka)',
+    coWriterWorkflowLabel: 'Način rada Koautora',
+    coWriterModeSceneBeats: 'Scena (3 ritma)',
+    coWriterModeCompleteStory: 'Duga priča',
+    coWriterModePodcastEpisode: 'Podcast',
+    coWriterModeSceneBeatsDesc: 'Generira 3 prijedloga nastavka scene',
+    coWriterModeCompleteStoryDesc: 'Generira dugu, cjelovitu epizodnu priču s punim dramskim lukom',
+    coWriterModePodcastEpisodeDesc: 'Generira dinamičnu razgovornu podcast epizodu',
+    coWriterGenerateStoryBtn: 'Generiraj cjelovitu priču',
+    coWriterGeneratePodcastBtn: 'Generiraj podcast epizodu',
+    leftSplitterTooltip: 'Povuci za promjenu širine popisa likova',
+    rightSplitterTooltip: 'Povuci za promjenu širine AI Agent panela',
     coWriterDirectionHintLabel: 'Smjernica za scenu (Opcionalno)',
     coWriterDirectionHintPlaceholder: 'npr. Uvedi iznenadni telefonski poziv ili otkrij trag...',
     coWriterDeepResearchToggle: 'Dubinsko istraživanje',

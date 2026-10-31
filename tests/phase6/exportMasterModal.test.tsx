@@ -29,6 +29,12 @@ describe('Phase 6 — Step 6.4: ExportMasterModal Studio Integration', () => {
     fireEvent.change(bitDepthSelect, { target: { value: '16' } });
     expect(useStoriaStore.getState().project.audioConfig.bitDepth).toBe(16);
 
+    // Verify both WAV and 320 kbps MP3 master & stem download buttons are present
+    expect(screen.getByTestId('export-master-wav-btn')).toBeDefined();
+    expect(screen.getByTestId('export-master-mp3-btn')).toBeDefined();
+    expect(screen.getByTestId('export-stems-wav-btn')).toBeDefined();
+    expect(screen.getByTestId('export-stems-mp3-btn')).toBeDefined();
+
     // 3. Switch to Script & Project Archive tab
     const scriptTab = screen.getByTestId('export-tab-script');
     fireEvent.click(scriptTab);

@@ -31,6 +31,8 @@ export interface EpisodeWaveformTransportProps {
   onJumpBlockIndex: (blockIndex: number) => void;
   onChangeSpeed: (speed: number) => void;
   onScrubStateChange?: (isScrubbing: boolean) => void;
+  onUpdatePauseAfterMs?: (blockId: string, pauseAfterMs: number) => void;
+  onSelectBlockId?: (blockId: string) => void;
 }
 
 /**
@@ -106,7 +108,7 @@ export function renderEpisodeTimelineWaveform(
     const peaks =
       blk.waveformPeaks && blk.waveformPeaks.length > 0
         ? blk.waveformPeaks
-        : generateSyntheticPreviewPeaks(`${blk.id}_${blk.text}`, 48);
+        : generateSyntheticPreviewPeaks(`${blk.id}_${blk.text}`, 96);
 
     const gainDb = blk.volumeGainDb ?? 0;
     const gainLin = !Number.isFinite(gainDb) || gainDb <= -48 ? 0 : Math.pow(10, gainDb / 20);
@@ -134,6 +136,25 @@ export function renderEpisodeTimelineWaveform(
       const maxY = midY + Math.max(-1.0, Math.min(1.0, peaks.maxPeaks[peakIdx] * gainLin)) * (midY * 0.86);
       const barH = Math.max(1.5, minY - maxY);
       ctx.fillRect(x, maxY, barW, barH);
+    }
+  }
+
+  // 3. Pause Drag Handles between blocks (green accent handle)
+  for (let bIdx = 0; bIdx < blocks.length; bIdx++) {
+    const blk = blocks[bIdx];
+    const totalBlkDur = blk.estimatedDurationSec ?? 0;
+    const pauseSec = Math.max(0, (blk.pauseAfterMs ?? 0) / 1000);
+    const spokenDur = Math.max(0.1, totalBlkDur - pauseSec);
+    const startSec = blk.startTimeSec ?? 0;
+    const endSec = blk.endTimeSec ?? startSec + totalBlkDur;
+
+    const xSpokenEnd = ((startSec + spokenDur) / totalDurationSec) * width;
+    const xBlockEnd = (endSec / totalDurationSec) * width;
+
+    if (xBlockEnd >= xSpokenEnd) {
+      // Draw a subtle vertical drag handle at xBlockEnd
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.45)';
+      ctx.fillRect(xBlockEnd - 1, 4, 2, height - 8);
     }
   }
 
@@ -169,11 +190,21 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   onJumpBlockIndex,
   onChangeSpeed,
   onScrubStateChange,
+  onUpdatePauseAfterMs,
+  onSelectBlockId,
 }) => {
   const { t } = useTranslation();
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const isDraggingRef = React.useRef(false);
+  const isDraggingPauseRef = React.useRef<{
+    blockId: string;
+    initialPauseMs: number;
+    startClientX: number;
+    totalDurationSec: number;
+    width: number;
+  } | null>(null);
   const [hoverTimeSec, setHoverTimeSec] = React.useState<number | null>(null);
+  const [isOverPauseHandle, setIsOverPauseHandle] = React.useState(false);
 
   const draw = React.useCallback(() => {
     const canvas = canvasRef.current;
@@ -237,14 +268,93 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
     const canvas = canvasRef.current;
     if (!canvas || totalDurationSec <= 0) return 0;
     const rect = canvas.getBoundingClientRect();
-    const width = Math.max(1, rect.width);
+    const width = rect.width > 0 ? rect.width : 600;
     const safeX = typeof clientX === 'number' && Number.isFinite(clientX) ? clientX : 0;
     const ratio = Math.max(0, Math.min(1, (safeX - rect.left) / width));
     return ratio * totalDurationSec;
   };
 
+  const findPauseHandleAtClientX = (clientX: number | undefined): { block: ScriptBlock; blockIndex: number } | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || totalDurationSec <= 0 || blocks.length === 0) return null;
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width > 0 ? rect.width : 600;
+    const safeX = typeof clientX === 'number' && Number.isFinite(clientX) ? clientX : 0;
+    const clickX = safeX - rect.left;
+
+    for (let i = 0; i < blocks.length; i++) {
+      const blk = blocks[i];
+      const startSec = blk.startTimeSec ?? 0;
+      const totalBlkDur = blk.estimatedDurationSec ?? 0;
+      const pauseSec = Math.max(0, (blk.pauseAfterMs ?? 0) / 1000);
+      const spokenDur = Math.max(0.1, totalBlkDur - pauseSec);
+      const endSec = blk.endTimeSec ?? startSec + totalBlkDur;
+
+      const xSpokenEnd = ((startSec + spokenDur) / totalDurationSec) * width;
+      const xBlockEnd = (endSec / totalDurationSec) * width;
+
+      // Check if clickX is within pause area or +/- 12px near xBlockEnd
+      const minX = Math.min(xSpokenEnd, xBlockEnd - 12);
+      const maxX = xBlockEnd + 12;
+      if (clickX >= minX && clickX <= maxX) {
+        return { block: blk, blockIndex: i };
+      }
+    }
+    return null;
+  };
+
+  const findBlockAtClientX = (clientX: number | undefined): { block: ScriptBlock; blockIndex: number } | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || totalDurationSec <= 0 || blocks.length === 0) return null;
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width > 0 ? rect.width : 600;
+    const safeX = typeof clientX === 'number' && Number.isFinite(clientX) ? clientX : 0;
+    const clickX = safeX - rect.left;
+
+    for (let i = 0; i < blocks.length; i++) {
+      const blk = blocks[i];
+      const startSec = blk.startTimeSec ?? 0;
+      const totalBlkDur = blk.estimatedDurationSec ?? 0;
+      const endSec = blk.endTimeSec ?? startSec + totalBlkDur;
+      const xStart = (startSec / totalDurationSec) * width;
+      const xEnd = (endSec / totalDurationSec) * width;
+
+      if (clickX >= xStart && clickX <= xEnd) {
+        return { block: blk, blockIndex: i };
+      }
+    }
+    return null;
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
+    const rawX = (e as unknown as MouseEvent).clientX ?? e.clientX ?? (e.nativeEvent as unknown as MouseEvent)?.clientX;
+    const clientX = typeof rawX === 'number' && Number.isFinite(rawX) ? rawX : 0;
+
+    // Check if clicked near a pause handle boundary
+    const pauseHit = findPauseHandleAtClientX(clientX);
+    if (pauseHit && onUpdatePauseAfterMs) {
+      const canvas = canvasRef.current;
+      const rect = canvas?.getBoundingClientRect();
+      const canvasWidth = rect && rect.width > 0 ? rect.width : 600;
+      isDraggingPauseRef.current = {
+        blockId: pauseHit.block.id,
+        initialPauseMs: pauseHit.block.pauseAfterMs ?? 0,
+        startClientX: clientX,
+        totalDurationSec,
+        width: canvasWidth,
+      };
+      if (typeof e.currentTarget.setPointerCapture === 'function') {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          // Ignore in JSDOM
+        }
+      }
+      onSelectBlockId?.(pauseHit.block.id);
+      return;
+    }
+
     isDraggingRef.current = true;
     if (typeof e.currentTarget.setPointerCapture === 'function') {
       try {
@@ -253,16 +363,38 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
         // Ignore in JSDOM
       }
     }
-    const clientX =
-      e.clientX ?? (e.nativeEvent as unknown as { clientX?: number })?.clientX ?? 0;
     const targetSec = computeTimeFromClientX(clientX);
     onScrubStateChange?.(true);
     onSeekTimeSec(targetSec);
+
+    // Also select and trigger scroll-to-segment
+    const blockHit = findBlockAtClientX(clientX);
+    if (blockHit) {
+      onJumpBlockIndex(blockHit.blockIndex);
+      onSelectBlockId?.(blockHit.block.id);
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const clientX =
-      e.clientX ?? (e.nativeEvent as unknown as { clientX?: number })?.clientX ?? 0;
+    const rawX = (e as unknown as MouseEvent).clientX ?? e.clientX ?? (e.nativeEvent as unknown as MouseEvent)?.clientX;
+    const clientX = typeof rawX === 'number' && Number.isFinite(rawX) ? rawX : 0;
+
+    // Canvas or document pointer move support
+    if (isDraggingPauseRef.current && onUpdatePauseAfterMs) {
+      e.stopPropagation();
+      const drag = isDraggingPauseRef.current;
+      const deltaX = clientX - drag.startClientX;
+      const deltaSec = (deltaX / drag.width) * drag.totalDurationSec;
+      const newPauseMs = Math.max(0, Math.min(10000, Math.round(drag.initialPauseMs + deltaSec * 1000)));
+      if (newPauseMs !== drag.initialPauseMs || Math.abs(deltaX) > 0) {
+        onUpdatePauseAfterMs(drag.blockId, newPauseMs);
+      }
+      return;
+    }
+
+    const pauseHit = findPauseHandleAtClientX(clientX);
+    setIsOverPauseHandle(Boolean(pauseHit));
+
     const targetSec = computeTimeFromClientX(clientX);
     setHoverTimeSec(targetSec);
     if (!isDraggingRef.current) return;
@@ -271,6 +403,11 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isDraggingPauseRef.current) {
+      e.stopPropagation();
+      isDraggingPauseRef.current = null;
+      return;
+    }
     if (!isDraggingRef.current) return;
     e.stopPropagation();
     isDraggingRef.current = false;
@@ -469,8 +606,13 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          onPointerLeave={() => setHoverTimeSec(null)}
-          className="w-full rounded-lg bg-slate-950 border border-slate-800/90 hover:border-indigo-500/60 cursor-ew-resize transition-colors touch-none"
+          onPointerLeave={() => {
+            setHoverTimeSec(null);
+            setIsOverPauseHandle(false);
+          }}
+          className={`w-full rounded-lg bg-slate-950 border border-slate-800/90 hover:border-indigo-500/60 transition-colors touch-none ${
+            isOverPauseHandle ? 'cursor-col-resize' : 'cursor-ew-resize'
+          }`}
         />
         {hoverTimeSec !== null && (
           <span className="pointer-events-none absolute top-1 right-2 px-1.5 py-0.5 rounded bg-slate-900/95 border border-slate-700 text-[10px] font-mono text-indigo-200 shadow">
@@ -489,7 +631,10 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
               key={blk.id}
               type="button"
               data-testid={`timeline-block-marker-${blk.id}`}
-              onClick={() => onJumpBlockIndex(idx)}
+              onClick={() => {
+                onJumpBlockIndex(idx);
+                onSelectBlockId?.(blk.id);
+              }}
               className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono shrink-0 border transition-colors cursor-pointer ${
                 isCurrent
                   ? 'bg-slate-800 border-emerald-500/70 text-emerald-300 font-semibold'

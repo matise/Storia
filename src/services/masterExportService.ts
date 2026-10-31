@@ -2,10 +2,12 @@ import { Project, Speaker } from '../types/storia';
 import { studioTransportEngine } from '../core/dsp/StudioTransportEngine';
 import { processSpeakerDspBuffer } from '../core/dsp/BiquadChain';
 import { LoudnessMeter } from '../core/dsp/LoudnessMeter';
-import { encodeMasterWavBuffer } from '../core/dsp/TpdfDither';
+import { encodeMasterWavBuffer, resampleFloat32Buffer } from '../core/dsp/TpdfDither';
+import { Mp3Encoder } from '@breezystack/lamejs';
 
 export interface RenderedMasterEpisode {
   wavBlob: Blob;
+  mp3Blob: Blob;
   totalDurationSec: number;
   integratedLufs: number;
   truePeakDbfs: number;
@@ -13,14 +15,66 @@ export interface RenderedMasterEpisode {
   sampleRate: number;
   bitDepth: number;
   filename: string;
+  mp3Filename: string;
 }
 
 export interface RenderedSpeakerStem {
   speakerId: string;
   speakerName: string;
   wavBlob: Blob;
+  mp3Blob: Blob;
   totalDurationSec: number;
   filename: string;
+  mp3Filename: string;
+}
+
+/**
+ * Encodes a mono Float32Array buffer into raw MP3 chunk arrays at 320 kbps CBR
+ * using the pure JavaScript lamejs MP3 encoder.
+ */
+export function encodeMasterMp3Chunks(
+  samples: Float32Array,
+  sampleRate: number,
+  kbps = 320
+): Uint8Array[] {
+  const encoder = new Mp3Encoder(1, sampleRate, kbps);
+
+  // Convert Float32 [-1.0, 1.0] to 16-bit signed PCM [-32768, 32767]
+  const int16Samples = new Int16Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    int16Samples[i] = s < 0 ? Math.round(s * 0x8000) : Math.round(s * 0x7fff);
+  }
+
+  const mp3Chunks: Uint8Array[] = [];
+  const blockSize = 1152; // LAME standard MP3 frame sample size
+  for (let i = 0; i < int16Samples.length; i += blockSize) {
+    const chunk = int16Samples.subarray(i, i + blockSize);
+    const mp3Buf = encoder.encodeBuffer(chunk);
+    if (mp3Buf && mp3Buf.length > 0) {
+      mp3Chunks.push(new Uint8Array(mp3Buf));
+    }
+  }
+
+  const finalChunk = encoder.flush();
+  if (finalChunk && finalChunk.length > 0) {
+    mp3Chunks.push(new Uint8Array(finalChunk));
+  }
+
+  return mp3Chunks;
+}
+
+/**
+ * Encodes a mono Float32Array buffer into a high-fidelity MP3 Blob at 320 kbps CBR
+ * using the pure JavaScript lamejs MP3 encoder.
+ */
+export function encodeMasterMp3Buffer(
+  samples: Float32Array,
+  sampleRate: number,
+  kbps = 320
+): Blob {
+  const mp3Chunks = encodeMasterMp3Chunks(samples, sampleRate, kbps);
+  return new Blob(mp3Chunks, { type: 'audio/mp3' });
 }
 
 /**
@@ -181,6 +235,22 @@ export async function renderMasterEpisodeMix(
     internalSampleRate
   );
 
+  // 5. Encode to high-quality 320 kbps MP3 using lamejs
+  const exportMp3Samples =
+    internalSampleRate !== project.audioConfig.sampleRate
+      ? resampleFloat32Buffer(
+          normalizedResult.normalized,
+          internalSampleRate,
+          project.audioConfig.sampleRate
+        )
+      : normalizedResult.normalized;
+
+  const mp3Blob = encodeMasterMp3Buffer(
+    exportMp3Samples,
+    project.audioConfig.sampleRate,
+    320
+  );
+
   onProgress?.(100);
 
   const totalDurationSec = totalSampleCount / internalSampleRate;
@@ -189,11 +259,13 @@ export async function renderMasterEpisodeMix(
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'storia_master';
   const filename = `${safeTitle}_master_${project.audioConfig.sampleRate}hz_${project.audioConfig.bitDepth}bit.wav`;
+  const mp3Filename = `${safeTitle}_master_${project.audioConfig.sampleRate}hz_320kbps.mp3`;
 
   const wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
 
   return {
     wavBlob,
+    mp3Blob,
     totalDurationSec,
     integratedLufs: normalizedResult.measuredLufs,
     truePeakDbfs: normalizedResult.truePeakDbfs,
@@ -201,6 +273,7 @@ export async function renderMasterEpisodeMix(
     sampleRate: project.audioConfig.sampleRate,
     bitDepth: project.audioConfig.bitDepth,
     filename,
+    mp3Filename,
   };
 }
 
@@ -299,19 +372,37 @@ export async function renderSpeakerStems(
       internalSampleRate
     );
 
+    const stemMp3Samples =
+      internalSampleRate !== project.audioConfig.sampleRate
+        ? resampleFloat32Buffer(
+            stemBuffer,
+            internalSampleRate,
+            project.audioConfig.sampleRate
+          )
+        : stemBuffer;
+
+    const mp3Blob = encodeMasterMp3Buffer(
+      stemMp3Samples,
+      project.audioConfig.sampleRate,
+      320
+    );
+
     const safeSpeakerName = speaker.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '');
     const filename = `${safeProjectTitle}_stem_${safeSpeakerName}.wav`;
+    const mp3Filename = `${safeProjectTitle}_stem_${safeSpeakerName}_320kbps.mp3`;
     const wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
 
     stems.push({
       speakerId: speaker.id,
       speakerName: speaker.name,
       wavBlob,
+      mp3Blob,
       totalDurationSec,
       filename,
+      mp3Filename,
     });
 
     onProgress?.(Math.round(((sIdx + 1) / speakers.length) * 100));

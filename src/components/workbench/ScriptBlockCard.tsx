@@ -3,6 +3,8 @@ import {
   Activity,
   ArrowDown,
   ArrowUp,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Headphones,
   Loader2,
@@ -145,8 +147,12 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
     });
   };
 
+  const isCollapsed = Boolean(block.isCollapsed);
+
   return (
     <div
+      id={`script-block-card-${block.id}`}
+      data-testid={`script-block-card-${block.id}`}
       onClick={() => selectBlock(block.id)}
       className={`rounded-xl border transition-all p-3.5 ${
         isActivePlayheadBlock || isPlayingThisBlock
@@ -156,13 +162,32 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             : 'bg-slate-900/50 hover:bg-slate-900/75 border-slate-800/80'
       }`}
     >
-      {/* Top Bar: Block Order, Type Selector, Speaker Selector, Quick Speaker Preview, EQ/Dyn Toggles, Director Notes & Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+      {/* Top Bar: Block Index + Collapse Toggle, Type, Speaker, Didaskalije, Status, Tools, Reorder & Delete */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        {/* Left Side: Collapse Button, Index, Type, Speaker, SFX Controls, Director Notes */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Index Pill */}
-          <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs font-bold text-slate-300">
-            #{index + 1}
-          </span>
+          {/* Collapse / Expand Toggle Button + Index Pill */}
+          <div className="flex items-center rounded-md bg-slate-950 border border-slate-800 p-0.5">
+            <button
+              type="button"
+              data-testid={`toggle-collapse-block-${block.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateBlock(block.id, { isCollapsed: !isCollapsed });
+              }}
+              title={isCollapsed ? t('expandBlockTooltip') : t('collapseBlockTooltip')}
+              className="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+            <span className="px-1.5 py-0.5 font-mono text-xs font-bold text-slate-300">
+              #{index + 1}
+            </span>
+          </div>
 
           {/* Block Type Selector */}
           <select
@@ -340,9 +365,8 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             </div>
           )}
 
-          {/* Invisible Director's Notes (Didaskalije) Input */}
-          <div className="flex items-center bg-slate-950/90 border border-slate-800/90 rounded-md px-2 py-0.5 text-xs text-indigo-300">
-            <span className="text-slate-500 font-mono mr-1">[</span>
+          {/* Clean Director's Notes (Didaskalije) Input — square brackets removed from UI */}
+          <div className="flex items-center bg-slate-950/90 border border-slate-800/90 rounded-md px-2.5 py-0.5 text-xs text-indigo-300">
             <input
               type="text"
               value={block.directorNotes ?? ''}
@@ -350,54 +374,128 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                 updateBlock(block.id, { directorNotes: e.target.value })
               }
               placeholder={t('directorNotesPlaceholder')}
-              className="bg-transparent text-xs text-indigo-200 placeholder:text-slate-600 focus:outline-none w-40 sm:w-52 font-mono"
+              className="bg-transparent text-xs text-indigo-200 placeholder:text-slate-600 focus:outline-none w-40 sm:w-56 font-mono"
             />
-            <span className="text-slate-500 font-mono ml-1">]</span>
+          </div>
+        </div>
+
+        {/* Right Side: Status Badge, Audio Tools, Order Buttons & Delete Block together at the top */}
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+          {statusBadge}
+
+          {/* Per-Block Audio & Waveform Regeneration / Deletion Toolbar in Top Bar */}
+          <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded-md p-0.5">
+            {/* Force Regenerate Audio & Waveform */}
+            <button
+              type="button"
+              data-testid={`regen-block-audio-${block.id}`}
+              disabled={block.ttsStatus === 'rendering'}
+              onClick={(e) => {
+                e.stopPropagation();
+                void regenerateBlockAudio(block.id);
+              }}
+              title={t('regenerateAudioTooltip')}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-indigo-300 hover:bg-indigo-950/80 hover:text-indigo-200 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span className="hidden sm:inline">{t('regenerateAudioBtn')}</span>
+            </button>
+
+            {/* Rebuild SoA Waveform Peaks */}
+            <button
+              type="button"
+              data-testid={`rebuild-block-waveform-${block.id}`}
+              disabled={block.ttsStatus === 'rendering'}
+              onClick={(e) => {
+                e.stopPropagation();
+                void rebuildBlockWaveform(block.id);
+              }}
+              title={t('rebuildWaveformTooltip')}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/80 hover:text-emerald-200 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <Activity className="w-3 h-3" />
+              <span className="hidden sm:inline">{t('rebuildWaveformBtn')}</span>
+            </button>
+
+            {/* Delete / Clear Block Audio & Waveform Data */}
+            <button
+              type="button"
+              data-testid={`delete-block-audio-${block.id}`}
+              disabled={!hasGeneratedAudioOrPeaks || block.ttsStatus === 'rendering'}
+              onClick={(e) => {
+                e.stopPropagation();
+                void deleteBlockAudio(block.id);
+              }}
+              title={t('deleteAudioTooltip')}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-rose-300 hover:bg-rose-950/80 hover:text-rose-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            >
+              <XCircle className="w-3 h-3" />
+              <span className="hidden sm:inline">{t('deleteAudioBtn')}</span>
+            </button>
           </div>
 
-          {statusBadge}
-        </div>
-
-        {/* Reorder & Delete Block Controls */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            disabled={index === 0}
-            onClick={(e) => {
-              e.stopPropagation();
-              moveBlockRelative(block.id, 'up');
-            }}
-            title={t('moveUp')}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-          >
-            <ArrowUp className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            disabled={index === totalBlocks - 1}
-            onClick={(e) => {
-              e.stopPropagation();
-              moveBlockRelative(block.id, 'down');
-            }}
-            title={t('moveDown')}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-          >
-            <ArrowDown className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            disabled={totalBlocks <= 1}
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteBlock(block.id);
-            }}
-            title={t('deleteBlock')}
-            className="p-1 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {/* Reorder & Delete Block Controls */}
+          <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded-md p-0.5">
+            <button
+              type="button"
+              disabled={index === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                moveBlockRelative(block.id, 'up');
+              }}
+              title={t('moveUp')}
+              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            >
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              disabled={index === totalBlocks - 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                moveBlockRelative(block.id, 'down');
+              }}
+              title={t('moveDown')}
+              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            >
+              <ArrowDown className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              disabled={totalBlocks <= 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteBlock(block.id);
+              }}
+              title={t('deleteBlock')}
+              className="p-1 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Collapsed Compact Preview Bar */}
+      {isCollapsed && (
+        <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800/40">
+          <div className="flex items-center gap-2 truncate mr-3">
+            <span className="font-semibold text-slate-300 shrink-0">
+              {block.type === 'sound_effect' ? 'SFX' : (activeSpeaker?.name ?? 'Narrator')}:
+            </span>
+            <span className="truncate text-slate-400 italic">
+              {block.text || placeholder}
+            </span>
+          </div>
+          <span className="font-mono text-[11px] text-slate-500 shrink-0">
+            {formatDurationReadout(durationSec, true)}
+          </span>
+        </div>
+      )}
+
+      {/* Expanded Block Body */}
+      {!isCollapsed && (
+        <>
 
       {/* Script Textarea + Live Karaoke Word Synchronizer Strip */}
       <div className="mb-2.5 space-y-1.5">
@@ -547,57 +645,6 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
               </span>
             </button>
           )}
-
-          {/* Per-Block Audio & Waveform Regeneration / Deletion Toolbar */}
-          <div className="flex items-center gap-1 bg-slate-950/90 border border-slate-800/90 rounded-md p-0.5">
-            {/* Force Regenerate Audio & Waveform */}
-            <button
-              type="button"
-              data-testid={`regen-block-audio-${block.id}`}
-              disabled={block.ttsStatus === 'rendering'}
-              onClick={(e) => {
-                e.stopPropagation();
-                void regenerateBlockAudio(block.id);
-              }}
-              title={t('regenerateAudioTooltip')}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-indigo-300 hover:bg-indigo-950/80 hover:text-indigo-200 disabled:opacity-40 transition-colors cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>{t('regenerateAudioBtn')}</span>
-            </button>
-
-            {/* Rebuild SoA Waveform Peaks */}
-            <button
-              type="button"
-              data-testid={`rebuild-block-waveform-${block.id}`}
-              disabled={block.ttsStatus === 'rendering'}
-              onClick={(e) => {
-                e.stopPropagation();
-                void rebuildBlockWaveform(block.id);
-              }}
-              title={t('rebuildWaveformTooltip')}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/80 hover:text-emerald-200 disabled:opacity-40 transition-colors cursor-pointer"
-            >
-              <Activity className="w-3 h-3" />
-              <span>{t('rebuildWaveformBtn')}</span>
-            </button>
-
-            {/* Delete / Clear Block Audio & Waveform Data */}
-            <button
-              type="button"
-              data-testid={`delete-block-audio-${block.id}`}
-              disabled={!hasGeneratedAudioOrPeaks || block.ttsStatus === 'rendering'}
-              onClick={(e) => {
-                e.stopPropagation();
-                void deleteBlockAudio(block.id);
-              }}
-              title={t('deleteAudioTooltip')}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-rose-300 hover:bg-rose-950/80 hover:text-rose-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-            >
-              <XCircle className="w-3 h-3" />
-              <span>{t('deleteAudioBtn')}</span>
-            </button>
-          </div>
         </div>
 
         {/* Trailing Pause & Timeline Interval Metadata */}
@@ -626,6 +673,8 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
           </span>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

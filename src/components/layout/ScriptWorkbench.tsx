@@ -45,6 +45,23 @@ export const ScriptWorkbench: React.FC = () => {
   const setEpisodePropertiesModalOpen = useStoriaStore(
     (s) => s.setEpisodePropertiesModalOpen
   );
+  const updateBlock = useStoriaStore((s) => s.updateBlock);
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll to selected block when selectedBlockId changes
+  const scrollToBlock = React.useCallback((blockId: string | null) => {
+    if (!blockId) return;
+    const el = document.getElementById(`script-block-card-${blockId}`);
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedBlockId) {
+      scrollToBlock(selectedBlockId);
+    }
+  }, [selectedBlockId, scrollToBlock]);
 
   // Episode "Play All" state lives in the store so single-block audition can stop it atomically
   const isPlaying = useStoriaStore((s) => s.isMasterPlaying);
@@ -560,14 +577,29 @@ export const ScriptWorkbench: React.FC = () => {
           onStop={handleStopTransport}
           onToggleLoop={() => setIsLooping((l) => !l)}
           onSeekTimeSec={handleSeekEpisodeTime}
-          onJumpBlockIndex={handleJumpBlockIndex}
+          onJumpBlockIndex={(idx) => {
+            handleJumpBlockIndex(idx);
+            const blk = project.blocks[idx];
+            if (blk) scrollToBlock(blk.id);
+          }}
           onChangeSpeed={setPlaybackSpeed}
           onScrubStateChange={handleScrubStateChange}
+          onUpdatePauseAfterMs={(blockId, pauseAfterMs) => {
+            updateBlock(blockId, { pauseAfterMs });
+          }}
+          onSelectBlockId={(blockId) => {
+            selectBlock(blockId);
+            scrollToBlock(blockId);
+          }}
         />
       )}
 
       {/* Script Blocks Scroll Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        ref={scrollContainerRef}
+        data-testid="script-blocks-scroll-container"
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+      >
         {project.blocks.map((block, index) => {
           const isCurrentPlayheadBlock = bvhHit.block?.id === block.id;
           const blockProgress = isCurrentPlayheadBlock ? bvhHit.blockProgress : 0;

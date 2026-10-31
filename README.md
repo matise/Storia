@@ -7,7 +7,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-74%2F74%20Passing-emerald.svg)](https://vitest.dev/)
+[![Tests Passing](https://img.shields.io/badge/Tests-90%2F90%20Passing-emerald.svg)](https://vitest.dev/)
 
 ---
 
@@ -48,16 +48,27 @@ Stories have echoed along the stone ramparts of the **Republic of Ragusa (Dubrov
 - **Instant Audition:** Quick preview of any actor’s voice using browser speech synthesis or Gemini TTS.
 - **Hotkeys:** Instant speaker selection via `Alt+1` through `Alt+9`.
 
-### 2. ⚡ High-Performance DOD Waveform Transport & Scrubber
+### 2. ⚡ High-Performance DOD Waveform Transport & Timeline
 - **Data-Oriented (DOD) SoA Architecture:** Structure-of-Arrays `Float32Array` peak buffers for lightning-fast rendering without garbage-collection spikes.
+- **Unified Waveform Representation:** Master episode timeline and segment cards share synchronized, high-resolution 96-slice SoA peak algorithms and gain parameters.
+- **Interactive Timeline Pause Dragging:** Direct mouse/pointer drag handles between timeline segments allow adjusting trailing pause durations (`pauseAfterMs`) in real time with visual feedback.
+- **Bi-Directional Transport Scroll Linkage:** Clicking on any segment block or quick marker in the top transport timeline automatically selects and smoothly scrolls the workbench to that card below.
 - **Temporal Bounding Volume Hierarchy (BVH):** 1D interval tree spatial partition enabling $O(\log N)$ block hits during mouse hover and fluid 60 FPS scrubbing.
 - **Live Word Karaoke Synchronization:** Character- and word-level temporal tracking highlights words in real time as the narration plays.
 - **DAW-Style Waveform Visualizer:** Center-crossing bipolar audio waves with dBFS gridlines, playhead indicators, and a precision draggable gain knob ($-48\text{ dB}$ to $+10\text{ dB}$).
+- **Segment Card Collapse & Minimize:** Per-card expand/collapse chevrons toggle segments between a detailed screenplay editor and a sleek, compact summary view.
+- **Clean Segment Header Layout:** Unified top bar with block index, collapse toggle, didaskalije (clean director notes without square brackets), status badges, audio tools (Regenerate, Waveform rebuild, Clear audio), reorder arrows, and delete controls.
 
 ### 3. 🤖 AI Agent & Dramatic Research Dock (Powered by Gemini)
+- **Co-Writer 3 Workflow Modes:**
+  - *Scene Co-Writer (3 Beats):* Generates 3 dramatic narrative beat choices.
+  - *Long Complete Story:* Drafts a full multi-part episodic story arc.
+  - *Podcast Episode:* Writes conversational dual-host interview and discussion formats.
+- **Multimodal Document & Image Evidence Attachments:** Drag-and-drop or file upload (PDF, TXT, MD, images, scripts) onto the Co-Writer for instant context ingestion.
+- **Deep Research Engine:** Integrated toggle enabling Google Search Grounding combined with deep multimodal document and image analysis.
+- **Scalable Studio Panel Splitters:** Draggable splitter handles allow custom resizing of the Cast & Speakers and AI Agent & Research sidebars with min/max clamps.
 - **Google Search Grounded Persona Research:** Fact-check historical queries, regional idioms, and period-accurate weaponry or attire directly from verified web sources with in-character responses.
-- **Dramatic Co-Writer Scene Beat Generator:** Brainstorm narrative arcs, scene beats, and insert them directly into the script as dialogue and SFX blocks.
-- **Script Doctor & Vocal Cadence Polisher:** Analyze dialogue rhythm, breath pauses, and inject natural didaskalije / stage directions (`[whispered]`, `[ironic]`, `[shivering]`).
+- **Script Doctor & Vocal Cadence Polisher:** Analyze dialogue rhythm, breath pauses, and inject natural didaskalije / stage directions (`whispered`, `ironic`, `shivering`).
 - **Bilingual Cultural & Grammatical Adapter (EN ↔ HR):** Preserves grammatical gender agreement (*glagolski pridjevi radni*, vocatives, aspect) and cultural nuance when adapting between Croatian and English.
 
 ### 4. 🔊 Hybrid Audio Synthesis & Procedural SFX
@@ -74,7 +85,8 @@ Stories have echoed along the stone ramparts of the **Republic of Ragusa (Dubrov
 ### 5. 🎚️ Studio Mastering & Broadcast Export (Phase 6)
 - **Broadcast Loudness Normalization:** Integrated ITU-R BS.1770-4 K-weighting filter and 4x polyphase sinc True Peak ceiling ($-1.0\text{ dBFS}$) compliant with podcast ($-16\text{ LUFS}$) and EBU R128 broadcast standards.
 - **XorShift128+ TPDF Dither:** High-resolution multi-bit-depth audio quantization ($16\text{-bit}$, $24\text{-bit}$, and $32\text{-bit}$ float at $44.1\text{ kHz}$ or $48\text{ kHz}$).
-- **Time-Aligned Multitrack Stems:** Export individual time-aligned WAV stems for every speaker alongside the complete episode master mix for post-production in Reaper, Pro Tools, or DaVinci Fairlight.
+- **High-Fidelity MP3 Export (320 kbps):** Pure client-side MP3 encoding at maximum $320\text{ kbps}$ constant bitrate via `lamejs` (`@breezystack/lamejs`), providing instant broadcast and distribution ready audio without external server transcoding.
+- **Time-Aligned Multitrack Stems:** Export individual time-aligned WAV or MP3 (320 kbps) stems for every speaker alongside the complete episode master mix for post-production in Reaper, Pro Tools, or DaVinci Fairlight.
 - **Round-Trip Screenplay Interchange:** Export to industry-standard `.fountain`, clean Markdown `.md`, or complete native `.storia.json` sessions.
 
 ### 6. 🌐 Deep Bilingual Experience (Croatian & English)
@@ -119,7 +131,7 @@ npm run preview
 ### Running the Test Suite
 
 ```bash
-# Run all 26 test suites (74 unit & integration tests)
+# Run all 29 test suites (90 unit & integration tests)
 npm test
 ```
 
@@ -135,7 +147,8 @@ npm test
 | **State Management** | [Zustand 5](https://github.com/pmndrs/zustand) (Immutable history & command stack) |
 | **Icons & Brand** | Custom SVG Storybook Suite + [Lucide Icons](https://lucide.dev/) |
 | **Local Cache** | [idb-keyval](https://github.com/jakearchibald/idb-keyval) (IndexedDB Audio Caching) |
-| **Audio Core** | Web Audio API, OfflineAudioContext, ScriptProcessor/AudioWorklet, Sinc Resampling |
+| **Audio Core** | Web Audio API, OfflineAudioContext, Biquad DSP Chains, ITU-R BS.1770-4 Loudness, Sinc Resampling |
+| **MP3 Encoding** | [@breezystack/lamejs](https://github.com/shijinyu/lamejs) (Pure JavaScript LAME MP3 Encoder at 320 kbps) |
 | **AI Backend** | [Google Gemini API](https://ai.google.dev/) (Gemini 2.5 Flash, Gemini 2.5 TTS, Gemini 3 Flash/Pro) |
 
 ---

@@ -133,6 +133,7 @@ export interface ScriptBlock {
   sfxIntensity?: number; // Intensity / gain [0.1, 1.0] for sound_effect synthesis
   volumeGainDb?: number; // Volume gain knob in dB: -Infinity (-60dB floor) to +10dB, default 0dB
   customAudioFileName?: string; // Original filename if imported from a local audio file
+  isCollapsed?: boolean; // UI view state: collapsed/minimized segment card
   order: number;
 }
 

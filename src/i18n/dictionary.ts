@@ -253,6 +253,7 @@ export interface TranslationDictionary {
   tabAudioMastering: string;
   tabScriptArchive: string;
   exportFormatWav: string;
+  exportFormatMp3: string;
   exportSampleRateLabel: string;
   exportBitDepthLabel: string;
   exportDitherLabel: string;
@@ -261,14 +262,18 @@ export interface TranslationDictionary {
   exportTargetLufsLabel: string;
   exportTruePeakCeilingLabel: string;
   exportDownloadMasterBtn: string;
+  exportDownloadMasterMp3Btn: string;
   exportDownloadStemsBtn: string;
+  exportDownloadStemsMp3Btn: string;
   exportRenderingNotice: string;
   exportDownloadFountainBtn: string;
   exportDownloadMarkdownBtn: string;
   exportDownloadProjectJsonBtn: string;
   exportImportProjectJsonBtn: string;
   exportMasterSuccessNotice: string;
+  exportMasterSuccessNoticeMp3: string;
   exportStemsSuccessNotice: string;
+  exportStemsSuccessNoticeMp3: string;
 
   // Additional UI & Dialog Labels
   autoDiacriticsTooltip: string;
@@ -539,6 +544,7 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     tabAudioMastering: 'Audio Master & Stems',
     tabScriptArchive: 'Script & Project Bundles',
     exportFormatWav: 'Broadcast WAV / RIFF',
+    exportFormatMp3: 'MP3 (320 kbps CBR)',
     exportSampleRateLabel: 'Sample Rate',
     exportBitDepthLabel: 'Bit Depth',
     exportDitherLabel: 'Dithering Algorithm',
@@ -546,15 +552,19 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     exportDitherNone: 'None (Direct Truncation)',
     exportTargetLufsLabel: 'Target Integrated Loudness (LUFS)',
     exportTruePeakCeilingLabel: 'True Peak Limiter Ceiling (dBFS)',
-    exportDownloadMasterBtn: 'Download Mastered Episode WAV',
-    exportDownloadStemsBtn: 'Download Multi-Track Speaker Stems (ZIP/WAV)',
+    exportDownloadMasterBtn: 'Download Master (WAV)',
+    exportDownloadMasterMp3Btn: 'Download Master (MP3 320 kbps)',
+    exportDownloadStemsBtn: 'Download Stems (WAV)',
+    exportDownloadStemsMp3Btn: 'Download Stems (MP3 320 kbps)',
     exportRenderingNotice: 'Mastering episode audio with Biquad DSP, LUFS normalization & TPDF dither...',
     exportDownloadFountainBtn: 'Download Screenplay (.fountain)',
     exportDownloadMarkdownBtn: 'Download Production Script (.md)',
     exportDownloadProjectJsonBtn: 'Export Project Bundle (.storia.json)',
     exportImportProjectJsonBtn: 'Import Project Bundle (.storia.json)',
     exportMasterSuccessNotice: 'Master episode WAV generated successfully!',
-    exportStemsSuccessNotice: 'Speaker stems generated and downloaded successfully!',
+    exportMasterSuccessNoticeMp3: 'Master episode MP3 (320 kbps) generated successfully!',
+    exportStemsSuccessNotice: 'Speaker stems (WAV) generated and downloaded successfully!',
+    exportStemsSuccessNoticeMp3: 'Speaker stems (MP3 320 kbps) generated and downloaded successfully!',
 
     autoDiacriticsTooltip: 'Auto-restore Croatian diacritics (č, ć, ž, š, đ)',
     exportSubtitle: 'Configure broadcast loudness normalization, bit depth, and script archival',
@@ -820,6 +830,7 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     tabAudioMastering: 'Audio Master i Stemovi',
     tabScriptArchive: 'Scenarij i paketi projekta',
     exportFormatWav: 'Broadcast WAV / RIFF',
+    exportFormatMp3: 'MP3 (320 kbps CBR)',
     exportSampleRateLabel: 'Frekvencija uzorkovanja',
     exportBitDepthLabel: 'Bitna dubina',
     exportDitherLabel: 'Algoritam dither šuma',
@@ -827,15 +838,19 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     exportDitherNone: 'Bez dither-a (Rezanje)',
     exportTargetLufsLabel: 'Ciljana integrirana glasnoća (LUFS)',
     exportTruePeakCeilingLabel: 'Strop vršnog limita (dBFS)',
-    exportDownloadMasterBtn: 'Preuzmi masterirani audio WAV',
-    exportDownloadStemsBtn: 'Preuzmi višekanalne stemove uloga',
+    exportDownloadMasterBtn: 'Preuzmi masterirani WAV',
+    exportDownloadMasterMp3Btn: 'Preuzmi masterirani MP3 (320 kbps)',
+    exportDownloadStemsBtn: 'Preuzmi WAV stemove',
+    exportDownloadStemsMp3Btn: 'Preuzmi MP3 stemove (320 kbps)',
     exportRenderingNotice: 'Masteriranje zvuka uz Biquad DSP, LUFS normalizaciju i TPDF dither...',
     exportDownloadFountainBtn: 'Preuzmi scenarij (.fountain)',
     exportDownloadMarkdownBtn: 'Preuzmi produkcijski tekst (.md)',
     exportDownloadProjectJsonBtn: 'Izvezi paket projekta (.storia.json)',
     exportImportProjectJsonBtn: 'Uvezi paket projekta (.storia.json)',
     exportMasterSuccessNotice: 'Masterirani WAV uspješno generiran i spreman za emitiranje!',
-    exportStemsSuccessNotice: 'Zasebni stemovi uloga uspješno generirani i preuzeti!',
+    exportMasterSuccessNoticeMp3: 'Masterirani MP3 (320 kbps) uspješno generiran i spreman za emitiranje!',
+    exportStemsSuccessNotice: 'Zasebni WAV stemovi uloga uspješno generirani i preuzeti!',
+    exportStemsSuccessNoticeMp3: 'Zasebni MP3 (320 kbps) stemovi uloga uspješno generirani i preuzeti!',
 
     autoDiacriticsTooltip: 'Automatski dodaj hrvatske dijakritičke znakove (č, ć, ž, š, đ)',
     exportSubtitle: 'Podesite normalizaciju glasnoće, bitnu dubinu i arhivu scenarija',

@@ -82,7 +82,33 @@ export const ExportMasterModal: React.FC = () => {
     }
   };
 
-  const handleRenderStems = async () => {
+  const handleRenderMasterMp3 = async () => {
+    setIsRenderingMaster(true);
+    setRenderProgress(0);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const result = await renderMasterEpisodeMix(project, (pct) => {
+        setRenderProgress(pct);
+      });
+      setMasterResult(result);
+      triggerBrowserFileDownload(
+        result.mp3Blob,
+        result.mp3Filename,
+        'audio/mp3'
+      );
+      setSuccessMessage(t('exportMasterSuccessNoticeMp3'));
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Master MP3 rendering failed.'
+      );
+    } finally {
+      setIsRenderingMaster(false);
+    }
+  };
+
+  const handleRenderStems = async (format: 'wav' | 'mp3' = 'wav') => {
     setIsRenderingStems(true);
     setRenderProgress(0);
     setErrorMessage(null);
@@ -96,16 +122,26 @@ export const ExportMasterModal: React.FC = () => {
       // Download each stem sequentially with a slight delay
       for (let i = 0; i < stems.length; i++) {
         setTimeout(() => {
-          triggerBrowserFileDownload(
-            stems[i].wavBlob,
-            stems[i].filename,
-            'audio/wav'
-          );
+          if (format === 'mp3') {
+            triggerBrowserFileDownload(
+              stems[i].mp3Blob,
+              stems[i].mp3Filename,
+              'audio/mp3'
+            );
+          } else {
+            triggerBrowserFileDownload(
+              stems[i].wavBlob,
+              stems[i].filename,
+              'audio/wav'
+            );
+          }
         }, i * 250);
       }
 
       setSuccessMessage(
-        `${t('exportStemsSuccessNotice')} (${stems.length} stems)`
+        format === 'mp3'
+          ? `${t('exportStemsSuccessNoticeMp3')} (${stems.length} stems)`
+          : `${t('exportStemsSuccessNotice')} (${stems.length} stems)`
       );
     } catch (err) {
       setErrorMessage(
@@ -366,9 +402,11 @@ export const ExportMasterModal: React.FC = () => {
               {/* Master Output Measurement Stats Card (Post-render) */}
               {masterResult && (
                 <div className="p-3.5 rounded-lg bg-slate-950/80 border border-emerald-800/60 space-y-1.5 font-mono text-xs">
-                  <div className="flex items-center justify-between text-emerald-300 font-bold">
+                  <div className="flex flex-wrap items-center justify-between text-emerald-300 font-bold gap-2">
                     <span>Broadcast Master Analysis:</span>
-                    <span>{masterResult.filename}</span>
+                    <span className="text-[11px] text-slate-400">
+                      {masterResult.filename} • {masterResult.mp3Filename}
+                    </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] text-slate-300">
                     <div>
@@ -400,29 +438,63 @@ export const ExportMasterModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Master Audio Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  data-testid="export-master-wav-btn"
-                  disabled={isRenderingMaster || isRenderingStems}
-                  onClick={handleRenderMasterWav}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs transition-colors cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{t('exportDownloadMasterBtn')}</span>
-                </button>
+              {/* Master Audio Action Buttons: Dual WAV (Lossless) and MP3 (320 kbps) Downloads */}
+              <div className="space-y-2 pt-2">
+                {/* Master Episode Mix Downloads */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    data-testid="export-master-wav-btn"
+                    disabled={isRenderingMaster || isRenderingStems}
+                    onClick={handleRenderMasterWav}
+                    className="flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{t('exportDownloadMasterBtn')}</span>
+                    <span className="px-1.5 py-0.2 rounded bg-indigo-700/80 text-[10px] font-mono uppercase">
+                      WAV
+                    </span>
+                  </button>
 
-                <button
-                  type="button"
-                  data-testid="export-stems-wav-btn"
-                  disabled={isRenderingMaster || isRenderingStems}
-                  onClick={handleRenderStems}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
-                >
-                  <Layers className="w-4 h-4 text-emerald-400" />
-                  <span>{t('exportDownloadStemsBtn')}</span>
-                </button>
+                  <button
+                    type="button"
+                    data-testid="export-master-mp3-btn"
+                    disabled={isRenderingMaster || isRenderingStems}
+                    onClick={handleRenderMasterMp3}
+                    className="flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold text-xs transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{t('exportDownloadMasterMp3Btn')}</span>
+                    <span className="px-1.5 py-0.2 rounded bg-violet-800 text-[10px] font-mono font-bold text-amber-300">
+                      320k
+                    </span>
+                  </button>
+                </div>
+
+                {/* Stems Multi-track Downloads */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    data-testid="export-stems-wav-btn"
+                    disabled={isRenderingMaster || isRenderingStems}
+                    onClick={() => handleRenderStems('wav')}
+                    className="flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    <span>{t('exportDownloadStemsBtn')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-testid="export-stems-mp3-btn"
+                    disabled={isRenderingMaster || isRenderingStems}
+                    onClick={() => handleRenderStems('mp3')}
+                    className="flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-emerald-400" />
+                    <span>{t('exportDownloadStemsMp3Btn')}</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

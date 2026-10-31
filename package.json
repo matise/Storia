@@ -15,6 +15,7 @@
     "test:phase3": "vitest run tests/phase3"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "idb-keyval": "^6.2.1",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
@@ -36,4 +37,3 @@
     "vitest": "^3.0.5"
   }
 }
-

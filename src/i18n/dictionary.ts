@@ -244,6 +244,9 @@ export interface TranslationDictionary {
   gainKnobLabel: string;
   gainKnobTooltip: string;
   unrenderedWaveformNotice: string;
+  pauseDragHandleTooltip: string;
+  collapseBlockTooltip: string;
+  expandBlockTooltip: string;
 
   // Export Master Modal (Phase 6)
   exportMasterModalTitle: string;
@@ -528,6 +531,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     gainKnobLabel: 'Gain',
     gainKnobTooltip: 'Volume gain knob (-inf to +10 dB, double-click to reset 0 dB)',
     unrenderedWaveformNotice: 'No audio generated yet',
+    pauseDragHandleTooltip: 'Drag pause duration between segments',
+    collapseBlockTooltip: 'Collapse / Minimize segment card',
+    expandBlockTooltip: 'Expand segment card',
 
     exportMasterModalTitle: 'Studio Export & Broadcast Audio Mastering',
     tabAudioMastering: 'Audio Master & Stems',
@@ -806,6 +812,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     gainKnobLabel: 'Pojačanje',
     gainKnobTooltip: 'Potenciometar glasnoće (-inf do +10 dB, dvoklik za 0 dB)',
     unrenderedWaveformNotice: 'Zvuk još nije generiran',
+    pauseDragHandleTooltip: 'Podesi trajanje pauze između segmenata povlačenjem',
+    collapseBlockTooltip: 'Sažmi / Minimiziraj karticu segmenta',
+    expandBlockTooltip: 'Proširi karticu segmenta',
 
     exportMasterModalTitle: 'Studijski izvoz i emitiranje (Mastering)',
     tabAudioMastering: 'Audio Master i Stemovi',

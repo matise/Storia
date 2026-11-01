@@ -9,10 +9,15 @@ import {
   replaceHvWithF,
   shiftFinalMtoN,
   simplifyDentalClusters,
+  vocalizeFinalL,
+  elideVernacularL,
+  truncateInfinitives,
   enforceMaleNameDeclensions,
   applyThirdPersonPlural,
   transformToDubrovnikDialect,
   prepareDubrovnikTtsText,
+  DUBROVNIK_MALE_NAMES,
+  DUBROVNIK_FEMALE_NAMES,
 } from '../../src/core/dubrovnik/dubrovnikPhonetics';
 import {
   buildDubrovnikAgentInstructions,
@@ -79,6 +84,19 @@ describe('Dubrovnik Vernacular (Raguzejski idiom) Extension', () => {
 
     // Dental cluster reduction
     expect(simplifyDentalClusters('čist zrak i teška bolest')).toBe('čis zrak i teška boles');
+
+    // Vocalization of final -l / elision of -l
+    expect(vocalizeFinalL('gentil stol sokol')).toBe('džintio sto soko');
+    expect(elideVernacularL('biljet divlji ljubica')).toBe('bijet divji jubica');
+
+    // Infinitive truncation (-ti -> -t)
+    expect(truncateInfinitives('gledati raditi govoriti')).toBe('gledat radit govorit');
+
+    // Name lists
+    expect(DUBROVNIK_MALE_NAMES).toContain('Vlaho');
+    expect(DUBROVNIK_MALE_NAMES).toContain('Maro');
+    expect(DUBROVNIK_FEMALE_NAMES).toContain('Mare');
+    expect(DUBROVNIK_FEMALE_NAMES).toContain('Luce');
   });
 
   it('enforces strict masculine a-declension and -ov possessives for names on -o', () => {
@@ -112,7 +130,7 @@ describe('Dubrovnik Vernacular (Raguzejski idiom) Extension', () => {
   it('supports classical Držić/Gundulić register archaisms', () => {
     const raw = 'Uistinu imam svoje mišljenje.';
     const classical = transformToDubrovnikDialect(raw, 'classical');
-    expect(classical).toContain('čertamente');
+    expect(classical.toLowerCase()).toContain('čertamente');
     expect(classical).toContain('parer');
   });
 

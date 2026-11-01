@@ -145,4 +145,25 @@ describe('UnifiedScriptEditor Component', () => {
     expect(handleStop).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('unified-editor-textarea-blk_unlock_1')).toBeDefined();
   });
+
+  it('unlocks text editing when double-clicking anywhere on the transport container', () => {
+    const handleStop = vi.fn();
+
+    render(
+      <UnifiedScriptEditor
+        blockId="blk_unlock_2"
+        text={defaultText}
+        isPlaying={true}
+        playheadProgress={0.4}
+        onChangeText={vi.fn()}
+        onStopPlayback={handleStop}
+      />
+    );
+
+    const transportContainer = screen.getByTestId('unified-editor-transport-blk_unlock_2');
+    fireEvent.doubleClick(transportContainer);
+
+    expect(handleStop).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('unified-editor-textarea-blk_unlock_2')).toBeDefined();
+  });
 });

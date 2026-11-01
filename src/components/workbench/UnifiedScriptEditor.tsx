@@ -1,5 +1,4 @@
 import React from 'react';
-import { Pencil } from 'lucide-react';
 import {
   computeWordTimingTokens,
   getProgressForWord,
@@ -100,69 +99,70 @@ export const UnifiedScriptEditor: React.FC<UnifiedScriptEditorProps> = ({
       data-testid={`unified-editor-${blockId}`}
       className="relative w-full transition-all"
     >
-      {/* 1. Playback / Audition Transport Mode: Read-Only Word Tokens with In-Place Highlight */}
+      {/* 1. Playback / Audition Transport Mode: Clean in-place text surface (No title/notice clutter) */}
       {isTransportMode ? (
-        <div
-          data-testid={`unified-editor-transport-${blockId}`}
-          className="w-full rounded-lg bg-slate-950/95 border border-emerald-600/60 shadow-xs shadow-emerald-950/40 px-3 py-2 text-sm text-slate-100 leading-relaxed min-h-[58px] transition-colors flex flex-wrap items-baseline gap-x-1.5 gap-y-1 select-none"
-        >
-          {/* Subtle status & quick edit button in upper corner */}
-          <div className="absolute top-1.5 right-2 flex items-center gap-1.5 z-10">
-            <span className="text-[10px] font-mono text-emerald-400/90 hidden sm:inline-block pointer-events-none">
-              {t('wordTransportPlayingNotice')}
-            </span>
-            <button
-              type="button"
-              data-testid={`edit-mode-btn-${blockId}`}
-              onClick={handleExitPlaybackToEdit}
-              title={t('exitTransportToEdit')}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900/90 hover:bg-slate-800 border border-slate-750 text-[10px] text-slate-300 hover:text-white transition-colors cursor-pointer"
-            >
-              <Pencil className="w-2.5 h-2.5 text-indigo-400" />
-              <span>{t('exitTransportToEdit')}</span>
-            </button>
+        <>
+          {/* Accessible edit trigger for tests and keyboard navigation */}
+          <button
+            type="button"
+            data-testid={`edit-mode-btn-${blockId}`}
+            onClick={handleExitPlaybackToEdit}
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+          >
+            {t('exitTransportToEdit')}
+          </button>
+
+          {/* Word Transport Surface: Exact font, line-height, padding, and zero-margin/padding word markings */}
+          <div
+            data-testid={`unified-editor-transport-${blockId}`}
+            onDoubleClick={handleExitPlaybackToEdit}
+            className="w-full rounded-lg bg-slate-950/70 border border-emerald-600/50 shadow-xs shadow-emerald-950/40 px-3 py-2 text-sm text-slate-100 leading-relaxed min-h-[58px] transition-colors select-none font-sans"
+            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+          >
+            {wordTokens.map((token, wIdx) => {
+              const isCurrent = wIdx === activeIndex;
+              const isPast = activeIndex >= 0 && wIdx < activeIndex;
+
+              // Formatted word timestamp tooltip
+              const wordSec = token.startProgress * durationSec;
+              const wordMins = Math.floor(wordSec / 60);
+              const wordRemSec = (wordSec % 60).toFixed(1);
+              const timeTooltip =
+                durationSec > 0
+                  ? `${String(wordMins).padStart(2, '0')}:${wordRemSec.padStart(4, '0')}`
+                  : undefined;
+
+              return (
+                <React.Fragment key={wIdx}>
+                  <span
+                    data-testid={`word-token-${blockId}-${wIdx}`}
+                    onClick={(e) => handleWordClick(token, e)}
+                    onDoubleClick={(e) => handleWordDoubleClick(token, e)}
+                    title={
+                      timeTooltip
+                        ? `${token.word} (${timeTooltip}) — Click to seek, double-click to edit`
+                        : `${token.word} — Click to seek, double-click to edit`
+                    }
+                    className={`inline cursor-pointer p-0 m-0 transition-colors ${
+                      isCurrent
+                        ? 'text-emerald-300 font-semibold underline decoration-emerald-400 decoration-2 underline-offset-4 bg-emerald-500/20 rounded-xs'
+                        : isPast
+                          ? 'text-slate-100 font-normal hover:text-white'
+                          : 'text-slate-400 font-normal hover:text-slate-200'
+                    }`}
+                  >
+                    {token.word}
+                  </span>
+                  {wIdx < wordTokens.length - 1 ? ' ' : ''}
+                </React.Fragment>
+              );
+            })}
           </div>
-
-          {/* Word Token Elements */}
-          {wordTokens.map((token, wIdx) => {
-            const isCurrent = wIdx === activeIndex;
-            const isPast = activeIndex >= 0 && wIdx < activeIndex;
-
-            // Formatted word timestamp tooltip
-            const wordSec = token.startProgress * durationSec;
-            const wordMins = Math.floor(wordSec / 60);
-            const wordRemSec = (wordSec % 60).toFixed(1);
-            const timeTooltip =
-              durationSec > 0
-                ? `${String(wordMins).padStart(2, '0')}:${wordRemSec.padStart(4, '0')}`
-                : undefined;
-
-            return (
-              <span
-                key={wIdx}
-                data-testid={`word-token-${blockId}-${wIdx}`}
-                onClick={(e) => handleWordClick(token, e)}
-                onDoubleClick={(e) => handleWordDoubleClick(token, e)}
-                title={
-                  timeTooltip
-                    ? `${token.word} (${timeTooltip}) — Click to seek, double-click to edit`
-                    : `${token.word} — Click to seek, double-click to edit`
-                }
-                className={`inline-block px-1 py-0.2 rounded transition-all cursor-pointer ${
-                  isCurrent
-                    ? 'bg-emerald-500/35 text-emerald-200 font-semibold ring-1 ring-emerald-400/60 shadow-xs shadow-emerald-900/50 scale-[1.03]'
-                    : isPast
-                      ? 'text-slate-200 font-medium hover:bg-slate-800/80 hover:text-white'
-                      : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
-                }`}
-              >
-                {token.word}
-              </span>
-            );
-          })}
-        </div>
+        </>
       ) : (
-        /* 2. Idle / Edit Mode: High-Fidelity Textarea */
+        /* 2. Idle / Edit Mode: High-Fidelity Textarea with Uniform Sizing */
         <textarea
           ref={textareaRef}
           data-testid={`unified-editor-textarea-${blockId}`}
@@ -177,7 +177,7 @@ export const UnifiedScriptEditor: React.FC<UnifiedScriptEditorProps> = ({
             }
           }}
           placeholder={placeholder}
-          className="w-full rounded-lg bg-slate-950/70 border border-slate-800/80 focus:border-indigo-500/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none resize-y leading-relaxed transition-colors"
+          className="w-full rounded-lg bg-slate-950/70 border border-slate-800/80 focus:border-indigo-500/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none resize-y leading-relaxed transition-colors font-sans"
         />
       )}
     </div>

@@ -21,6 +21,7 @@ import {
   LiveMeterSnapshot,
   studioTransportEngine,
 } from '../../core/dsp/StudioTransportEngine';
+import { BroadcastVuMeter } from '../workbench/BroadcastVuMeter';
 
 export interface CastSidebarProps {
   width?: number;
@@ -415,23 +416,13 @@ export const CastSidebar: React.FC<CastSidebarProps> = ({ width = 280 }) => {
               {meterSnapshot.truePeakDbfs.toFixed(1)} dBFS
             </span>
           </div>
-          {/* Live K-Weighted Loudness Bar */}
-          <div className="h-1.5 w-full rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-150 ${
-                meterSnapshot.truePeakDbfs > -1.0
-                  ? 'bg-rose-500'
-                  : 'bg-gradient-to-r from-emerald-500 to-indigo-400'
-              }`}
-              style={{
-                width: `${Math.max(
-                  8,
-                  Math.min(
-                    100,
-                    ((meterSnapshot.momentaryLufs + 50) / 50) * 100
-                  )
-                )}%`,
-              }}
+          {/* Live Stereo Hardware VU Meter */}
+          <div className="pt-1">
+            <BroadcastVuMeter
+              meterSnapshot={meterSnapshot}
+              isPlaying={Boolean(meterSnapshot.activeBlockId)}
+              compact
+              className="w-full justify-between"
             />
           </div>
         </div>

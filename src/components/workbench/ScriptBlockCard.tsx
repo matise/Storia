@@ -9,7 +9,10 @@ import {
   Feather,
   Headphones,
   Loader2,
+  Pause,
+  Play,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   Square,
   Trash2,
@@ -98,8 +101,8 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
   const isPreviewingThisSpeaker =
     Boolean(activeSpeaker) && previewingSpeakerId === activeSpeaker?.id;
 
-  const eqEnabled = activeSpeaker?.voice.acoustics.biquadEq?.enabled ?? true;
-  const dynEnabled = activeSpeaker?.voice.acoustics.compression?.enabled ?? true;
+  const eqEnabled = activeSpeaker?.voice?.acoustics?.biquadEq?.enabled ?? true;
+  const dynEnabled = activeSpeaker?.voice?.acoustics?.compression?.enabled ?? true;
   const hasGeneratedAudioOrPeaks =
     block.ttsStatus === 'ok' ||
     block.ttsStatus === 'stale' ||
@@ -250,9 +253,114 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             )}
           </div>
 
-          {/* Right: Status badge, duration, minimal reorder & delete */}
+          {/* Right: Mini Transport Controls, duration, minimal reorder & delete */}
           <div className="flex items-center gap-2 shrink-0">
-            {statusBadge}
+            {/* Collapsed Mode Mini Transport Controls (replaces static TTS badge) */}
+            {block.ttsStatus === 'rendering' ? (
+              <button
+                type="button"
+                data-testid={`abort-block-btn-${block.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  abortBlockSynthesis(block.id);
+                }}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-950/80 border border-rose-700/60 text-rose-300 animate-pulse cursor-pointer"
+                title={t('stopGeneration')}
+              >
+                <Square className="w-2.5 h-2.5 fill-current text-rose-400" />
+                <span className="hidden sm:inline">{t('stopGeneration')}</span>
+              </button>
+            ) : (
+              <div
+                data-testid={`collapsed-transport-${block.id}`}
+                className="flex items-center gap-1 bg-slate-950/90 border border-slate-800 rounded px-1.5 py-0.5"
+              >
+                {/* Play / Pause Toggle Button */}
+                <button
+                  type="button"
+                  data-testid={`collapsed-play-btn-${block.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectBlock(block.id);
+                    const isCurrentlyPlaying = isPlayingThisBlock || Boolean(isActivePlayheadBlock);
+                    if (isCurrentlyPlaying) {
+                      stopAudioPreview();
+                    } else {
+                      const startOffset =
+                        effectiveProgress >= 0.98 ? 0 : effectiveProgress * durationSec;
+                      if (effectiveProgress >= 0.98) {
+                        setLocalScrubProgress(0);
+                        onSeekWithinBlock?.(block, 0);
+                      } else {
+                        onSeekWithinBlock?.(block, effectiveProgress);
+                      }
+                      void auditionBlock(block.id, startOffset);
+                    }
+                  }}
+                  title={
+                    isPlayingThisBlock || Boolean(isActivePlayheadBlock)
+                      ? t('pause')
+                      : t('blockWaveformPlayTooltip')
+                  }
+                  className={`p-1 rounded text-xs transition-colors cursor-pointer ${
+                    isPlayingThisBlock || Boolean(isActivePlayheadBlock)
+                      ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-950/40'
+                      : 'hover:bg-slate-800 text-emerald-400 hover:text-emerald-300'
+                  }`}
+                >
+                  {isPlayingThisBlock || Boolean(isActivePlayheadBlock) ? (
+                    <Pause className="w-2.5 h-2.5 fill-current" />
+                  ) : (
+                    <Play className="w-2.5 h-2.5 fill-current" />
+                  )}
+                </button>
+
+                {/* Restart / Jump to 0:00 Button */}
+                <button
+                  type="button"
+                  data-testid={`collapsed-restart-btn-${block.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectBlock(block.id);
+                    setLocalScrubProgress(0);
+                    onSeekWithinBlock?.(block, 0);
+                    if (isPlayingThisBlock || Boolean(isActivePlayheadBlock)) {
+                      void auditionBlock(block.id, 0);
+                    }
+                  }}
+                  title={t('blockWaveformRestartTooltip')}
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                </button>
+
+                {/* Mini Progress Scrubber Bar */}
+                <div
+                  data-testid={`collapsed-scrubber-${block.id}`}
+                  title="Click to seek within block"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectBlock(block.id);
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const prog = Math.max(0, Math.min(1, clickX / rect.width));
+                    setLocalScrubProgress(prog);
+                    onSeekWithinBlock?.(block, prog);
+                    if (isPlayingThisBlock || Boolean(isActivePlayheadBlock)) {
+                      void auditionBlock(block.id, prog * durationSec);
+                    }
+                  }}
+                  className="w-12 sm:w-16 h-2 bg-slate-900 border border-slate-800/80 rounded-xs relative overflow-hidden cursor-pointer shrink-0"
+                >
+                  <div
+                    className="h-full bg-emerald-500/80 transition-all duration-75"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, effectiveProgress * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             <span className="font-mono text-[11px] text-slate-400 tabular-nums">
               {formatDurationReadout(durationSec, true)}

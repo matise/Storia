@@ -27,8 +27,9 @@ import {
   DemandFrameLoop,
 } from '../../core/spatial/ClockInterpolator';
 import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
-import { studioTransportEngine } from '../../core/dsp/StudioTransportEngine';
+import { studioTransportEngine, LiveMeterSnapshot } from '../../core/dsp/StudioTransportEngine';
 import { getActivePreviewElapsedSec } from '../../core/dsp/LiveAudioPreviewer';
+import { BroadcastVuMeter } from '../workbench/BroadcastVuMeter';
 
 export const ScriptWorkbench: React.FC = () => {
   const { t } = useTranslation();
@@ -75,6 +76,13 @@ export const ScriptWorkbench: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1.0);
   const [showEpisodeBanner, setShowEpisodeBanner] = React.useState(true);
   const [showWaveformTransport, setShowWaveformTransport] = React.useState(true);
+  const [meterSnapshot, setMeterSnapshot] = React.useState<LiveMeterSnapshot>(() =>
+    studioTransportEngine.getLatestSnapshot()
+  );
+
+  React.useEffect(() => {
+    return studioTransportEngine.subscribeMeter(setMeterSnapshot);
+  }, []);
 
   // Build 1D Temporal BVH over ordered project blocks in O(N) whenever blocks or durations change
   const temporalBvh = React.useMemo(
@@ -294,80 +302,110 @@ export const ScriptWorkbench: React.FC = () => {
     <main className="flex-1 flex flex-col bg-slate-950 min-w-0 overflow-hidden">
       {/* Studio Header: Unified Compact Action Bar */}
       <div className="min-h-11 py-1.5 border-b border-slate-800/90 bg-slate-900/40 px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
-        {/* Left: Waveform Timeline Toggle & Quick Playback (when transport is collapsed) */}
+        {/* Left: Unified Panel Deck Toggles & Master Playback Controls */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            data-testid="toggle-waveform-transport-btn"
-            onClick={() => setShowWaveformTransport((prev) => !prev)}
-            title={
-              showWaveformTransport
-                ? t('collapseWaveformTransportTooltip')
-                : t('expandWaveformTransportTooltip')
-            }
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors cursor-pointer ${
-              showWaveformTransport
-                ? 'bg-emerald-950/70 border-emerald-600/50 text-emerald-300 shadow-xs shadow-emerald-950/40'
-                : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            {showWaveformTransport ? (
-              <ChevronUp className="w-3.5 h-3.5 text-emerald-400" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            )}
-            <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{t('waveformTransportBtn')}</span>
-          </button>
+          {/* Group 1: Unified Panel Deck Toggles (Waveform Transport & Episode Settings) */}
+          <div className="flex items-center bg-slate-950/90 border border-slate-800 rounded-md p-0.5 shrink-0">
+            <button
+              type="button"
+              data-testid="toggle-waveform-transport-btn"
+              onClick={() => setShowWaveformTransport((prev) => !prev)}
+              title={
+                showWaveformTransport
+                  ? t('collapseWaveformTransportTooltip')
+                  : t('expandWaveformTransportTooltip')
+              }
+              aria-label={t('waveformTransportBtn')}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                showWaveformTransport
+                  ? 'bg-emerald-950/80 border border-emerald-600/60 text-emerald-300 shadow-xs shadow-emerald-950/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              {showWaveformTransport ? (
+                <ChevronUp className="w-3 h-3 text-emerald-400/80 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-slate-500 shrink-0" />
+              )}
+            </button>
 
-          {/* Quick Play/Pause & Timecode (Only visible when master waveform transport is collapsed to avoid duplicate controls) */}
-          {!showWaveformTransport && (
-            <>
-              <button
-                type="button"
-                onClick={handleToggleMasterPlay}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  isPlaying
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="w-3 h-3 fill-current" />
-                    <span>{t('pause')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3 h-3 fill-current" />
-                    <span>{t('playAll')}</span>
-                  </>
-                )}
-              </button>
+            <div className="h-3.5 w-px bg-slate-800 mx-0.5 shrink-0" />
 
-              <button
-                type="button"
-                onClick={() => setIsLooping((l) => !l)}
-                title={t('loop')}
-                className={`p-1 rounded-md border text-xs transition-colors cursor-pointer ${
-                  isLooping
-                    ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-300'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Repeat className="w-3.5 h-3.5" />
-              </button>
+            <button
+              type="button"
+              data-testid="toggle-episode-banner-btn"
+              onClick={() => setShowEpisodeBanner((prev) => !prev)}
+              title={t('toggleEpisodeMetaTooltip')}
+              aria-label={t('episodePropertiesBtn')}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                showEpisodeBanner
+                  ? 'bg-indigo-950/80 border border-indigo-600/60 text-indigo-200 shadow-xs shadow-indigo-950/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              {showEpisodeBanner ? (
+                <ChevronUp className="w-3 h-3 text-indigo-400/80 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-slate-500 shrink-0" />
+              )}
+            </button>
+          </div>
 
-              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 tabular-nums">
-                {formatDurationReadout(playheadSec, true)} /{' '}
-                {formatDurationReadout(totalDurationSec, true)}
-              </span>
-            </>
-          )}
-        </div>
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
 
-        {/* Right: Quick Block Insertion, Batch Audio Management Tools & Episode Properties */}
-        <div className="flex items-center gap-2">
+          {/* Group 2: Master Playback Transport (Stable, permanently rendered) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              data-testid="workbench-play-pause-btn"
+              onClick={handleToggleMasterPlay}
+              title={isPlaying ? t('pause') : t('playAll')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                isPlaying
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs shadow-emerald-900/40'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs shadow-indigo-900/40'
+              }`}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="w-3 h-3 fill-current shrink-0" />
+                  <span>{t('pause')}</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 fill-current shrink-0" />
+                  <span>{t('playAll')}</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsLooping((l) => !l)}
+              title={t('loop')}
+              className={`p-1 rounded-md border text-xs transition-colors cursor-pointer ${
+                isLooping
+                  ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-300'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              <Repeat className="w-3.5 h-3.5" />
+            </button>
+
+            <span
+              data-testid="workbench-timecode-readout"
+              className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 tabular-nums select-none"
+            >
+              {formatDurationReadout(playheadSec, true)} /{' '}
+              {formatDurationReadout(totalDurationSec, true)}
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
+
+          {/* Group 3: Block Insertion */}
           <button
             type="button"
             onClick={() => addBlock('dialogue')}
@@ -376,9 +414,10 @@ export const ScriptWorkbench: React.FC = () => {
             <Plus className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span>{t('addLine')}</span>
           </button>
+        </div>
 
-          <div className="h-4 w-px bg-slate-800 shrink-0" />
-
+        {/* Right: Audio Management Cache Tools & Broadcast Stereo VU Meter */}
+        <div className="flex items-center gap-2">
           {/* Episode-Wide Audio & Waveform Management Icon Tools */}
           <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800 rounded-lg p-0.5 shrink-0">
             {isBatchSynthesizing ? (
@@ -433,26 +472,12 @@ export const ScriptWorkbench: React.FC = () => {
 
           <div className="h-4 w-px bg-slate-800 shrink-0" />
 
-          {/* Episode Properties Collapse / Expand Button */}
-          <button
-            type="button"
-            data-testid="toggle-episode-banner-btn"
-            onClick={() => setShowEpisodeBanner((prev) => !prev)}
-            title={t('toggleEpisodeMetaTooltip')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-              showEpisodeBanner
-                ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <SlidersHorizontal className="w-3 h-3 text-indigo-400 shrink-0" />
-            <span className="hidden sm:inline">{t('episodePropertiesBtn')}</span>
-            {showEpisodeBanner ? (
-              <ChevronUp className="w-3 h-3 text-slate-400 shrink-0" />
-            ) : (
-              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-            )}
-          </button>
+          {/* Broadcast Stereo VU Meter */}
+          <BroadcastVuMeter
+            meterSnapshot={meterSnapshot}
+            isPlaying={isPlaying || Boolean(playingBlockId)}
+            compact
+          />
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { Project, ScriptBlock, Speaker } from '../../types/storia';
+import { Project, ScriptBlock, Speaker, SupportedLanguage } from '../../types/storia';
 import {
   SpeakerDspChain,
   processSpeakerDspBuffer,
@@ -8,6 +8,22 @@ import { scheduleFadeEnvelope } from './VolumeEnvelope';
 import { getLatestBlockAudioEntry } from '../storage/audioCache';
 import { synthesizeProceduralSpeechPcm } from '../../services/geminiTtsService';
 import { synthesizeSfxAudio } from '../../services/sfxGeneratorService';
+
+export type TtsSpeakerFn = (params: {
+  text: string;
+  speaker?: Speaker;
+  language?: SupportedLanguage;
+  startOffsetSec?: number;
+  onEnded?: () => void;
+}) => boolean;
+
+export function registerTtsSpeaker(fn: TtsSpeakerFn): void {
+  (globalThis as unknown as { __storia_tts_speaker?: TtsSpeakerFn }).__storia_tts_speaker = fn;
+}
+
+export function getRegisteredTtsSpeaker(): TtsSpeakerFn | null {
+  return (globalThis as unknown as { __storia_tts_speaker?: TtsSpeakerFn }).__storia_tts_speaker ?? null;
+}
 
 export interface LiveMeterSnapshot {
   momentaryLufs: number;
@@ -94,6 +110,9 @@ export function decodeWavBufferToFloat32(buffer: ArrayBuffer): {
 export class StudioTransportEngine {
   private ctx: AudioContext | null = null;
   private masterLimiter: DynamicsCompressorNode | null = null;
+  private masterAnalyser: AnalyserNode | null = null;
+  private meterTimer: ReturnType<typeof setInterval> | null = null;
+  private pcmDataArray: Float32Array | null = null;
   private speakerChains = new Map<string, SpeakerDspChain>();
   private activeSource: AudioBufferSourceNode | null = null;
   private activeBlockFadeGain: GainNode | null = null;
@@ -140,7 +159,13 @@ export class StudioTransportEngine {
         this.masterLimiter.ratio.value = 20.0;
         this.masterLimiter.attack.value = 0.001;
         this.masterLimiter.release.value = 0.05;
-        this.masterLimiter.connect(this.ctx.destination);
+
+        // Master AnalyserNode for continuous real-time broadcast VU metering
+        this.masterAnalyser = this.ctx.createAnalyser();
+        this.masterAnalyser.fftSize = 256;
+
+        this.masterLimiter.connect(this.masterAnalyser);
+        this.masterAnalyser.connect(this.ctx.destination);
       } catch {
         return null;
       }
@@ -150,6 +175,21 @@ export class StudioTransportEngine {
       void this.ctx.resume().catch(() => {});
     }
     return this.ctx;
+  }
+
+  public getAudioContext(): AudioContext | null {
+    return this.ensureAudioContext();
+  }
+
+  /**
+   * Resumes the shared Web Audio context synchronously during user gestures
+   * to satisfy strict browser autoplay policies.
+   */
+  public async resume(): Promise<void> {
+    const ctx = this.ensureAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      await ctx.resume().catch(() => {});
+    }
   }
 
   public getOrCreateSpeakerChain(speaker?: Speaker): SpeakerDspChain | null {
@@ -183,10 +223,73 @@ export class StudioTransportEngine {
     return this.latestSnapshot;
   }
 
-  private emitSnapshot(snapshot: LiveMeterSnapshot): void {
+  public emitSnapshot(snapshot: LiveMeterSnapshot): void {
     this.latestSnapshot = snapshot;
     for (const cb of this.subscribers) {
       cb(snapshot);
+    }
+  }
+
+  /**
+   * Starts real-time 50ms periodic sampling from the master bus AnalyserNode
+   * so the VU meter and LUFS readout continuously reflect live audio dynamics during playback.
+   */
+  public startRealtimeMetering(
+    activeBlockId: string | null,
+    activeSpeakerId: string | null
+  ): void {
+    this.stopRealtimeMetering();
+    if (!this.masterAnalyser) return;
+
+    if (
+      !this.pcmDataArray ||
+      this.pcmDataArray.length !== this.masterAnalyser.frequencyBinCount
+    ) {
+      this.pcmDataArray = new Float32Array(this.masterAnalyser.frequencyBinCount);
+    }
+
+    this.meterTimer = setInterval(() => {
+      if (!this.masterAnalyser || !this.pcmDataArray) return;
+      try {
+        if (typeof this.masterAnalyser.getFloatTimeDomainData === 'function') {
+          this.masterAnalyser.getFloatTimeDomainData(this.pcmDataArray);
+        } else {
+          return;
+        }
+
+        let sumSq = 0;
+        let peak = 0;
+        for (let i = 0; i < this.pcmDataArray.length; i++) {
+          const s = this.pcmDataArray[i];
+          const abs = Math.abs(s);
+          if (abs > peak) peak = abs;
+          sumSq += s * s;
+        }
+        const meanSq = sumSq / this.pcmDataArray.length;
+        const rmsDbfs = meanSq > 1e-10 ? 10 * Math.log10(meanSq) : -100;
+        const peakDbfs = peak > 1e-5 ? 20 * Math.log10(peak) : -100;
+        const momentaryLufs =
+          meanSq > 1e-10 ? -0.691 + 10 * Math.log10(meanSq) : -70.0;
+
+        this.emitSnapshot({
+          momentaryLufs: Math.round(momentaryLufs * 10) / 10,
+          integratedLufs: this.latestSnapshot.integratedLufs,
+          truePeakDbfs: Math.round(peakDbfs * 10) / 10,
+          rmsDbfs: Math.round(rmsDbfs * 10) / 10,
+          isBroadcastSafe: peakDbfs <= -0.9,
+          activeSpeakerId,
+          activeBlockId,
+        });
+      } catch {
+        // Safe fallback in headless / test environments
+      }
+    }, 50);
+  }
+
+  public stopRealtimeMetering(): void {
+    if (this.meterTimer) {
+      clearInterval(this.meterTimer);
+      this.meterTimer = null;
     }
   }
 
@@ -201,6 +304,21 @@ export class StudioTransportEngine {
     const cachedMem = this.activeRawPcmCache.get(block.id);
     if (cachedMem && cachedMem.samples.length > 0) {
       return cachedMem;
+    }
+
+    // 0. Try block.generatedAudioUrl if present (e.g. object URL or external URL)
+    if (block.generatedAudioUrl) {
+      try {
+        const resp = await fetch(block.generatedAudioUrl);
+        const ab = await resp.arrayBuffer();
+        const decoded = decodeWavBufferToFloat32(ab);
+        if (decoded.samples.length > 0) {
+          this.activeRawPcmCache.set(block.id, decoded);
+          return decoded;
+        }
+      } catch {
+        // Fall through
+      }
     }
 
     // 1. Try IndexedDB audio cache
@@ -313,6 +431,43 @@ export class StudioTransportEngine {
     this.activeStartCtxTime = this.ctx ? this.ctx.currentTime : 0;
 
     const speaker = project.speakers.find((s) => s.id === block.speakerId);
+
+    // Check if the block has actual pre-rendered audio (WAV blob/URL or SFX)
+    let hasAudioData =
+      Boolean(block.generatedAudioUrl) || block.type === 'sound_effect';
+    if (!hasAudioData) {
+      try {
+        const cached = await getLatestBlockAudioEntry(block.id);
+        if (cached?.audioBlob) {
+          hasAudioData = true;
+        }
+      } catch {
+        // Fall through
+      }
+    }
+
+    // Abort if stop() or a newer trigger (seek / next block) happened while querying cache
+    if (myTrigger !== this.triggerGeneration || this.activeBlockId !== block.id) return;
+
+    const ttsSpeaker = getRegisteredTtsSpeaker();
+    if (!hasAudioData && block.type !== 'sound_effect' && ttsSpeaker) {
+      // Unrendered dialogue or Local Browser TTS: speak with matching browser voice
+      const spoke = ttsSpeaker({
+        text: block.text,
+        speaker,
+        language: project.defaultLanguage,
+        startOffsetSec: offsetWithinBlockSec,
+      });
+      if (spoke) return;
+    }
+
+    // Cancel any active SpeechSynthesis utterance before playing Web Audio stream
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
+
     const { samples, sampleRate } = await this.resolveBlockPcm(block, speaker);
     // Abort if stop() or a newer trigger (seek / next block) happened while decoding,
     // otherwise two sources of the same or adjacent blocks would overlap.
@@ -393,6 +548,7 @@ export class StudioTransportEngine {
       );
 
       source.start(0, clampedOffset);
+      this.startRealtimeMetering(block.id, speaker?.id ?? null);
     } catch {
       // Ignore Web Audio errors in headless environments
     }
@@ -523,7 +679,25 @@ export class StudioTransportEngine {
   public stop(): void {
     this.triggerGeneration++;
     this.stopCurrentSourceOnly();
+    this.stopRealtimeMetering();
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
     this.activeBlockId = null;
+    this.emitSnapshot({
+      momentaryLufs: -70.0,
+      integratedLufs:
+        this.latestSnapshot.integratedLufs > -60
+          ? this.latestSnapshot.integratedLufs
+          : -16.0,
+      truePeakDbfs: -100,
+      rmsDbfs: -100,
+      isBroadcastSafe: true,
+      activeSpeakerId: null,
+      activeBlockId: null,
+    });
   }
 }
 

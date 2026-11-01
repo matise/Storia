@@ -33,6 +33,7 @@ import {
 } from '../../core/pacing/pacingCalculator';
 import { restoreCroatianDiacritics } from '../../core/tts/croatianTextNormalizer';
 import { transformToDubrovnikDialect } from '../../core/dubrovnik/dubrovnikPhonetics';
+import { getActivePreviewElapsedSec } from '../../core/dsp/LiveAudioPreviewer';
 import { WaveformCanvas } from './WaveformCanvas';
 import { UnifiedScriptEditor } from './UnifiedScriptEditor';
 import { generateBlockThemeStyle } from '../../core/theme/scriptBlockTheme';
@@ -83,21 +84,107 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
   const toggleSpeakerDynamics = useStoriaStore((s) => s.toggleSpeakerDynamics);
   const sfxFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [localScrubProgress, setLocalScrubProgress] = React.useState(0);
+  const [isLocalScrubbing, setIsLocalScrubbing] = React.useState(false);
+  const isPlayingThisBlock = playingBlockId === block.id;
+  const [liveAuditionElapsedSec, setLiveAuditionElapsedSec] = React.useState<number | null>(null);
 
   React.useEffect(() => {
-    if (isSelected || isActivePlayheadBlock) {
+    if (!isPlayingThisBlock) {
+      setLiveAuditionElapsedSec(null);
+      return;
+    }
+
+    let animId: number;
+    const update = () => {
+      const elapsed = getActivePreviewElapsedSec();
+      if (elapsed !== null) {
+        setLiveAuditionElapsedSec(elapsed);
+      }
+      animId = requestAnimationFrame(update);
+    };
+    animId = requestAnimationFrame(update);
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [isPlayingThisBlock]);
+
+  React.useEffect(() => {
+    if (!isLocalScrubbing && (isSelected || isActivePlayheadBlock)) {
       setLocalScrubProgress(blockPlayheadProgress);
     }
-  }, [blockPlayheadProgress, isSelected, isActivePlayheadBlock]);
+  }, [blockPlayheadProgress, isLocalScrubbing, isSelected, isActivePlayheadBlock]);
 
   const activeSpeaker = speakers.find((s) => s.id === block.speakerId);
   const durationSec = block.estimatedDurationSec ?? 0;
   const tokens = block.audioTokenEstimate ?? 0;
-  const effectiveProgress =
-    isSelected || isActivePlayheadBlock || playingBlockId === block.id
-      ? blockPlayheadProgress
-      : localScrubProgress;
-  const isPlayingThisBlock = playingBlockId === block.id;
+
+  const auditionProgress =
+    isPlayingThisBlock && liveAuditionElapsedSec !== null && durationSec > 0
+      ? Math.min(1, Math.max(0, liveAuditionElapsedSec / durationSec))
+      : null;
+
+  const effectiveProgress = isLocalScrubbing
+    ? localScrubProgress
+    : auditionProgress !== null
+      ? auditionProgress
+      : blockPlayheadProgress;
+
+  const handleScrubberClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    selectBlock(block.id);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const prog = Math.max(0, Math.min(1, clickX / rect.width));
+    setLocalScrubProgress(prog);
+    onSeekWithinBlock?.(block, prog);
+    if (isPlayingThisBlock || Boolean(isActivePlayheadBlock)) {
+      void auditionBlock(block.id, prog * durationSec);
+    }
+  };
+
+  const handleScrubberPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    selectBlock(block.id);
+    const target = e.currentTarget;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture fails in test environments
+    }
+    setIsLocalScrubbing(true);
+    onScrubStateChange?.(true);
+
+    const rect = target.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const prog = Math.max(0, Math.min(1, clickX / rect.width));
+    setLocalScrubProgress(prog);
+    onSeekWithinBlock?.(block, prog);
+    if (isPlayingThisBlock || Boolean(isActivePlayheadBlock)) {
+      void auditionBlock(block.id, prog * durationSec);
+    }
+  };
+
+  const handleScrubberPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isLocalScrubbing) return;
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const prog = Math.max(0, Math.min(1, clickX / rect.width));
+    setLocalScrubProgress(prog);
+    onSeekWithinBlock?.(block, prog);
+  };
+
+  const handleScrubberPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isLocalScrubbing) return;
+    e.stopPropagation();
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+    setIsLocalScrubbing(false);
+    onScrubStateChange?.(false);
+  };
   const isPreviewingThisSpeaker =
     Boolean(activeSpeaker) && previewingSpeakerId === activeSpeaker?.id;
 
@@ -334,36 +421,53 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                   <RotateCcw className="w-2.5 h-2.5" />
                 </button>
 
-                {/* Mini Progress Scrubber Bar */}
+                {/* Mini Progress Scrubber Bar with Playhead Needle */}
                 <div
                   data-testid={`collapsed-scrubber-${block.id}`}
-                  title="Click to seek within block"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    selectBlock(block.id);
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const prog = Math.max(0, Math.min(1, clickX / rect.width));
-                    setLocalScrubProgress(prog);
-                    onSeekWithinBlock?.(block, prog);
-                    if (isPlayingThisBlock || Boolean(isActivePlayheadBlock)) {
-                      void auditionBlock(block.id, prog * durationSec);
-                    }
-                  }}
-                  className="w-12 sm:w-16 h-2 bg-slate-900 border border-slate-800/80 rounded-xs relative overflow-hidden cursor-pointer shrink-0"
+                  title="Click and drag to seek within block"
+                  onClick={handleScrubberClick}
+                  onPointerDown={handleScrubberPointerDown}
+                  onPointerMove={handleScrubberPointerMove}
+                  onPointerUp={handleScrubberPointerUp}
+                  onPointerCancel={handleScrubberPointerUp}
+                  className="w-14 sm:w-20 h-2.5 bg-slate-900 border border-slate-800/80 rounded-xs relative overflow-hidden cursor-pointer shrink-0 select-none group/scrubber"
                 >
                   <div
-                    className="h-full bg-emerald-500/80 transition-all duration-75"
+                    className={`h-full bg-emerald-500/85 ${
+                      isPlayingThisBlock || Boolean(isActivePlayheadBlock)
+                        ? 'transition-none'
+                        : 'transition-[width] duration-75'
+                    }`}
                     style={{
                       width: `${Math.max(0, Math.min(100, effectiveProgress * 100))}%`,
+                    }}
+                  />
+                  {/* Scrubber Playhead Needle Thumb */}
+                  <div
+                    className={`absolute top-0 bottom-0 w-1 bg-white shadow-xs rounded-full pointer-events-none transition-opacity ${
+                      effectiveProgress > 0 && effectiveProgress < 1
+                        ? 'opacity-100'
+                        : 'opacity-0 group-hover/scrubber:opacity-100'
+                    }`}
+                    style={{
+                      left: `calc(${Math.max(0, Math.min(100, effectiveProgress * 100))}% - 2px)`,
                     }}
                   />
                 </div>
               </div>
             )}
 
-            <span className="font-mono text-[11px] text-slate-400 tabular-nums">
-              {formatDurationReadout(durationSec, true)}
+            <span
+              className={`font-mono text-[11px] tabular-nums shrink-0 ${
+                isActivePlayheadBlock || isPlayingThisBlock
+                  ? 'text-emerald-400 font-semibold'
+                  : 'text-slate-400'
+              }`}
+              title={`Position: ${formatDurationReadout(effectiveProgress * durationSec, true)} / ${formatDurationReadout(durationSec, true)}`}
+            >
+              {isActivePlayheadBlock || isPlayingThisBlock
+                ? `${formatDurationReadout(effectiveProgress * durationSec, true)} / ${formatDurationReadout(durationSec, true)}`
+                : formatDurationReadout(durationSec, true)}
             </span>
 
             {/* Quick Reorder & Delete */}
@@ -773,7 +877,11 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
           <WaveformCanvas
             peaks={block.waveformPeaks}
             fallbackSeed={`${block.id}_${block.text}`}
-            playheadProgress={effectiveProgress}
+            playheadProgress={
+              isActivePlayheadBlock || isPlayingThisBlock
+                ? effectiveProgress
+                : localScrubProgress
+            }
             accentColor={
               block.type === 'sound_effect'
                 ? '#f59e0b'

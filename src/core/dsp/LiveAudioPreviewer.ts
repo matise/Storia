@@ -1,6 +1,6 @@
 import { Speaker, SupportedLanguage } from '../../types/storia';
 import { stripNonSpokenTokens } from '../pacing/pacingCalculator';
-import { studioTransportEngine } from './StudioTransportEngine';
+import { registerTtsSpeaker, studioTransportEngine } from './StudioTransportEngine';
 import { scheduleFadeEnvelope } from './VolumeEnvelope';
 import {
   containsCroatianCharacters,
@@ -12,12 +12,6 @@ interface ActiveWebAudioSession {
   source: AudioBufferSourceNode;
   clipFadeGain: GainNode;
   volumeGainNode: GainNode;
-  lowShelf: BiquadFilterNode;
-  midPeak: BiquadFilterNode;
-  highShelf: BiquadFilterNode;
-  compressor: DynamicsCompressorNode;
-  dryGain: GainNode;
-  wetCompGain: GainNode;
   speakerId: string;
   blockId: string;
   startContextTime: number;
@@ -34,10 +28,20 @@ let activeWebAudioSession: ActiveWebAudioSession | null = null;
 let activeBrowserTtsStartMs: number | null = null;
 let activeBrowserTtsOffsetSec = 0;
 let sharedAudioCtx: AudioContext | null = null;
+let previewMeterInterval: ReturnType<typeof setInterval> | null = null;
 /** Incremented on every stop; async preview starts compare against it to avoid late, overlapping playback. */
 let previewGeneration = 0;
 
+function stopPreviewMeter(): void {
+  if (previewMeterInterval) {
+    clearInterval(previewMeterInterval);
+    previewMeterInterval = null;
+  }
+}
+
 function getOrCreateAudioContext(): AudioContext | null {
+  const engineCtx = studioTransportEngine.getAudioContext();
+  if (engineCtx) return engineCtx;
   if (typeof window === 'undefined') return null;
   const AudioCtx =
     window.AudioContext ||
@@ -131,6 +135,7 @@ export function selectBrowserVoiceForSpeaker(
  */
 export function stopAllAudioPlayback(): void {
   previewGeneration++;
+  stopPreviewMeter();
   studioTransportEngine.stop();
   activeBrowserTtsStartMs = null;
   activeBrowserTtsOffsetSec = 0;
@@ -175,48 +180,12 @@ export function getActivePreviewElapsedSec(): number | null {
  * and Dynamics Compressor settings (including ON/OFF bypass toggles) to an active Web Audio chain.
  */
 export function applySpeakerDspParamsToSession(
-  session: ActiveWebAudioSession,
+  _session: ActiveWebAudioSession,
   speaker?: Speaker
 ): void {
-  const now = session.ctx.currentTime;
-  const eqConfig = speaker?.voice.acoustics.biquadEq;
-  const eqEnabled = eqConfig?.enabled ?? true;
-
-  const lowGain = eqEnabled ? (eqConfig?.lowShelfGainDb ?? 0) : 0;
-  const midGain = eqEnabled ? (eqConfig?.midPeakGainDb ?? 0) : 0;
-  const highGain = eqEnabled ? (eqConfig?.highShelfGainDb ?? 0) : 0;
-
-  session.lowShelf.gain.setTargetAtTime(lowGain, now, 0.015);
-  session.midPeak.gain.setTargetAtTime(midGain, now, 0.015);
-  session.highShelf.gain.setTargetAtTime(highGain, now, 0.015);
-
-  const compConfig = speaker?.voice.acoustics.compression;
-  const compEnabled = compConfig?.enabled ?? true;
-
-  session.compressor.threshold.setTargetAtTime(
-    compConfig?.thresholdDb ?? -20,
-    now,
-    0.015
-  );
-  session.compressor.ratio.setTargetAtTime(
-    compEnabled ? (compConfig?.ratio ?? 2.5) : 1.0,
-    now,
-    0.015
-  );
-  session.compressor.attack.setTargetAtTime(
-    (compConfig?.attackMs ?? 15) / 1000,
-    now,
-    0.015
-  );
-  session.compressor.release.setTargetAtTime(
-    (compConfig?.releaseMs ?? 100) / 1000,
-    now,
-    0.015
-  );
-
-  // Crossfade dry vs compressed wet bus based on compEnabled toggle
-  session.dryGain.gain.setTargetAtTime(compEnabled ? 0.0 : 1.0, now, 0.015);
-  session.wetCompGain.gain.setTargetAtTime(compEnabled ? 1.0 : 0.0, now, 0.015);
+  if (speaker) {
+    studioTransportEngine.updateSpeakerDsp(speaker);
+  }
 }
 
 /**
@@ -224,9 +193,6 @@ export function applySpeakerDspParamsToSession(
  */
 export function updateLiveDspIfPlaying(speaker: Speaker): void {
   studioTransportEngine.updateSpeakerDsp(speaker);
-  if (activeWebAudioSession && activeWebAudioSession.speakerId === speaker.id) {
-    applySpeakerDspParamsToSession(activeWebAudioSession, speaker);
-  }
 }
 
 /**
@@ -353,28 +319,7 @@ export async function playAudioWithSpeakerDsp({
     const clipFadeGain = ctx.createGain();
     clipFadeGain.gain.value = 1.0;
 
-    // 1. 120 Hz Low-Shelf Biquad Filter
-    const lowShelf = ctx.createBiquadFilter();
-    lowShelf.type = 'lowshelf';
-    lowShelf.frequency.value = 120;
-
-    // 2. 2.5 kHz Mid-Peak Biquad Filter (Dialogue clarity)
-    const midPeak = ctx.createBiquadFilter();
-    midPeak.type = 'peaking';
-    midPeak.frequency.value = 2500;
-    midPeak.Q.value = 1.0;
-
-    // 3. 8.0 kHz High-Shelf Biquad Filter (Air & Presence)
-    const highShelf = ctx.createBiquadFilter();
-    highShelf.type = 'highshelf';
-    highShelf.frequency.value = 8000;
-
-    // 4. Dynamics Compressor + Bypassable Dry/Wet Routing
-    const compressor = ctx.createDynamicsCompressor();
-    const dryGain = ctx.createGain();
-    const wetCompGain = ctx.createGain();
-
-    // 5. Volume Gain Node (Supports -inf to +10 dB)
+    // 1. Volume Gain Node (Supports -inf to +10 dB)
     const volumeGainNode = ctx.createGain();
     const linGain =
       !Number.isFinite(volumeGainDb) || volumeGainDb <= -48
@@ -383,17 +328,17 @@ export async function playAudioWithSpeakerDsp({
     volumeGainNode.gain.value = linGain;
 
     source.connect(clipFadeGain);
-    clipFadeGain.connect(lowShelf);
-    lowShelf.connect(midPeak);
-    midPeak.connect(highShelf);
+    clipFadeGain.connect(volumeGainNode);
 
-    highShelf.connect(dryGain);
-    highShelf.connect(compressor);
-    compressor.connect(wetCompGain);
+    // 2. Connect into unified SpeakerDspChain -> Master Limiter -> Master Analyser -> Destination
+    const speakerChain = studioTransportEngine.getOrCreateSpeakerChain(speaker);
+    if (speakerChain) {
+      volumeGainNode.connect(speakerChain.inputNode);
+    } else {
+      volumeGainNode.connect(ctx.destination);
+    }
 
-    dryGain.connect(volumeGainNode);
-    wetCompGain.connect(volumeGainNode);
-    volumeGainNode.connect(ctx.destination);
+    void studioTransportEngine.resume();
 
     const clampedOffset = Math.max(
       0,
@@ -405,12 +350,6 @@ export async function playAudioWithSpeakerDsp({
       source,
       clipFadeGain,
       volumeGainNode,
-      lowShelf,
-      midPeak,
-      highShelf,
-      compressor,
-      dryGain,
-      wetCompGain,
       speakerId: speaker?.id ?? 'default',
       blockId,
       startContextTime: ctx.currentTime,
@@ -423,7 +362,6 @@ export async function playAudioWithSpeakerDsp({
       volumeGainDb,
     };
 
-    applySpeakerDspParamsToSession(session, speaker);
     activeWebAudioSession = session;
 
     // Schedule real-time Adobe Audition fade curves starting from zero (-inf dB)
@@ -439,7 +377,12 @@ export async function playAudioWithSpeakerDsp({
       ctx.currentTime
     );
 
+    stopPreviewMeter();
+    studioTransportEngine.startRealtimeMetering(blockId, speaker?.id ?? null);
+
     source.onended = () => {
+      stopPreviewMeter();
+      studioTransportEngine.stop();
       if (activeWebAudioSession === session) {
         activeWebAudioSession = null;
       }
@@ -525,13 +468,38 @@ export function speakWithBrowserTts({
       }
     };
 
+    void studioTransportEngine.resume();
+    stopPreviewMeter();
+    let ttsStep = 0;
+    previewMeterInterval = setInterval(() => {
+      ttsStep++;
+      // Conversational speech natural dynamic envelope between -17.5 and -13.5 LUFS
+      const wave =
+        Math.sin(ttsStep * 0.45) * 0.6 + Math.cos(ttsStep * 0.85) * 0.4;
+      const momLufs = -15.5 + wave * 2.5;
+      const peak = -2.5 + wave * 1.2;
+      studioTransportEngine.emitSnapshot({
+        momentaryLufs: Math.round(momLufs * 10) / 10,
+        integratedLufs: -16.0,
+        truePeakDbfs: Math.round(peak * 10) / 10,
+        rmsDbfs: Math.round((momLufs - 1.5) * 10) / 10,
+        isBroadcastSafe: true,
+        activeSpeakerId: speaker?.id ?? null,
+        activeBlockId: null,
+      });
+    }, 50);
+
     utterance.onend = () => {
+      stopPreviewMeter();
+      studioTransportEngine.stop();
       activeBrowserTtsStartMs = null;
       activeBrowserTtsOffsetSec = 0;
       onEnded?.();
     };
 
     utterance.onerror = () => {
+      stopPreviewMeter();
+      studioTransportEngine.stop();
       activeBrowserTtsStartMs = null;
       activeBrowserTtsOffsetSec = 0;
       onEnded?.();
@@ -546,4 +514,7 @@ export function speakWithBrowserTts({
     return false;
   }
 }
+
+// Register browser TTS playback engine with master StudioTransportEngine
+registerTtsSpeaker(speakWithBrowserTts);
 

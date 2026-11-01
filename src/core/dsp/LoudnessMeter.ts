@@ -217,25 +217,18 @@ export class LoudnessMeter {
     // 2. Apply two-stage K-weighting filter
     const kWeighted = this.applyKWeighting(samples);
 
-    // 3. Momentary Loudness (last 400ms window or full buffer if shorter than 400ms)
+    // 3. Gated Integrated Loudness & Maximum Momentary Loudness (400ms blocks with 75% overlap / 100ms step)
     const windowSamples = Math.max(1, Math.round(this.sampleRate * 0.4));
-    const momentaryStart = Math.max(0, kWeighted.length - windowSamples);
-    let momSumSq = 0;
-    const momCount = kWeighted.length - momentaryStart;
-    for (let i = momentaryStart; i < kWeighted.length; i++) {
-      const v = kWeighted[i] + ANTI_DENORMAL_OFFSET;
-      momSumSq += v * v;
-    }
-    const momMeanSq = momSumSq / Math.max(1, momCount);
-    const momentaryLufs =
-      momMeanSq > 1e-12 ? -0.691 + 10 * Math.log10(momMeanSq) : -70;
-
-    // 4. Gated Integrated Loudness (400ms blocks with 75% overlap / 100ms step)
     const stepSamples = Math.max(1, Math.round(this.sampleRate * 0.1));
     const blockEnergies: number[] = [];
 
     if (kWeighted.length <= windowSamples) {
-      blockEnergies.push(momMeanSq);
+      let sumSq = 0;
+      for (let i = 0; i < kWeighted.length; i++) {
+        const v = kWeighted[i] + ANTI_DENORMAL_OFFSET;
+        sumSq += v * v;
+      }
+      blockEnergies.push(sumSq / Math.max(1, kWeighted.length));
     } else {
       for (
         let start = 0;
@@ -244,12 +237,17 @@ export class LoudnessMeter {
       ) {
         let sumSq = 0;
         for (let i = start; i < start + windowSamples; i++) {
-          const v = kWeighted[i];
+          const v = kWeighted[i] + ANTI_DENORMAL_OFFSET;
           sumSq += v * v;
         }
         blockEnergies.push(sumSq / windowSamples);
       }
     }
+
+    // Peak momentary loudness across active spoken blocks (prevents trailing silence pauses from reporting -70 LUFS)
+    const maxBlockEnergy = blockEnergies.length > 0 ? Math.max(...blockEnergies) : 0;
+    const momentaryLufs =
+      maxBlockEnergy > 1e-12 ? -0.691 + 10 * Math.log10(maxBlockEnergy) : -70.0;
 
     // Absolute gate at Gamma_a = -70 LUFS
     const absGateBlocks = blockEnergies.filter((z) => {

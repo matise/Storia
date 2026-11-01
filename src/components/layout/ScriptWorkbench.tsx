@@ -6,11 +6,8 @@ import {
   FileText,
   Globe,
   MessageSquarePlus,
-  Pause,
-  Play,
   Plus,
   RefreshCw,
-  Repeat,
   SlidersHorizontal,
   Square,
   Trash2,
@@ -26,10 +23,8 @@ import {
   ClockInterpolator,
   DemandFrameLoop,
 } from '../../core/spatial/ClockInterpolator';
-import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
 import { studioTransportEngine, LiveMeterSnapshot } from '../../core/dsp/StudioTransportEngine';
 import { getActivePreviewElapsedSec } from '../../core/dsp/LiveAudioPreviewer';
-import { BroadcastVuMeter } from '../workbench/BroadcastVuMeter';
 
 export const ScriptWorkbench: React.FC = () => {
   const { t } = useTranslation();
@@ -60,6 +55,11 @@ export const ScriptWorkbench: React.FC = () => {
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, []);
+
+  const lastTriggeredBlockRef = React.useRef<{
+    blockId: string | null;
+    inPause: boolean;
+  }>({ blockId: null, inPause: false });
 
   React.useEffect(() => {
     if (selectedBlockId) {
@@ -188,9 +188,13 @@ export const ScriptWorkbench: React.FC = () => {
   }, [isPlaying, playingBlockId, isScrubbing]);
 
   const handleToggleMasterPlay = React.useCallback(() => {
+    void studioTransportEngine.resume();
     if (isPlaying) {
       setMasterPlaying(false);
       return;
+    }
+    if (useStoriaStore.getState().playingBlockId) {
+      stopAudioPreview();
     }
     // Starting Play All: setMasterPlaying(true) also stops any block audition / speaker preview
     const current = clockRef.current.getRenderTimeSec();
@@ -200,7 +204,7 @@ export const ScriptWorkbench: React.FC = () => {
       setPlayheadSec(0);
     }
     setMasterPlaying(true);
-  }, [isPlaying, setMasterPlaying, totalDurationSec]);
+  }, [isPlaying, setMasterPlaying, stopAudioPreview, totalDurationSec]);
 
   // O(log N) 1D BVH lookup at current interpolated playhead
   const bvhHit = React.useMemo(
@@ -210,22 +214,55 @@ export const ScriptWorkbench: React.FC = () => {
 
   // Trigger multi-speaker sequential DSP playback & ITU-R BS.1770-4 loudness metering when playhead enters a block
   React.useEffect(() => {
-    if (!isPlaying || !bvhHit.block) return;
+    if (!isPlaying) {
+      lastTriggeredBlockRef.current = { blockId: null, inPause: false };
+      return;
+    }
+    if (!bvhHit.block) {
+      if (lastTriggeredBlockRef.current.blockId !== null) {
+        lastTriggeredBlockRef.current = { blockId: null, inPause: false };
+        studioTransportEngine.stop();
+      }
+      return;
+    }
+
     const blockStart = bvhHit.block.startTimeSec ?? 0;
     const pauseSec = Math.max(0, (bvhHit.block.pauseAfterMs ?? 0) / 1000);
     const totalBlkDur = bvhHit.block.estimatedDurationSec ?? 0;
     const spokenDur = Math.max(0.1, totalBlkDur - pauseSec);
     const spokenEnd = blockStart + spokenDur;
+
     if (playheadSec > spokenEnd) {
-      studioTransportEngine.stop();
+      // Crossed into the inter-block pause gap: stop audio once
+      if (
+        !lastTriggeredBlockRef.current.inPause ||
+        lastTriggeredBlockRef.current.blockId !== bvhHit.block.id
+      ) {
+        lastTriggeredBlockRef.current = {
+          blockId: bvhHit.block.id,
+          inPause: true,
+        };
+        studioTransportEngine.stop();
+      }
       return;
     }
-    const offsetSec = Math.max(0, playheadSec - blockStart);
-    void studioTransportEngine.triggerBlockOnTimeline(
-      bvhHit.block,
-      project,
-      offsetSec
-    );
+
+    // Within spoken duration: trigger once when entering block or after a seek/pause
+    if (
+      lastTriggeredBlockRef.current.blockId !== bvhHit.block.id ||
+      lastTriggeredBlockRef.current.inPause
+    ) {
+      lastTriggeredBlockRef.current = {
+        blockId: bvhHit.block.id,
+        inPause: false,
+      };
+      const offsetSec = Math.max(0, playheadSec - blockStart);
+      void studioTransportEngine.triggerBlockOnTimeline(
+        bvhHit.block,
+        project,
+        offsetSec
+      );
+    }
   }, [isPlaying, bvhHit.block, project, playheadSec]);
 
   const activeTimepointHit = React.useMemo(() => {
@@ -235,6 +272,7 @@ export const ScriptWorkbench: React.FC = () => {
 
   const handleSeekEpisodeTime = React.useCallback(
     (targetSec: number) => {
+      lastTriggeredBlockRef.current = { blockId: null, inPause: false };
       const clamped = Math.max(0, Math.min(totalDurationSec, targetSec));
       clockRef.current.seek(clamped);
       transientPlaybackRef.current.playheadTimeSec = clamped;
@@ -250,6 +288,7 @@ export const ScriptWorkbench: React.FC = () => {
 
   const handleJumpBlockIndex = React.useCallback(
     (blockIndex: number) => {
+      lastTriggeredBlockRef.current = { blockId: null, inPause: false };
       const targetBlock = project.blocks[blockIndex];
       if (!targetBlock) return;
       const startSec = targetBlock.startTimeSec ?? 0;
@@ -263,6 +302,7 @@ export const ScriptWorkbench: React.FC = () => {
   );
 
   const handleStopTransport = React.useCallback(() => {
+    lastTriggeredBlockRef.current = { blockId: null, inPause: false };
     setMasterPlaying(false);
     if (useStoriaStore.getState().playingBlockId) {
       stopAudioPreview();
@@ -272,10 +312,11 @@ export const ScriptWorkbench: React.FC = () => {
     transientPlaybackRef.current.playheadTimeSec = 0;
     setPlayheadSec(0);
     frameLoopRef.current?.invalidate();
-  }, []);
+  }, [stopAudioPreview, setMasterPlaying]);
 
   const handleSeekWithinBlock = React.useCallback(
     (block: ScriptBlock, progress: number) => {
+      lastTriggeredBlockRef.current = { blockId: null, inPause: false };
       const start = block.startTimeSec ?? 0;
       const dur = Math.max(0.01, block.estimatedDurationSec ?? 0);
       const clampedProg = Math.max(0, Math.min(1, progress));
@@ -302,7 +343,7 @@ export const ScriptWorkbench: React.FC = () => {
     <main className="flex-1 flex flex-col bg-slate-950 min-w-0 overflow-hidden">
       {/* Studio Header: Unified Compact Action Bar */}
       <div className="min-h-11 py-1.5 border-b border-slate-800/90 bg-slate-900/40 px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
-        {/* Left: Unified Panel Deck Toggles & Master Playback Controls */}
+        {/* Left: Unified Panel Deck Toggles & Block Insertion */}
         <div className="flex items-center gap-2">
           {/* Group 1: Unified Panel Deck Toggles (Waveform Transport & Episode Settings) */}
           <div className="flex items-center bg-slate-950/90 border border-slate-800 rounded-md p-0.5 shrink-0">
@@ -355,57 +396,7 @@ export const ScriptWorkbench: React.FC = () => {
 
           <div className="h-4 w-px bg-slate-800 shrink-0" />
 
-          {/* Group 2: Master Playback Transport (Stable, permanently rendered) */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              data-testid="workbench-play-pause-btn"
-              onClick={handleToggleMasterPlay}
-              title={isPlaying ? t('pause') : t('playAll')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                isPlaying
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs shadow-emerald-900/40'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs shadow-indigo-900/40'
-              }`}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-3 h-3 fill-current shrink-0" />
-                  <span>{t('pause')}</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3 h-3 fill-current shrink-0" />
-                  <span>{t('playAll')}</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsLooping((l) => !l)}
-              title={t('loop')}
-              className={`p-1 rounded-md border text-xs transition-colors cursor-pointer ${
-                isLooping
-                  ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-            >
-              <Repeat className="w-3.5 h-3.5" />
-            </button>
-
-            <span
-              data-testid="workbench-timecode-readout"
-              className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 tabular-nums select-none"
-            >
-              {formatDurationReadout(playheadSec, true)} /{' '}
-              {formatDurationReadout(totalDurationSec, true)}
-            </span>
-          </div>
-
-          <div className="h-4 w-px bg-slate-800 shrink-0" />
-
-          {/* Group 3: Block Insertion */}
+          {/* Group 2: Block Insertion */}
           <button
             type="button"
             onClick={() => addBlock('dialogue')}
@@ -416,7 +407,7 @@ export const ScriptWorkbench: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Audio Management Cache Tools & Broadcast Stereo VU Meter */}
+        {/* Right: Audio Management Cache Tools */}
         <div className="flex items-center gap-2">
           {/* Episode-Wide Audio & Waveform Management Icon Tools */}
           <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800 rounded-lg p-0.5 shrink-0">
@@ -469,15 +460,6 @@ export const ScriptWorkbench: React.FC = () => {
               <span className="hidden xl:inline">{t('clearAllAudio')}</span>
             </button>
           </div>
-
-          <div className="h-4 w-px bg-slate-800 shrink-0" />
-
-          {/* Broadcast Stereo VU Meter */}
-          <BroadcastVuMeter
-            meterSnapshot={meterSnapshot}
-            isPlaying={isPlaying || Boolean(playingBlockId)}
-            compact
-          />
         </div>
       </div>
 
@@ -656,9 +638,10 @@ export const ScriptWorkbench: React.FC = () => {
           playheadSec={playheadSec}
           totalDurationSec={totalDurationSec}
           activeBlockIndex={activeBlockIndex}
-          isPlaying={isPlaying}
+          isPlaying={isPlaying || Boolean(playingBlockId)}
           isLooping={isLooping}
           playbackSpeed={playbackSpeed}
+          meterSnapshot={meterSnapshot}
           onTogglePlay={handleToggleMasterPlay}
           onStop={handleStopTransport}
           onToggleLoop={() => setIsLooping((l) => !l)}
@@ -690,7 +673,17 @@ export const ScriptWorkbench: React.FC = () => {
       >
         {project.blocks.map((block, index) => {
           const isCurrentPlayheadBlock = bvhHit.block?.id === block.id;
-          const blockProgress = isCurrentPlayheadBlock ? bvhHit.blockProgress : 0;
+          const blockStart = block.startTimeSec ?? 0;
+          const blockDur = Math.max(0.01, block.estimatedDurationSec ?? 0);
+          const blockEnd = block.endTimeSec ?? (blockStart + blockDur);
+          let blockProgress = 0;
+          if (isCurrentPlayheadBlock) {
+            blockProgress = bvhHit.blockProgress;
+          } else if (playheadSec >= blockEnd && blockEnd > 0) {
+            blockProgress = 1;
+          } else {
+            blockProgress = 0;
+          }
 
           return (
             <ScriptBlockCard

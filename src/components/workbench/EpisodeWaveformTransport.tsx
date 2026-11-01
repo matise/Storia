@@ -18,6 +18,8 @@ import { ScriptBlock, Speaker } from '../../types/storia';
 import { useTranslation } from '../../i18n/useTranslation';
 import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
 import { generateSyntheticPreviewPeaks } from './WaveformCanvas';
+import { BroadcastVuMeter } from './BroadcastVuMeter';
+import { LiveMeterSnapshot, studioTransportEngine } from '../../core/dsp/StudioTransportEngine';
 
 export interface EpisodeWaveformTransportProps {
   blocks: ScriptBlock[];
@@ -28,6 +30,7 @@ export interface EpisodeWaveformTransportProps {
   isPlaying: boolean;
   isLooping: boolean;
   playbackSpeed: number;
+  meterSnapshot?: LiveMeterSnapshot;
   onTogglePlay: () => void;
   onStop: () => void;
   onToggleLoop: () => void;
@@ -270,6 +273,7 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   isPlaying,
   isLooping,
   playbackSpeed,
+  meterSnapshot,
   onTogglePlay,
   onStop,
   onToggleLoop,
@@ -287,6 +291,17 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = React.useState<number>(640);
   const [zoomLevel, setZoomLevel] = React.useState<number>(1.0);
+  const [internalMeterSnapshot, setInternalMeterSnapshot] = React.useState<LiveMeterSnapshot>(() =>
+    studioTransportEngine.getLatestSnapshot()
+  );
+
+  React.useEffect(() => {
+    if (!meterSnapshot) {
+      return studioTransportEngine.subscribeMeter(setInternalMeterSnapshot);
+    }
+  }, [meterSnapshot]);
+
+  const activeMeterSnapshot = meterSnapshot ?? internalMeterSnapshot;
 
   const isDraggingRef = React.useRef(false);
   const isDraggingPauseRef = React.useRef<{
@@ -894,6 +909,13 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
               </option>
             </select>
           </label>
+
+          {/* Broadcast Stereo VU Meter transferred directly onto timeline transport deck */}
+          <BroadcastVuMeter
+            meterSnapshot={activeMeterSnapshot}
+            isPlaying={isPlaying}
+            compact
+          />
         </div>
       </div>
 

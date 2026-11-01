@@ -48,6 +48,8 @@ export interface TranslationDictionary {
   playAll: string;
   pause: string;
   loop: string;
+  autoAdvance: string;
+  autoAdvanceTooltip: string;
   addLine: string;
   addDialogue: string;
   addNarration: string;
@@ -364,6 +366,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     playAll: 'Play All',
     pause: 'Pause',
     loop: 'Loop',
+    autoAdvance: 'Auto',
+    autoAdvanceTooltip: 'Auto-advance: automatically open and play next block when finished',
     addLine: 'Add Line',
     addDialogue: '+ Dialogue',
     addNarration: '+ Narration',
@@ -669,6 +673,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     playAll: 'Reproduciraj sve',
     pause: 'Pauza',
     loop: 'Ponavljaj',
+    autoAdvance: 'Auto',
+    autoAdvanceTooltip: 'Automatski prelazak: automatski otvori i reproduciraj sljedeći blok nakon završetka',
     addLine: 'Dodaj repliku',
     addDialogue: '+ Dijalog',
     addNarration: '+ Naracija',

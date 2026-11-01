@@ -238,6 +238,9 @@ export interface StoriaStoreState {
   /** Episode-wide "Play All" transport state (mutually exclusive with single-block audition) */
   isMasterPlaying: boolean;
   setMasterPlaying: (playing: boolean) => void;
+  isAutoAdvanceEnabled: boolean;
+  toggleAutoAdvance: () => void;
+  setAutoAdvance: (enabled: boolean) => void;
   ttsErrorMessage: string | null;
   undoCount: number;
   redoCount: number;
@@ -382,6 +385,10 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         set({ isMasterPlaying: false });
       }
     },
+    isAutoAdvanceEnabled: true,
+    toggleAutoAdvance: () =>
+      set((state) => ({ isAutoAdvanceEnabled: !state.isAutoAdvanceEnabled })),
+    setAutoAdvance: (enabled: boolean) => set({ isAutoAdvanceEnabled: enabled }),
     ttsErrorMessage: null,
     undoCount: 0,
     redoCount: 0,
@@ -1207,6 +1214,26 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
 
       const handleDone = () => {
         if (myToken === auditionSessionToken && get().playingBlockId === block.id) {
+          if (get().isAutoAdvanceEnabled) {
+            const currentBlocks = get().project.blocks;
+            const curIdx = currentBlocks.findIndex((b) => b.id === block.id);
+            if (curIdx >= 0 && curIdx < currentBlocks.length - 1) {
+              const nextBlock = currentBlocks[curIdx + 1];
+              const nextIsCollapsed = Boolean(nextBlock.isCollapsed);
+              if (nextIsCollapsed) {
+                get().updateBlock(block.id, { isCollapsed: true });
+              }
+              get().updateBlock(nextBlock.id, { isCollapsed: false });
+              get().selectBlock(nextBlock.id);
+              if (typeof document !== 'undefined') {
+                const el = document.getElementById(`script-block-card-${nextBlock.id}`);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+              set({ playingBlockId: null });
+              void get().auditionBlock(nextBlock.id, 0);
+              return;
+            }
+          }
           set({ playingBlockId: null });
         }
       };

@@ -29,6 +29,8 @@ export interface EpisodeWaveformTransportProps {
   activeBlockIndex: number;
   isPlaying: boolean;
   isLooping: boolean;
+  isAutoAdvance?: boolean;
+  onToggleAutoAdvance?: () => void;
   playbackSpeed: number;
   meterSnapshot?: LiveMeterSnapshot;
   onTogglePlay: () => void;
@@ -272,6 +274,8 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   activeBlockIndex,
   isPlaying,
   isLooping,
+  isAutoAdvance = true,
+  onToggleAutoAdvance,
   playbackSpeed,
   meterSnapshot,
   onTogglePlay,
@@ -814,6 +818,22 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
           >
             <Repeat className="w-3 h-3" />
             <span>{t('loop')}</span>
+          </button>
+
+          {/* Auto Advance Toggle */}
+          <button
+            type="button"
+            data-testid="transport-auto-advance-btn"
+            onClick={onToggleAutoAdvance}
+            title={t('autoAdvanceTooltip')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+              isAutoAdvance
+                ? 'bg-amber-950/80 border-amber-500/70 text-amber-200 shadow-xs shadow-amber-950/40'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FastForward className="w-3 h-3 text-amber-400" />
+            <span>{t('autoAdvance')}</span>
           </button>
         </div>
 

@@ -70,6 +70,8 @@ export const ScriptWorkbench: React.FC = () => {
   // Episode "Play All" state lives in the store so single-block audition can stop it atomically
   const isPlaying = useStoriaStore((s) => s.isMasterPlaying);
   const setMasterPlaying = useStoriaStore((s) => s.setMasterPlaying);
+  const isAutoAdvanceEnabled = useStoriaStore((s) => s.isAutoAdvanceEnabled);
+  const toggleAutoAdvance = useStoriaStore((s) => s.toggleAutoAdvance);
   const [isLooping, setIsLooping] = React.useState(false);
   const [isScrubbing, setIsScrubbing] = React.useState(false);
   const [playheadSec, setPlayheadSec] = React.useState(0);
@@ -264,6 +266,37 @@ export const ScriptWorkbench: React.FC = () => {
       );
     }
   }, [isPlaying, bvhHit.block, project, playheadSec]);
+
+  // When Auto-Advance is enabled during Play All: open newly entered blocks and keep view in sync
+  const lastActiveBlockIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!isPlaying) {
+      lastActiveBlockIdRef.current = bvhHit.block?.id ?? null;
+      return;
+    }
+    if (!isAutoAdvanceEnabled || !bvhHit.block) {
+      return;
+    }
+
+    if (bvhHit.block.id !== lastActiveBlockIdRef.current) {
+      const prevBlockId = lastActiveBlockIdRef.current;
+      lastActiveBlockIdRef.current = bvhHit.block.id;
+      if (prevBlockId && bvhHit.block.isCollapsed) {
+        updateBlock(prevBlockId, { isCollapsed: true });
+      }
+      updateBlock(bvhHit.block.id, { isCollapsed: false });
+      selectBlock(bvhHit.block.id);
+      const el = document.getElementById(`script-block-card-${bvhHit.block.id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [
+    isPlaying,
+    isAutoAdvanceEnabled,
+    bvhHit.block?.id,
+    bvhHit.block?.isCollapsed,
+    updateBlock,
+    selectBlock,
+  ]);
 
   const activeTimepointHit = React.useMemo(() => {
     if (!bvhHit.block) return { timepoint: null, wordIndex: -1 };
@@ -640,11 +673,13 @@ export const ScriptWorkbench: React.FC = () => {
           activeBlockIndex={activeBlockIndex}
           isPlaying={isPlaying || Boolean(playingBlockId)}
           isLooping={isLooping}
+          isAutoAdvance={isAutoAdvanceEnabled}
           playbackSpeed={playbackSpeed}
           meterSnapshot={meterSnapshot}
           onTogglePlay={handleToggleMasterPlay}
           onStop={handleStopTransport}
           onToggleLoop={() => setIsLooping((l) => !l)}
+          onToggleAutoAdvance={toggleAutoAdvance}
           onSeekTimeSec={handleSeekEpisodeTime}
           onJumpBlockIndex={(idx) => {
             handleJumpBlockIndex(idx);

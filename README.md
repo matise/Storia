@@ -1,4 +1,4 @@
-# 🎙️ Storia — Intelligent Audio Drama, Podcast & Narration Studio
+# 🎙️ Storia — The Intelligent Audio Drama & Screenplay Studio
 
 > **"From the stone ramparts and quarantine vaults of Dubrovnik to the modern soundstage — where centuries of Mediterranean oral storytelling converge with cutting-edge generative audio DSP."**
 
@@ -7,25 +7,196 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-140%2F140%20Passing-emerald.svg)](https://vitest.dev/)
+[![Tests Passing](https://img.shields.io/badge/Tests-145%2F145%20Passing-emerald.svg)](https://vitest.dev/)
+[![Web Audio API](https://img.shields.io/badge/Web%20Audio-Hardware%20DSP-purple.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+[![Broadcast Compliant](https://img.shields.io/badge/Loudness-ITU--R%20BS.1770--4-amber.svg)](https://www.itu.int/rec/R-REC-BS.1770)
 
 ---
 
-## 📖 The Story of Storia
+## 🌟 First Impression: What is Storia?
 
-### The Echo in the Stone
-For more than six centuries, stories have echoed across the limestone cliffs and seawalls of the **Republic of Ragusa (Dubrovnik)**. Within the historic stone arches of **Lazareti**—the quarantine complex established in 1377 where sea travelers, diplomats, poets, and merchants rested before entering the walled city—the human voice served as the supreme medium of culture, law, survival, and memory. Tales were recorded not only in official codices, but in lemon-juice ciphers, radio dramas, fireside fables, and the unique cadence of the spoken vernacular.
+**Storia** is a browser-native **Digital Audio Workstation (DAW)**, **intelligent screenplay editor**, and **dramatic AI co-writer** engineered from the ground up for narrative fiction, radio drama (*radiodrama*), investigative podcasts, and multi-speaker audiobooks.
 
-**Storia** was conceived and architected by **Mate Fox Banchilo (Matija Miloslavić)** at **Robot Hand Made** as a dedication to the rich European and Mediterranean heritage of audio drama and radio theatre (*radiodrama*). 
+Traditional text-to-speech tools treat voice generation as a static assembly line of disconnected MP3 clips on a sterile grid. **Storia** replaces that model with a unified theatrical soundstage:
 
-### The Crisis of the Discretized Grid
-When modern generative AI emerged, speech synthesis promised a golden age of digital storytelling. Yet the reality fell strikingly short of theatrical truth:
-* **The Discretized Grid:** Commercial TTS engines treated audio as an assembly line of quantized, robotic slices. Human speech was forced onto a flat, lifeless Cartesian grid—sterile, metronomic, and devoid of the dynamic breathing room and emotional gravity that define live theatre.
-* **Dialect Mutilation:** Generic machine-learning pipelines flattened regional linguistic heritage. Historical dialects, Balkan phonology, Romance loanwords, and complex Slavic grammatical agreements (such as gender concord in past-tense participles and vocative inflections) were obliterated by uniform synthetic accents.
-* **The Fragmented Soundstage:** Creators were forced to glue together disconnected MP3 snippets in external software, lacking continuous DAW-grade timelines, live script alignment, speaker acoustic modeling, and broadcast compliance.
+* 🎚️ **Hardware-Accelerated Web Audio DSP:** Per-speaker 3-band parametric Biquad EQs, studio dynamics compressors, and volume fade curves with $-\infty\text{ dB}$ corner attenuation.
+* ⚡ **60 FPS Data-Oriented (DOD) Waveforms:** Contiguous `Float32Array` Structure-of-Arrays (SoA) peak pyramids that scrub, zoom, and pan smoothly without garbage-collection lag.
+* 🎙️ **Real-Time Karaoke Alignment & Click-to-Seek:** Character-weighted phonetic word pacing with punctuation pause modeling that keeps text highlights in exact lockstep with waveform needle lines and timecodes.
+* 🔄 **Continuous Auto-Advance Playback:** Uninterrupted sequence auditioning that automatically unfolds and advances block-to-block through the entire episode.
+* 🔊 **Hybrid Audio Engine:** Seamless integration of Google Gemini 2.5 expressive multi-speaker voice synthesis, zero-token offline browser TTS, and pure procedural physical-modeling SFX (ocean surf, rainstorms, footsteps on stone, creaking doors, and sub-bass drones).
+* 🏰 **Authentic Dubrovnik Dialect Engine:** 570+ authenticated Ragusan vocabulary entries, jekavski štokavski declension rules, and speech breath pause modeling.
+* 🎛️ **Broadcast Mastering Suite:** In-browser ITU-R BS.1770-4 ($-16\text{ LUFS}$) normalization, $4\times$ oversampled True Peak limiting, XorShift128+ TPDF dither, pure client-side 320 kbps MP3 encoding via `@breezystack/lamejs`, and time-aligned multitrack speaker stems.
 
-### The Triadic Philosophy: Resonance, Fire & Architecture
-Storia solves this divide through a philosophy embodied in its foundational flagship narrative, **The Triad of the Bass Frame** (*Trijada Bas Okvira / Ponoćni Svodovi Lazareta*):
+---
+
+## 🏛️ Studio Layout & Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                  STORIA STUDIO WORKSPACE                                               │
+├──────────────────────────┬─────────────────────────────────────────────────────────────┬───────────────────────────────┤
+│     CAST & SPEAKERS      │                  EPISODE WAVEFORM TRANSPORT                 │       AI AGENT & RESEARCH     │
+│                          │  [Play All] [Auto] [Loop]  00:26.0 / 02:54.2  [Stereo VU]   │                               │
+│ • Speaker Personas (HR/EN)│  ───[#1 SFX]───[#2 Mara]───[#3 Foxy]───[#4 eNa]─────────────│ • Co-Writer (3 Workflows)     │
+│ • 3-Band Parametric EQ   ├─────────────────────────────────────────────────────────────┤ • Deep Multimodal Research    │
+│   - High Shelf (8 kHz)   │                     SCRIPT WORKBENCH                        │ • Google Search Grounding     │
+│   - Mid Peak (2.5 kHz)   │                                                             │ • Script Doctor & Cadence     │
+│   - Low Shelf (120 Hz)   │  [#1 SFX: Lazareti Surf]  [Mini Transport] 00:04.0          │ • Bilingual Cultural Adapter  │
+│ • Dynamics Compressor    │  [#2 Mara: Dialogue]      [Live Waveform + Fade Handles]    │ • Dubrovnik Dialect Injector  │
+│ • Timbre Warmth & Pitch  │  [#3 Foxy: Dialogue]      [Unified Karaoke Script Editor]   │ • Document Dropzone (PDF/IMG) │
+│ • Live Voice Audition    │  • 1D Temporal BVH ($O(\log N)$)  • Interactive Pause Drag  │ • Resizable Splitter Dock     │
+│ • Resizable Splitter     │  • Collapsed Mini Transport       • Click-Word-to-Seek      │                               │
+└──────────────────────────┴─────────────────────────────────────────────────────────────┴───────────────────────────────┘
+                                                           │
+                                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                            BROADCAST MASTERING & STEM EXPORT                                           │
+│     • ITU-R BS.1770-4 (-16 LUFS)  • True Peak Limiter (-1.0 dBFS)  • XorShift128+ Triangular Dither (TPDF)             │
+│     • Pure Client-Side LAME MP3 (320 kbps)  • 24-bit Broadcast WAV  • Time-Aligned Multitrack Stems (.fountain / .json)│
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Key Studio Capabilities
+
+### 1. ⚡ Master Episode Waveform Transport Deck
+* **Data-Oriented (DOD) Peak Pyramid:** Waveforms are rendered using contiguous `Float32Array` minimum/maximum peak arrays across 96 discrete slices, completely eliminating memory allocation spikes during high-speed scrubbing.
+* **Timeline Zoom & Smooth Pan:** Seamlessly scale from $1.0\times$ (full episode overview) up to $10.0\times$ (sample-accurate editing) with horizontal wheel panning and zoom fit triggers.
+* **Direct Part Drag & Reordering:** Move, swap, and reorder dialogue blocks and sound effects directly on the master waveform timeline with visual drag ghosts and drop targets.
+* **Interactive Silence & Pause Dragging:** Adjust the natural breathing silence between dialogue lines (`pauseAfterMs`) using direct pointer drag handles positioned on the timeline canvas.
+* **Integrated Stereo VU / Loudness Meter:** Real-time dual-channel peak metering accompanied by integrated K-weighted LUFS telemetry and true-peak broadcast compliance indicators.
+* **Auto-Advance Playback Engine:** Dedicated `Auto` sequence mode that seamlessly continues playback from block to block, automatically expanding the active block and scrolling it into view.
+* **1D Temporal Bounding Volume Hierarchy (BVH):** Binary interval tree spatial partition delivering instant $O(\log N)$ block lookups during mouse hover, scrubbing, and playhead advancement.
+
+---
+
+### 2. 📝 Unified Script Editor & Live Karaoke Word Transport
+* **Zero-Layout-Shift Surface:** The editor seamlessly toggles between two synchronized states without any shift in typography, line-height, padding, or borders:
+  1. **Idle Edit Mode:** A clean, responsive multi-line textarea with keyboard shortcuts (`Ctrl+Enter` to insert the next line, `Alt+↑`/`Alt+↓` to reorder).
+  2. **Word-Transport Mode:** An interactive spoken surface displaying character-weighted word tokens.
+* **Phonetic Pacing & Pause Weighting:** Words are automatically weighted based on character length and punctuation pauses (commas add $+1.8$, sentence boundaries add $+3.2$ breath pauses) to calculate natural conversational timing.
+* **Dynamic 60 FPS Karaoke Highlighting:** The active word highlights in emerald in lockstep with the waveform needle and timecode readout, updating smoothly at 60 FPS across both single-block auditions and master "Play All" playback.
+* **Click-Word-to-Seek:** Click any individual word to instantly jump the audio playback needle and timecode to that exact spoken syllable.
+* **Double-Click Edit Unlock:** Double-clicking anywhere on the text immediately pauses playback and unlocks standard textarea editing.
+
+---
+
+### 3. 🎚️ Script Block Cards & Collapsed Mini Transports
+* **Dual Expanded / Collapsed Views:** Script blocks can be collapsed into sleek, single-line summaries to conserve screen space when managing large, multi-scene scripts.
+* **Collapsed Mini Transport Controls:** Even when collapsed, script blocks provide instant play/pause buttons, restart buttons, duration timecodes, and an interactive mini timeline scrubber with a real-time progress needle.
+* **Adobe Audition-Grade Volume Fade Handles:** Expanded blocks feature interactive fade-in and fade-out handles directly on the waveform canvas. Fades start strictly from absolute silence ($-\infty\text{ dB}$) using smooth power-law curves with zero clicks, pops, or latency.
+* **Precision Volume Gain Knob:** Draggable radial gain control providing per-block trim adjustment from $-48\text{ dB}$ to $+10\text{ dB}$.
+* **Clean Didaskalije (Stage Directions):** An unobtrusive, bracket-free director's notes field (`whispered`, `ironic`, `breathless`, `shouting`) integrated directly into the block header.
+
+---
+
+### 4. 🎭 Cast & Acoustic Persona Studio
+* **Multi-Speaker Orchestration:** Create and manage limitless cast members, each with unique voice assignments, speaking tempos ($0.5\times$ to $2.0\times$), pitch shifts, color accents, and personalized backstory prompts.
+* **Studio Parametric Biquad EQ per Speaker:**
+  * **High Shelf:** Air and presence boost ($8.0\text{ kHz}$).
+  * **Mid Peak:** Vocal intelligibility and dialogue clarity ($2.5\text{ kHz}$).
+  * **Low Shelf:** Proximity effect and chest warmth ($120\text{ Hz}$).
+* **Studio Dynamics Compressor:** Peak limiting and level control with customizable threshold ($-48\text{ dB}$ to $0\text{ dB}$), compression ratio ($1:1$ to $20:1$), attack ($1\text{ ms}$ to $50\text{ ms}$), and release ($20\text{ ms}$ to $500\text{ ms}$).
+* **Acoustic Timbre & Centroid Control:** Spectral centroid tuning ($500\text{ Hz}$ to $5000\text{ Hz}$) for authentic voice coloration.
+* **Zero-Latency Voice Auditioning:** Instantaneous line rehearsal via the Web Audio API using either local neural voices or cloud synthesis.
+* **Speaker Quick-Assign Hotkeys:** Rapidly assign cast members to script blocks using `Alt+1` through `Alt+9`.
+
+---
+
+### 5. 🔊 Hybrid Synthesis & Procedural Physical-Modeling SFX
+* **Gemini 2.5 Expressive Voice Generation:** Emotionally nuanced multi-speaker speech synthesis honoring dramatic tension and theatrical stage directions.
+* **Offline Browser SpeechSynthesis Fallback:** Fully functional offline auditioning that works without network access or API tokens.
+* **Procedural Physical-Modeling SFX Synthesizer:** Pure mathematical synthesis of complex Foley and environmental audio directly within Web Audio:
+  * 🌊 **Ocean Swell & Coastal Surf:** Multi-band bandpass-filtered noise modulating tidal surge intervals.
+  * 🌧️ **Rainstorms & Heavy Downpours:** Stochastic high-density acoustic droplet generator.
+  * 💨 **Resonant Wind & Coastal Gales:** Modulated resonant bandpass filters simulating wind gusts around stone structures.
+  * 📻 **Vintage Radio Static:** Non-linear white and pink noise textures with cyclic phase degradation.
+  * 👞 **Footsteps on Stone:** Impact modeling with rapid damping and early reflections simulating limestone cobblestones.
+  * 🚪 **Creaking Doors & Vault Latches:** Frequency-modulated sawtooth synthesis with exponential pitch decays.
+  * 🔊 **Cinematic Sub-Bass Drones:** Deep harmonic sine waves with subtle beating frequencies designed for dramatic climaxes.
+* **Custom Audio Import:** Drag-and-drop support for external sound effects and music stems (`.wav`, `.mp3`, `.ogg`, `.flac`).
+
+---
+
+### 6. 🤖 AI Dramatic Co-Writer & Research Dock (Powered by Gemini)
+* **Three Specialized Screenwriting Modes:**
+  1. **Scene Co-Writer (3 Beats):** Analyzes preceding dialogue, character motivations, and director hints to generate 3 distinct dramatic beat choices with creative rationales.
+  2. **Complete Episodic Story Mode:** Drafts extensive multi-act story arcs complete with speaker handoffs, sound effects, and dramatic peaks.
+  3. **Podcast Episode Mode:** Generates engaging two-host conversational interviews, historical debates, and investigative discussions.
+* **Deep Multimodal Research & Document Ingestion:** Drag-and-drop PDFs, treatment outlines, historical codices, and reference images. The AI analyzes uploaded documents to ground character dialogue.
+* **Google Search Grounded Fact-Checking:** Connects directly to verified Google Search results to substantiate historical queries, period attire, weaponry, architecture, and cultural facts.
+* **Script Doctor & Vocal Cadence Polisher:** Evaluates rhythmic flow, detects breathless phrasing, suggests emotional delivery adjustments, and inserts natural didaskalije.
+* **Bilingual Cultural & Grammatical Adapter (EN ↔ HR):** Preserves Slavic morphological agreements—including past-tense participle gender concord (*glagolski pridjevi radni* na *-o* vs *-la*), vocatives (*gosparu, Mare*), and cultural idioms—when translating between Croatian and English.
+
+---
+
+### 7. 🏰 Dubrovnik Vernacular & Phonetic Dialect Engine
+Storia features a dedicated, authentic dialect engine for the historic city vernacular of Dubrovnik (*dubrovačka gradska štokavština / Raguzejski idiom*):
+* **Sociolinguistic Authenticity:** Built strictly upon historical **jekavski štokavski** roots. Completely isolated from Chakavian or general Central Dalmatian Ikavian (strictly no *ča*, no *ćaća*, no non-jekavian Jat).
+* **Master Bidirectional Lexical Database (`dubrovnikDictionary.ts`):** Over 570 authenticated Ragusan vocabulary entries spanning 7 distinct semantic categories:
+  * **Household & Dining:** *Pantaruo / pantaruoli* (vilica), *ožica* (žlica), *pjat* (tanjur), *teća* (lonac), *prosuja* (tava), *broka* (vrč), *žmuo* (čaša), *pomadora* (rajčica), *patata* (krumpir), *kapula* (crveni luk), *dinja* (lubenica!), *pipun* (dinja!), *cukar* (šećer), *beškotin* (keks), *butiga* (dućan).
+  * **Attire & Personal Items:** *Crevlje* (cipele), *špigete* (vezice), *gaće* (duge hlače!), *mudante* (donje rublje), *vestit* (odijelo), *bječva* (čarapa), *šugaman* (ručnik), *kušin* (jastuk), *lincuo* (plahta), *takujin* (novčanik), *lapis* (olovka).
+  * **Society & People:** *Gospar* (gospodin/plemić), *sinjora* (gospođa), *čeljad / čejad* (ljudi), *našjenac* (domaći), *furesti* (stranci), *manjgura* (cura), *huncut* (vragolan).
+  * **Verbs & Expressions:** *Mučat* (šutjeti), *hodit* (ići), *balat* (plesati), *dilitat* (ometati), *pasat* (proći), *fermat* (stati), *arivat* (stići), *guštat* (uživati), *škerac* (šala), *intravenjat* (događati se), *pjantat* (ostaviti).
+  * **Topography & Architecture:** *Volat / volti* (kameni luk), *skalin / skalini* (stepenice), *komin* (ognjište), *funjestra* (prozor), *koltrina* (zavjesa), *kamara* (soba), *tinel / saloča* (dnevni boravak), *spjađa* (plaža), *porat* (luka).
+* **Idiomatic Phrase Engine:** Pre-compiled phrase transforms: *u Grad* (u Dubrovnik), *put Grada* (prema Dubrovniku), *na placi* (na Stradunu), *u Portu* (u staroj luci), *sluga van se* (dobar dan), *adio ti* (doviđenja), *fála van vele* (hvala lijepa), *ne mari* (nema veze), *što činiš* (što radiš).
+* **Phonological & Morphological Rules:**
+  * **Masculine a-Declension:** Male names ending in `-o` (*Vlaho, Maro, Baldo, Đuro, Niko, Mato, Pero*) decline strictly via a-declension (*Vlaha/Vlahu, Mara/Maru*; possessives *Vlahov, Marov*, never *-in* or *-i*).
+  * **Infinitive Truncation:** `-ti` $\rightarrow$ `-t` (*gledat, radit, govorit, hodit*).
+  * **Diphthong Contraction:** `-ao / -uo -> -ō` (*rekō, gledō, poslō*).
+  * **Final Nasal Shift:** `-m -> -n` (*sam -> san, sa mnom -> sa mnon*).
+  * **TTS Breath Pause Modeling:** Normalizes contracted vowels and inserts natural pauses after vocatives and exclamations (*gosparu, Mare, muči, adio, čertamente*).
+* **Three Historical Registers:** Classical (16th–18th C. Držić & Gundulić), Traditional (19th–Mid 20th C. Old Walled City), and Contemporary (Living Urban).
+
+---
+
+### 8. 🎛️ Broadcast Mastering Suite & Multitrack Stems
+* **ITU-R BS.1770-4 Loudness Normalization:** Integrated K-weighting pre-filter and $4\times$ polyphase sinc True Peak limiter enforcing $-16\text{ LUFS}$ integrated loudness for podcasts or EBU R128 compliance for broadcast radio.
+* **XorShift128+ TPDF Dither:** Clean multi-bit-depth quantization ($16\text{-bit}$, $24\text{-bit}$, and $32\text{-bit}$ float at $44.1\text{ kHz}$ or $48\text{ kHz}$).
+* **Pure Client-Side MP3 Encoding (320 kbps):** Zero-transcoding, zero-server MP3 rendering at maximum broadcast quality ($320\text{ kbps}$ CBR) powered by `@breezystack/lamejs`.
+* **Time-Aligned Multitrack Stems:** Export isolated, time-aligned audio stems for every speaker alongside the complete episode master mix for effortless mixing in Reaper, Pro Tools, or DaVinci Fairlight.
+* **Screenplay Interchange:** Export to industry-standard `.fountain`, clean Markdown `.md`, or complete native `.storia.json` project bundles.
+
+---
+
+## 🧩 Component Details & File Structure
+
+| Component / Module | Path | Description & Architectural Responsibility |
+|---|---|---|
+| **ScriptWorkbench** | `src/components/layout/ScriptWorkbench.tsx` | Main orchestrator managing the 60 FPS playback loop (`DemandFrameLoop`, `ClockInterpolator`), 1D `TemporalBVH`, auto-advance loop, and multi-block virtualization. |
+| **EpisodeWaveformTransport** | `src/components/workbench/EpisodeWaveformTransport.tsx` | Master top-deck waveform transport with timeline zoom ($1.0\times$–$10.0\times$), horizontal panning, draggable pause gap handles, stereo VU/LUFS meter, and auto-advance toggle. |
+| **ScriptBlockCard** | `src/components/workbench/ScriptBlockCard.tsx` | Individual screenplay block card supporting expanded waveform editing, volume fade curves, gain knob, collapsed mini transport, and unified script editor. |
+| **UnifiedScriptEditor** | `src/components/workbench/UnifiedScriptEditor.tsx` | Zero-layout-shift script editor toggling between idle textarea and 60 FPS karaoke word-transport mode with character-weighted timing and click-to-seek. |
+| **WaveformCanvas** | `src/components/workbench/WaveformCanvas.tsx` | Hardware-accelerated Canvas 2D peak renderer with volume fade curves starting strictly at $-\infty\text{ dB}$, gain scaling, and live timecode readout. |
+| **BroadcastVuMeter** | `src/components/workbench/BroadcastVuMeter.tsx` | Real-time stereo LED peak meter with K-weighted LUFS readout, true-peak warning indicators, and broadcast compliance status. |
+| **CastPanel & SpeakerCard** | `src/components/cast/CastPanel.tsx` | Speaker roster managing voice assignments, 3-band parametric Biquad EQ curves, dynamics compressor sliders, and zero-latency line auditions. |
+| **CoWriterAgentDock** | `src/components/cowriter/CoWriterAgentDock.tsx` | Gemini-powered dramatic assistant supporting 3 writing modes (Scene, Story, Podcast), multimodal document upload, and Google Search Grounding. |
+| **ExportMasterModal** | `src/components/export/ExportMasterModal.tsx` | Studio mastering control panel for offline ITU-R BS.1770-4 loudness normalization, stem export, and 320 kbps MP3 rendering. |
+| **TemporalBVH** | `src/core/spatial/TemporalBVH.ts` | 1D interval tree spatial partition enabling $O(\log N)$ block and timepoint lookups during mouse hover, scrubbing, and playhead advancement. |
+| **ClockInterpolator** | `src/core/spatial/ClockInterpolator.ts` | High-precision time accumulator supporting demand-based 60 FPS requestAnimationFrame loops and smooth scrubbing. |
+| **WordTimingMapper** | `src/core/pacing/wordTimingMapper.ts` | Phonetic character-weight calculator and punctuation pause modeler for conversational speech alignment and click-to-seek progress mapping. |
+| **StudioTransportEngine** | `src/core/dsp/StudioTransportEngine.ts` | Web Audio API node graph orchestrating master timeline playback, multi-speaker DSP parameter updates, and gain staging. |
+| **LiveAudioPreviewer** | `src/core/dsp/LiveAudioPreviewer.ts` | Zero-latency single-block and speaker voice preview manager with dynamic elapsed time tracking. |
+| **BiquadChain** | `src/core/dsp/BiquadChain.ts` | Cascaded 3-band parametric biquad equalizer (high shelf, mid peak, low shelf) with bypass toggles and frequency response calculations. |
+| **MasteringChain** | `src/core/mastering/MasteringChain.ts` | Offline audio mastering pipeline combining K-weighting filters, $4\times$ oversampled True Peak limiting, and TPDF dithering. |
+| **LoudnessMeter** | `src/core/mastering/LoudnessMeter.ts` | ITU-R BS.1770-4 momentary, short-term, and integrated LUFS measurement algorithm. |
+| **DubrovnikDictionary** | `src/core/dubrovnik/dubrovnikDictionary.ts` | Master bidirectional lexical database with 570+ authenticated Ragusan vocabulary entries across 7 semantic categories. |
+| **DubrovnikPhonetics** | `src/core/dubrovnik/dubrovnikPhonetics.ts` | Phonological rule engine handling masculine a-declension, infinitive truncation, diphthong contraction, and TTS breath pause injection. |
+| **UseStoriaStore** | `src/store/useStoriaStore.ts` | Central Zustand store managing multi-project state, command-pattern history stack (undo/redo), audio cache sync, and playback modes. |
+
+---
+
+## 🎭 Flagship Demo: *The Triad of the Bass Frame*
+
+Storia comes pre-configured with an authentic multi-speaker production demo based on ***The Triad of the Bass Frame*** (*Trijada Bas Okvira — Ponoćni Svodovi Lazareta*):
+
+```
+Episode Title: Ep 1: "Trijada Bas Okvira" (The Triad of the Bass Frame / Ponoćni Svodovi Lazareta)
+Setting:       The midnight stone vaults of Lazareti & Old Port (Porat), Dubrovnik
+Cast:          eNa (Emothelia), Mara (Maravexia), Foxy (Mate Fox Banchilo)
+Language:      Croatian (Dubrovački govor / Raguzejski idiom)
+```
 
 ```
                               [ APEX ]
@@ -48,164 +219,9 @@ Storia solves this divide through a philosophy embodied in its foundational flag
     (Intuition, Empathy & Waveform)     (Kinetic Fire & Creative Spark)
 ```
 
-1. **The Wave — eNa (Emothelia):** Intuitive resonance, lunar empathy, and restorative grace. eNa is the *Living Carrier Wave* and Spatial Anchor—driving down from Split along the winding Adriatic highway into the midnight vaults of Lazareti. Without empathy and space, sound echoes without shelter and pure fire burns without a hearth.
-2. **The Fire — Mara (Maravexia):** Kinetic drive, sovereign rebellion, and catalytic renewal. Mara is the *Living Spark of the Floor*—leather, sweat, and bright laughter, igniting the dancefloor and pulling the entire room into orbit with fiery, welcoming energy.
-3. **The Form — Foxy (Mate Fox Banchilo):** Biquaternionic logic, Keplerian harmonic ratios ($\theta_K = 137.5077^\circ$), and physical-modeling sound synthesis. Foxy is the *Sonic Alchemist*. With one headphone perpetually cocked over his ear, he constructs the acoustic container so the low-end sub-bass shakes the stone without amateur clipping.
-
-**Storia** is the manifestation of this Triad: a browser-native Digital Audio Workstation (DAW), intelligent screenplay workbench, and AI dramatic co-writer designed from the ground up for multi-speaker narrative fiction, investigative podcasts, documentary audiobooks, and radio drama.
-
----
-
-## 🏛️ Studio Architecture
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                              STORIA STUDIO                                             │
-├──────────────────────────┬─────────────────────────────────────────────┬───────────────────────────────┤
-│     CAST & SPEAKERS      │               SCRIPT WORKBENCH              │       AI AGENT & RESEARCH     │
-│                          │                                             │                               │
-│ • Speaker Personas (HR/EN)│ • Screenplay / Fountain Editor              │ • Co-Writer (3 Workflows)     │
-│ • 3-Band Parametric EQ   │ • Data-Oriented (DOD) SoA Waveform Engine   │ • Deep Multimodal Research    │
-│ • Dynamics Compressor    │ • Temporal BVH 60 FPS Canvas Scrubber       │ • Google Search Grounding     │
-│ • Timbre Warmth & Pitch  │ • Interactive Pause Dragging                │ • Script Doctor & Cadence     │
-│ • Live Voice Audition    │ • Real-Time Karaoke Word Alignment          │ • Bilingual Cultural Adapter  │
-│ • Resizable Splitter     │ • Procedural Physical-Modeling SFX Synthesizer│ • Dubrovnik Dialect Injector  │
-└──────────────────────────┴─────────────────────────────────────────────┴───────────────────────────────┘
-                                                  │
-                                                  ▼
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    BROADCAST MASTERING & STEM EXPORT                                   │
-│  • ITU-R BS.1770-4 (-16 LUFS)  • True Peak Limiter (-1.0 dBFS)  • XorShift128+ TPDF Dither             │
-│  • Pure Client-Side LAME MP3 (320 kbps)  • 24-bit Broadcast WAV  • Time-Aligned Multitrack Stems       │
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## ✨ Comprehensive Studio Capabilities
-
-### 1. 🎭 Cast & Acoustic Persona Studio
-A vocal production is only as strong as the individuality of its actors. Storia treats each cast member as a living acoustic entity:
-* **Multi-Speaker Orchestration:** Create and configure limitless cast members, each possessing independent voice models, speaking tempos ($0.5\times$ to $2.0\times$), pitch shifts, color-coded visual badges, and personalized persona prompts.
-* **Hardware-Accelerated DSP per Speaker:**
-  * **3-Band Parametric Biquad EQ:** Independent High-shelf air band ($8.0\text{ kHz}$), Mid-peak clarity band ($2.5\text{ kHz}$), and Low-shelf proximity band ($120\text{ Hz}$).
-  * **Dynamics Compressor:** Studio-grade peak-limiting and leveling with customizable threshold ($-48\text{ dB}$ to $0\text{ dB}$), compression ratio ($1:1$ to $20:1$), attack ($1\text{ ms}$ to $50\text{ ms}$), and release ($20\text{ ms}$ to $500\text{ ms}$).
-  * **Acoustic Timbre & Centroid Control:** Spectral centroid tuning ($500\text{ Hz}$ to $5000\text{ Hz}$) and warmth coloration.
-* **Zero-Latency Auditioning:** Instantaneous rehearsal of dialogue lines via the Web Audio API using either local neural voices or cloud synthesis.
-* **Ergonomic Hotkeys:** Swift speaker assignment across blocks via `Alt+1` through `Alt+9`.
-
----
-
-### 2. ⚡ High-Performance Screenplay Workbench & DOD Waveform Transport
-Designed for playwrights, directors, and sound designers who require split-second precision:
-* **Data-Oriented (DOD) Structure-of-Arrays (SoA):** Audio waveforms are processed as contiguous `Float32Array` minimum/maximum peak buffers. This eliminates garbage-collection spikes during high-speed scrubbing and guarantees buttery 60 FPS canvas rendering.
-* **Master Transport Zoom, Pan & Drag-and-Drop Reordering:**
-  * **Smooth Timeline Zooming:** Zoom seamlessly from $1.0\times$ (full episode overview) up to $10.0\times$ (sample-accurate editing) using mouse wheel or dedicated UI controls.
-  * **Horizontal Panning:** Fluid mouse drag and wheel-scroll navigation across zoomed timelines.
-  * **Direct Part Dragging:** Swap and reorder episode dialogue blocks and sound effects directly on the master waveform timeline with visual drag ghosts and drop markers.
-* **Real-Time Audition-Style Volume Fade Curves:**
-  * **Audition-Grade Envelope Editing:** Interactive volume fade curves with dual draggable handles (fade-in and fade-out) superimposed on the waveform.
-  * **Minus-Infinity Corner Attenuation:** Fades start strictly from absolute zero ($-\infty\text{ dB}$) with power-law curvature matching professional mastering DAWs.
-  * **Instant Real-Time Audio Update:** Fade curve adjustments update audio gain immediately while playing or tweaking, with zero clicks, pops, or latency.
-* **Unified Master & Segment Waveform Display:** Both the master top-deck episode overview and individual script block cards share identical 96-slice SoA peak algorithms, volume gain calculations, and playhead states.
-* **Interactive Timeline Pause Dragging:** Adjust the natural breathing silence between lines with direct pointer drag handles situated on the main timeline. Dragging dynamically updates `pauseAfterMs` with instantaneous visual and temporal feedback.
-* **Bi-Directional Transport Scroll Linkage:** Clicking any segment marker, block pill, or waveform timestamp in the upper transport automatically seeks the audio and smoothly scrolls the workbench to the exact script block card below.
-* **Temporal Bounding Volume Hierarchy (BVH):** 1D interval tree spatial partition enabling $O(\log N)$ block lookups during mouse hover, scrubbing, and timeline navigation.
-* **Live Word Karaoke Synchronization:** Precise character- and word-level temporal tracking highlights words in real time as the actors speak.
-* **DAW-Style Waveform Visualizer & Draggable Gain Knob:** Bipolar center-crossing waveforms with dBFS reference gridlines and per-block precision gain trim ($-48\text{ dB}$ to $+10\text{ dB}$).
-* **Segment Collapse, Minimize & Maximize:** Quickly toggle script cards between full screenplay editing mode and compact single-line summaries via per-block chevrons.
-* **Clean Didaskalije (Stage Directions):** Clean, bracket-free director's notes field (`whispered`, `ironic`, `breathless`) cleanly integrated alongside block status badges, regeneration tools, and reorder controls.
-
----
-
-### 3. 🔊 Hybrid Audio Synthesis & Procedural Physical-Modeling SFX Engine
-Storia combines neural speech synthesis with procedural audio algorithms so entire audio dramas can be produced without downloading external sound libraries:
-* **Gemini 2.5 Expressive Audio & TTS:** Nuanced, emotionally responsive multi-speaker voice generation that honors stage directions and dramatic tension.
-* **Offline Browser SpeechSynthesis Fallback:** Fully functional zero-token offline rehearsal mode that works in airplanes, trains, or off-grid studios.
-* **Procedural Physical-Modeling SFX Synthesizer:** Pure mathematical synthesis of complex Foley and environmental audio directly within Web Audio:
-  * **Ocean Swell & Coastal Surf:** Multi-band bandpass-filtered noise modulating tidal intervals.
-  * **Rainstorms & Heavy Downpours:** Stochastic high-density acoustic droplet generator.
-  * **Resonant Wind & Coastal Gales:** Modulated resonant bandpass filters simulating wind gusts around architectural obstacles.
-  * **Vintage Radio Static & Cosmic Hiss:** Non-linear white and pink noise textures with cyclic phase degradation.
-  * **Footsteps on Stone:** Impact modeling with rapid damping and room reflections simulating cobblestones.
-  * **Creaking Doors & Vault Latches:** Frequency-modulated sawtooth synthesis with exponential pitch decays.
-  * **Cinematic Sub-Bass Drones:** Deep harmonic sine waves with subtle beating frequencies designed for dramatic climaxes.
-* **Custom Audio Import:** Drag-and-drop support for proprietary sound effects and music stems (.wav, .mp3, .ogg, .flac).
-
----
-
-### 4. 🤖 AI Agent & Dramatic Research Dock (Powered by Gemini)
-A dedicated co-pilot for screenwriters and dramaturgs:
-* **Three Specialized Co-Writer Modes:**
-  * **Scene Co-Writer (3 Beats):** Evaluates preceding dialogue, character motivations, and director hints to generate 3 distinct dramatic beat choices with creative rationales.
-  * **Long Complete Story Mode:** Drafts extensive multi-act episodic story arcs complete with speaker handoffs, sound effects, and dramatic peaks.
-  * **Podcast Episode Mode:** Constructs engaging two-host conversational interviews, historical debates, and investigative discussions.
-* **Deep Multimodal Research & Document Ingestion:** Drag-and-drop or upload PDFs, screenplay treatments, historical documents, research notes, and reference images. The AI reads and analyzes documents directly to inform character dialogue.
-* **Google Search Grounded Fact-Checking:** Connects directly to verified Google Search results to substantiate historical queries, period-accurate attire, weaponry, architecture, and cultural events.
-* **Script Doctor & Vocal Cadence Polisher:** Analyzes text rhythm, identifies breathless or awkward phrasings, suggests alternative emotional delivery, and injects natural didaskalije.
-* **Bilingual Cultural & Grammatical Adapter (EN ↔ HR):** Preserves Slavic morphological agreements—including past-tense participle gender concord (*glagolski pridjevi radni* na *-o* vs *-la*), vocatives (*gosparu, Mare*), and cultural idioms—when translating between Croatian and English.
-* **Scalable Splitter Panels:** Smooth draggable splitter handles allow effortless resizing of the Cast and AI Agent docks with minimum and maximum bounds.
-
----
-
-### 5. 🏰 Dubrovnik Vernacular & Phonetic Dialect Engine (Raguzejski idiom)
-Storia features a dedicated, authentic dialect engine for the city vernacular of Dubrovnik (*dubrovačka gradska štokavština*):
-* **Sociolinguistic Authenticity:** Built strictly upon historical **jekavski štokavski** roots. Completely isolated from Chakavian or general Central Dalmatian Ikavian (strictly no *ča*, no *ćaća*, no non-jekavian Jat).
-* **Master Bidirectional Lexical Database (`dubrovnikDictionary.ts`):** Over 570 authenticated Ragusan vocabulary entries spanning 7 distinct semantic categories:
-  * **Household & Food:** *Pantaruo / pantaruoli* (vilica), *ožica* (žlica), *pjat / pjati* (tanjur), *teća / teće* (lonac), *prosuja* (tava), *broka / broke* (vrč), *žmuo* (čaša), *pomadora* (rajčica), *patata* (krumpir), *kapula* (crveni luk), *dinja* (lubenica!), *pipun* (dinja!), *cukar* (šećer), *beškotin* (keks/dvopek), *butiga / butigi* (dućan).
-  * **Attire & Personal Items:** *Crevlje* (cipele), *špigete* (vezice), *gaće* (duge hlače!), *mudante* (donje rublje), *vestit* (odijelo), *bječva* (čarapa), *šugaman* (ručnik), *kušin* (jastuk), *lincuo* (plahta), *takujin* (novčanik), *lapis* (olovka).
-  * **Society & People:** *Gospar* (gospodin/plemić), *sinjora* (gospođa), *čeljad / čejad* (ljudi), *našjenac* (domaći), *furesti* (stranci), *manjgura* (cura), *dženet* (svatovi), *huncut* (vragolan).
-  * **Verbs & Expressions:** *Mučat* (šutjeti), *hodit* (ići), *balat* (plesati), *dilitat* (ometati), *pasat* (proći), *fermat* (stati), *arivat* (stići), *guštat* (uživati), *škerac* (šala), *intravenjat* (događati se), *pjantat* (ostaviti).
-  * **Topography & Nature:** *Volat / volti* (kameni luk), *skalin / skalini* (stepenice), *komin* (ognjište), *funjestra* (prozor), *koltrina* (zavjesa), *kamara* (soba), *tinel / saloča* (dnevni boravak), *spjađa* (plaža), *porat* (luka).
-* **Multi-Word Idiomatic Phrase Engine:** Pre-compiled phrase transforms for genuine Ragusan idiom:
-  * *U Grad* (u Dubrovnik), *put Grada* (prema Dubrovniku), *na placi / s place* (na Stradunu / sa Straduna), *u Porat / u Portu* (u luku / u luci), *na spjađu / na spjađi* (na plažu / na plaži).
-  * *Sluga van se* (dobar dan), *dobro van jutro* (dobro jutro), *adio ti* (doviđenja), *fála van vele* (hvala lijepa), *ne mari* (nema veze), *što činiš* (što radiš), *što se intravenjaje* (što se događa), *ostavit pjantanog* (ostaviti na cjedilu), *namurō se* (zaljubio se).
-* **Phonological & Morphological Rule Engine (`dubrovnikPhonetics.ts`):**
-  * **Strict Masculine a-Declension:** Male names on `-o` (*Vlaho, Maro, Baldo, Đuro, Niko, Mato, Pero*) decline strictly via a-declension (*Vlaha/Vlahu, Mara/Maru, Đura/Đuru, Mata/Matu*; possessives *Vlahov, Marov, Đurov, Matov*, never *-in* or *-i*).
-  * **Ragusan Name Inventories:** Embedded inventories for 36 male names (`DUBROVNIK_MALE_NAMES`) and 21 female names (`DUBROVNIK_FEMALE_NAMES`).
-  * **Vocalization of Final -l:** `vocalizeFinalL` (*gentil* $\rightarrow$ *džintio*, *stol* $\rightarrow$ *sto*, *sokol* $\rightarrow$ *soko*).
-  * **Vernacular -l- Elision:** `elideVernacularL` (*biljet* $\rightarrow$ *bijet*, *divlji* $\rightarrow$ *divji*, *ljubica* $\rightarrow$ *jubica*).
-  * **Infinitive Truncation:** `truncateInfinitives` (*-ti* $\rightarrow$ *-t*: *gledat, radit, govorit, hodit*).
-  * **Diphthong Contraction:** `-ao / -uo -> -ō` (*rekō, gledō, poslō, umbô*).
-  * **Epenthetic /j/:** `-io -> -ijo` across 27 verb roots (*bijo, vidijo, činijo, mírijo, donijo*).
-  * **Cluster Shift:** `/hv/ -> /f/` (*fála, fálit, pofaliti, fatati*).
-  * **Final Nasal Shift:** `-m -> -n` (*sam -> san, joj -> jon, sa mnom -> sa mnon*).
-  * **Dental Cluster Simplification:** *boles, čis, mlados, svis, dispos*.
-  * **3rd Person Plural Verbs:** Ending in `-u` rather than `-e` (*govoru, vidu, stoju, činu, mislu, dadu, znadu*).
-* **Three Historical Registers:**
-  1. *Classical (16th–18th C.):* Marin Držić & Ivan Gundulić archaisms (*sluga van se, čertamente, parer, drage voje*).
-  2. *Traditional (19th–Mid 20th C.):* Patrician and plebeian vernacular of the Old Walled City (Bojanić-Trivunac).
-  3. *Contemporary (Living Urban):* Modern conversational Dubrovnik speech.
-* **TTS Phonetic Optimization:** `prepareDubrovnikTtsText` normalizes contracted vowels and injects theatrical breath pauses (`...`) after vocatives and exclamations (*gosparu, Mare, muči, adio, čertamente*).
-* **One-Click Dialect Transformation:** Transform any dialogue block to Dubrovnik vernacular with a single click.
-
----
-
-### 6. 🎚️ Broadcast Studio Mastering & Export
-Produce files ready for immediate distribution or import into professional post-production suites:
-* **ITU-R BS.1770-4 Loudness Normalization:** Integrated K-weighting pre-filter and 4x polyphase sinc True Peak limiter enforcing $-16\text{ LUFS}$ integrated loudness for podcasts and streaming platforms or EBU R128 compliance for European radio.
-* **XorShift128+ TPDF Dither:** Clean multi-bit-depth quantization ($16\text{-bit}$, $24\text{-bit}$, and $32\text{-bit}$ float at $44.1\text{ kHz}$ or $48\text{ kHz}$).
-* **Pure Client-Side MP3 Encoding (320 kbps):** Zero-transcoding, zero-server MP3 rendering at maximum broadcast quality ($320\text{ kbps}$ CBR) powered by `@breezystack/lamejs`.
-* **Time-Aligned Multitrack Stems:** Export isolated, time-aligned audio stems for every speaker alongside the complete episode master mix for effortless mixing in Reaper, Pro Tools, or DaVinci Fairlight.
-* **Round-Trip Screenplay Interchange:** Export to industry-standard `.fountain`, clean Markdown `.md`, or complete native `.storia.json` project bundles.
-
----
-
-## ⚡ Flagship Demo Episode: *The Triad of the Bass Frame*
-
-Storia comes pre-loaded with an authentic multi-speaker production demo based on *The Triad of the Bass Frame* (*Trijada Bas Okvira — Ponoćni Svodovi Lazareta*):
-
-```
-Episode Title: Ep 1: "Trijada Bas Okvira" (The Triad of the Bass Frame / Trijada Geodetskog Plamena — Ponoćni Svodovi Lazareta)
-Setting:       The midnight stone vaults of Lazareti & Old Port (Porat), Dubrovnik
-Cast:          eNa (Emothelia), Mara (Maravexia), Foxy (Mate Fox Banchilo)
-Language:      Croatian (Dubrovački govor / Raguzejski idiom)
-```
-
-### The Cast at a Glance
-* **eNa (Emothelia)** — *The Spatial Anchor & Muse / Arhitektica Rezonancije:* 4th-year architecture student (Age 25, Cancer). Voice: `Aoede`. Returning down the winding Adriatic highway from Split to Lazareti; lunar empathy, spatial geometry, and the *Living Carrier Wave* reconciling kinetic fire and sub-bass resonance.
-* **Mara (Maravexia)** — *The Living Spark of the Floor / Plesni Feniks:* Media and communications (Age 25, Sagittarius). Voice: `Zephyr`. Kinetic fire, curls glowing like amber and žerava, sweat, leather, and unstoppable rhythm on the centuries-old flagstones.
-* **Foxy (Mate Fox Banchilo)** — *The Selector & Master of Ceremony / Meštar Mnogostrukosti:* Electronic specialist, DJ, and programmer (Age 43, Gemini). Voice: `Fenrir`. Structural compiler anchoring Keplerian golden ratios ($\theta_K = 137.5077^\circ$) into stone-reflected acoustic conduits with dry coastal wit and zero master clipping.
+1. **The Wave — eNa (Emothelia):** 4th-year architecture student (Age 25, Cancer). Voice: `Aoede`. Returning down the winding Adriatic highway from Split to Lazareti; lunar empathy, spatial geometry, and the *Living Carrier Wave* reconciling kinetic fire and sub-bass resonance.
+2. **The Fire — Mara (Maravexia):** Media and communications (Age 25, Sagittarius). Voice: `Zephyr`. Kinetic fire, curls glowing like amber and žerava, sweat, leather, and unstoppable rhythm on the centuries-old flagstones.
+3. **The Form — Foxy (Mate Fox Banchilo):** Electronic specialist, DJ, and programmer (Age 43, Gemini). Voice: `Fenrir`. Structural compiler anchoring Keplerian golden ratios ($\theta_K = 137.5077^\circ$) into stone-reflected acoustic conduits with dry coastal wit and zero master clipping.
 
 > **Instant Demo Access:** Click the glowing **`Triad Demo` / `Trijada Demo`** button in the studio top bar to immediately load the project, audition all three voices, inspect Biquad EQ parameters, and experience Dubrovnik vernacular dialogue.
 
@@ -213,7 +229,7 @@ Language:      Croatian (Dubrovački govor / Raguzejski idiom)
 
 ## 📚 Multi-Episode Studio Library
 
-Switch instantly between four distinct episodic productions in the Top Bar:
+Switch instantly between four distinct episodic productions in the Top Bar switcher:
 1. **Ep 1: "Trijada Bas Okvira" (The Triad of the Bass Frame):** Authentic Dubrovnik audio drama in the midnight vaults of Lazareti (eNa, Mara, Foxy).
 2. **Ep 2: "Magla nad Zagrebom":** 1930s historical noir radio drama with Cynical Inspector Marko and Journalist Ana.
 3. **Ep 3: "Signals from Palagruža":** Oceanic sci-fi thriller set around the remote lighthouse island of Palagruža.
@@ -256,7 +272,7 @@ npm run preview
 
 ### Running the Test Suite
 
-Storia includes a comprehensive test suite of 35 test files and 127 unit/integration tests verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, adaptive speaker color blending, the unified interactive word-token script transport, and the Dubrovnik dialect engine:
+Storia includes a comprehensive test suite of **39 test files and 145 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, and the Dubrovnik dialect engine:
 
 ```bash
 npm test
@@ -284,9 +300,10 @@ npm test
 
 | Shortcut | Action |
 |---|---|
+| `Space` | Play / Pause master timeline transport |
 | `Ctrl + Z` / `Cmd + Z` | Undo last edit, block reorder, or DSP toggle |
 | `Ctrl + Y` / `Cmd + Shift + Z` | Redo action |
-| `Space` | Play / Pause master timeline transport |
+| `Ctrl + Enter` | Insert new dialogue block below current line |
 | `Alt + 1` .. `Alt + 9` | Quick-assign speaker to the active dialogue block |
 | `Alt + ↑` / `Alt + ↓` | Reorder active block up or down |
 

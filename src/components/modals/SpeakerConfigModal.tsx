@@ -20,6 +20,7 @@ export const SpeakerConfigModal: React.FC = () => {
   const { t } = useTranslation();
   const project = useStoriaStore((s) => s.project);
   const editingSpeakerId = useStoriaStore((s) => s.editingSpeakerId);
+  const editingSpeakerInitialTab = useStoriaStore((s) => s.editingSpeakerInitialTab);
   const openSpeakerModal = useStoriaStore((s) => s.openSpeakerModal);
   const updateSpeaker = useStoriaStore((s) => s.updateSpeaker);
   const removeSpeaker = useStoriaStore((s) => s.removeSpeaker);
@@ -27,15 +28,11 @@ export const SpeakerConfigModal: React.FC = () => {
   const stopAudioPreview = useStoriaStore((s) => s.stopAudioPreview);
   const previewingSpeakerId = useStoriaStore((s) => s.previewingSpeakerId);
 
-  const targetSpeaker = React.useMemo(
-    () => project.speakers.find((s) => s.id === editingSpeakerId) ?? null,
-    [project.speakers, editingSpeakerId]
-  );
-
   const [draft, setDraft] = React.useState<Speaker | null>(null);
   const [samplePhrase, setSamplePhrase] = React.useState<string>('');
   const [browserVoices, setBrowserVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   const [activeTab, setActiveTab] = React.useState<'voice' | 'dsp' | 'persona'>('voice');
+  const currentLoadedSpeakerIdRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const loadVoices = () => {
@@ -48,33 +45,35 @@ export const SpeakerConfigModal: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (targetSpeaker) {
-      setDraft(JSON.parse(JSON.stringify(targetSpeaker)) as Speaker);
-      const existingLine = project.blocks.find(
-        (b) => b.speakerId === targetSpeaker.id
-      )?.text;
-      setSamplePhrase(
-        existingLine ||
-          (project.defaultLanguage === 'hr'
-            ? `Pozdrav, ja sam ${targetSpeaker.name}. Provjera glasa i Biquad ekvalizatora u studiju.`
-            : `Hello, I am ${targetSpeaker.name}. Testing vocal timbre and Biquad EQ in the studio.`)
-      );
+    if (editingSpeakerId) {
+      if (editingSpeakerId !== currentLoadedSpeakerIdRef.current) {
+        currentLoadedSpeakerIdRef.current = editingSpeakerId;
+        const speaker = project.speakers.find((s) => s.id === editingSpeakerId);
+        if (speaker) {
+          setDraft(JSON.parse(JSON.stringify(speaker)) as Speaker);
+          const existingLine = project.blocks.find(
+            (b) => b.speakerId === speaker.id
+          )?.text;
+          setSamplePhrase(
+            existingLine ||
+              (project.defaultLanguage === 'hr'
+                ? `Pozdrav, ja sam ${speaker.name}. Provjera glasa i Biquad ekvalizatora u studiju.`
+                : `Hello, I am ${speaker.name}. Testing vocal timbre and Biquad EQ in the studio.`)
+          );
+          setActiveTab(editingSpeakerInitialTab ?? 'voice');
+        } else {
+          setDraft(null);
+        }
+      }
     } else {
+      currentLoadedSpeakerIdRef.current = null;
       setDraft(null);
     }
-  }, [targetSpeaker, project.blocks, project.defaultLanguage]);
-
-  if (!draft) return null;
-
-  const isPreviewing = previewingSpeakerId === draft.id;
-
-  const updateDraft = (next: Speaker) => {
-    setDraft(next);
-    updateLiveDspIfPlaying(next);
-  };
+  }, [editingSpeakerId, editingSpeakerInitialTab, project.speakers, project.blocks, project.defaultLanguage]);
 
   const speakerEffectStack: AudioEffectConfig[] = React.useMemo(() => {
-    if (draft.voice.acoustics.effectStack && draft.voice.acoustics.effectStack.length > 0) {
+    if (!draft) return [];
+    if (Array.isArray(draft.voice.acoustics.effectStack)) {
       return draft.voice.acoustics.effectStack;
     }
     const stack: AudioEffectConfig[] = [
@@ -104,7 +103,16 @@ export const SpeakerConfigModal: React.FC = () => {
       },
     ];
     return stack;
-  }, [draft.id, draft.voice.acoustics]);
+  }, [draft?.id, draft?.voice?.acoustics]);
+
+  if (!draft) return null;
+
+  const isPreviewing = previewingSpeakerId === draft.id;
+
+  const updateDraft = (next: Speaker) => {
+    setDraft(next);
+    updateLiveDspIfPlaying(next);
+  };
 
   const handleUpdateEffectStack = (newStack: AudioEffectConfig[]) => {
     const eqMod = newStack.find((m) => m.type === 'biquad_eq') as BiquadEqEffectConfig | undefined;
@@ -124,7 +132,12 @@ export const SpeakerConfigModal: React.FC = () => {
                 midPeakGainDb: eqMod.midPeakGainDb,
                 highShelfGainDb: eqMod.highShelfGainDb,
               }
-            : draft.voice.acoustics.biquadEq,
+            : {
+                enabled: false,
+                lowShelfGainDb: 0,
+                midPeakGainDb: 0,
+                highShelfGainDb: 0,
+              },
           compression: dynMod
             ? {
                 enabled: dynMod.enabled,
@@ -133,15 +146,37 @@ export const SpeakerConfigModal: React.FC = () => {
                 attackMs: dynMod.attackMs,
                 releaseMs: dynMod.releaseMs,
               }
-            : draft.voice.acoustics.compression,
+            : {
+                enabled: false,
+                thresholdDb: -20,
+                ratio: 2.5,
+                attackMs: 15,
+                releaseMs: 100,
+              },
         },
       },
     };
     updateDraft(nextDraft);
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleToggleModule = (moduleId: string) => {
+    const nextStack = speakerEffectStack.map((m) =>
+      m.id === moduleId ? { ...m, enabled: !m.enabled } : m
+    );
+    handleUpdateEffectStack(nextStack);
+  };
+
+  const handleUpdateModuleConfig = (moduleId: string, updates: Partial<AudioEffectConfig>) => {
+    const nextStack = speakerEffectStack.map((m) =>
+      m.id === moduleId ? ({ ...m, ...updates } as AudioEffectConfig) : m
+    );
+    handleUpdateEffectStack(nextStack);
+  };
+
+  const handleSave = (e?: React.FormEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     stopAudioPreview();
     updateSpeaker(draft);
     openSpeakerModal(null);
@@ -434,6 +469,8 @@ export const SpeakerConfigModal: React.FC = () => {
               <EffectStackEditor
                 modules={speakerEffectStack}
                 onChangeModules={handleUpdateEffectStack}
+                onToggleModule={handleToggleModule}
+                onUpdateModuleConfig={handleUpdateModuleConfig}
                 title={`${draft.name} — Channel Insert Effects`}
                 testId="speaker-effect-stack-editor"
               />
@@ -500,6 +537,8 @@ export const SpeakerConfigModal: React.FC = () => {
               </button>
               <button
                 type="submit"
+                onClick={handleSave}
+                data-testid="save-speaker-btn"
                 className="px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold cursor-pointer"
               >
                 {t('saveChanges')}

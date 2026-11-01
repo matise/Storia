@@ -232,6 +232,7 @@ export interface StoriaStoreState {
   appSettings: AppSettings;
   selectedBlockId: string | null;
   editingSpeakerId: string | null;
+  editingSpeakerInitialTab?: 'voice' | 'dsp' | 'persona';
   isApiKeyModalOpen: boolean;
   isEpisodePropertiesModalOpen: boolean;
   isExportMasterModalOpen: boolean;
@@ -256,7 +257,10 @@ export interface StoriaStoreState {
   // UI & Modal Actions
   setUiLanguage: (lang: SupportedLanguage) => void;
   selectBlock: (blockId: string | null) => void;
-  openSpeakerModal: (speakerId: string | null) => void;
+  openSpeakerModal: (
+    speakerId: string | null,
+    initialTab?: 'voice' | 'dsp' | 'persona'
+  ) => void;
   setApiKeyModalOpen: (open: boolean) => void;
   setEpisodePropertiesModalOpen: (open: boolean) => void;
   setExportMasterModalOpen: (open: boolean) => void;
@@ -430,8 +434,14 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
       }
     },
 
-    openSpeakerModal: (speakerId: string | null) => {
-      set({ editingSpeakerId: speakerId });
+    openSpeakerModal: (
+      speakerId: string | null,
+      initialTab?: 'voice' | 'dsp' | 'persona'
+    ) => {
+      set({
+        editingSpeakerId: speakerId,
+        editingSpeakerInitialTab: initialTab ?? 'voice',
+      });
     },
 
     setApiKeyModalOpen: (open: boolean) => {

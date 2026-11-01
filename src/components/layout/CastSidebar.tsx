@@ -155,6 +155,17 @@ export const CastSidebar: React.FC<CastSidebarProps> = ({ width = 280 }) => {
                     <span className="text-[10px] font-mono px-1 rounded bg-slate-800 text-slate-400">
                       Alt+{idx + 1}
                     </span>
+                    <button
+                      type="button"
+                      title="Open Speaker DSP Effect Stack"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openSpeakerModal(speaker.id, 'dsp');
+                      }}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 hover:border-emerald-600 text-emerald-400 cursor-pointer transition-colors"
+                    >
+                      FX
+                    </button>
                     <Sliders className="w-3 h-3 text-slate-500 group-hover:text-indigo-400 transition-colors" />
                   </div>
                 </div>

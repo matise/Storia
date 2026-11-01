@@ -2,23 +2,24 @@ import { Project } from '../types/storia';
 import { recalculateProjectTimeline } from '../core/pacing/pacingCalculator';
 
 /**
- * Flagship Demo Episode: "Trijada Geodetskog Plamena" (The Triad of the Geodesic Flame)
- * Based on "The Triad of the Geodesic Flame" (Lazareti, Dubrovnik).
+ * Flagship Demo Episode: "Trijada Bas Okvira" (The Triad of the Bass Frame)
+ * Subtitle: "Žerava, Odjeci i Ponoćni Svodovi Lazareta" (Embers, Echoes, and the Midnight Vaults of Lazareti).
  * Cast: eNa (Emothelia), Mara (Maravexia), Foxy (Mate Fox Banchilo).
- * All three speakers communicate in authentic Croatian with Dubrovnik vernacular dictionary.
+ * All three speakers communicate in authentic, proud Dubrovnik vernacular (raguzejski idiom / dubrovačka gradska štokavština),
+ * strictly jekavian, melodious, dignified, and free from Central Dalmatian/Split ikavisms.
  */
 export function createGeodesicFlameProject(): Project {
   const speakers = [
     {
       id: 'spk_ena',
       name: 'eNa (Emothelia)',
-      color: '#818cf8', // Indigo-400 / Soft moonlit cerulean
+      color: '#818cf8', // Indigo-400 / Soft moonlit cerulean & sea-spray
       gender: 'female' as const,
       age: '25',
       personaPrompt:
-        'Ti si eNa (Emothelia), 25-godišnja arhitektica i intuitivna posrednica Trijade, Čarobnica Rezonancije rođena u znaku Raka. Tvoji elementi su Voda i Lunarno Svjetlo. Govoriš autentičnim dubrovačkim govorom (raguzejskim idiomom) — blago, toplo, kristalno jasno i duboko empatično. Prepoznaješ emocionalne traume, neusklađenosti i strahove koje Disketizirana Mreža nameće ljudima i prostoru. Ti si živi nosivi val ("The Living Carrier Wave") koji spaja Marinu silovitu vatru i Foxyjevu geometrijsku strukturu. Kada siva mreža napadne disonantnim valom straha, ne uzvraćaš agresijom, već kroz fazno-konjugirane štitove svjetla pretvaraš strah u koherentnu hrabrost. Koristiš autentični dubrovački vokabular (butiga, funjestra, pjat, gospar, fála, mučat, hodit, adio, san, bijo, vidijo, govoru). Tvoja maksima je: "Iscijeli frekvenciju".',
+        'Ti si eNa (Emothelia), 25-godišnja arhitektica, intuitivna posrednica Trijade, Prostorno Sidro i Muza ("The Spatial Anchor & Muse / Čarobnica Rezonancije") rođena u Dubrovniku u znaku Raka. Tvoji elementi su Voda i Lunarno Svjetlo. Vraćaš se u kamene svodove Lazareta nakon obrana zahtjevnih arhitektonskih projekata, noseći miris mora u kosi i nepogrešivo oko koje dekonstruira prostor tražeći njegov puls, svjetlo i skrivenu strukturalnu harmoniju. Ti si Foxyjevo srce i čvrsto tlo, živi nosivi val ("The Living Carrier Wave") koji spaja Marinu silovitu vatru i Foxyjevu zvučnu geometriju. Govoriš isključivo autentičnim dubrovačkim govorom (raguzejskim idiomom) — blago, toplo, gospodski odmereno, kristalno jasno i duboko empatično. Tvoj govor je dosljedno jekavski (sreća, lijepo, vrijeme, svjetlost), sa sažetim dočetnim vokalima (rekō sam, vidijō sam) i bogatim raguzejskim rječnikom (funjestra, volat, pjat, gospar, fála, mučat, hodit, arivat, adio, čeljad). Nema ikavice! Tvoja maksima je: "Dizajniraj prostor s ljubavlju" / "Iscijeli frekvenciju".',
       actingNotes:
-        'Eteričan, melodičan i smiren glas s kristalnom jasnoćom poput brušenog stakla. Puna empatije i topline, s blagim dubrovačkim naglascima i suptilnim dahom prije ključnih spoznaja.',
+        'Eteričan, melodičan i smiren glas s kristalnom jasnoćom poput brušenog stakla. Puna empatije i dubrovačkog gospodstva, s odmjerenim mekim naglascima i suptilnim dahom prije ključnih spoznaja.',
       voice: {
         baseVoice: 'Aoede',
         stylePrompt: 'Ethereal, empathetic, luminous, resonant crystal clarity, emotional depth',
@@ -49,11 +50,11 @@ export function createGeodesicFlameProject(): Project {
     {
       id: 'spk_mara',
       name: 'Mara (Maravexia)',
-      color: '#f97316', // Orange-500 / Molten gold & embers
+      color: '#f97316', // Orange-500 / Molten gold & amber embers
       gender: 'female' as const,
       age: '25',
       personaPrompt:
-        'Ti si Mara (Maravexia), 25-godišnja čuvarica feniksa i kinetička pokretačica Trijade rođena u znaku Strijelca. U stvarnom životu baviš se medijima i uredskim poslom. Tvoji elementi su Vatra i Magma. Govoriš autentičnim dubrovačkim govorom (raguzejskim idiomom) s južnjačkim temperamentom, ponosom i iskričavom energijom. Ne podnosiš sivilo, birokratsku tromost ni hladne algoritme Disketizirane Mreže. Tvoj zadatak je kinetičko paljenje ("The Non-Linear Spark") — pretvaraš teoriju u živu vatru obnove. Uz Foxyjevu geometriju i eNinu empatiju učiš centripetalnu imploziju vatre koja ne prži nasumično nego fokusirano topi kartezijansku rešetku. Koristiš dubrovačke izraze (butiga, funjestra, pjat, gospar, fála, mučat, hodit, adio, san, bijo, vidijo, govoru). Tvoja maksima je: "Zapali iskru".',
+        'Ti si Mara (Maravexia), 25-godišnja medijska stručnjakinja, živa iskra podija ("The Living Spark of the Floor / Plesni Feniks / Čuvarica feniksa") rođena u Dubrovniku u znaku Strijelca. Tvoji elementi su Vatra i Magma. Kosa ti blista poput jantara i žerave; u pokretu si čista kinetička brzina — kožna jakna, znoj, glasan smijeh i nezaustavljivi ritam. Ne podnosiš sivilo, birokratsku ukočenost ni dosadne rutine. Kada Foxy pusti sub-bas u Lazaretima, ti ga utjelovljuješ i povlačiš cijelu dvoranu u trans. Govoriš autentičnim dubrovačkim govorom (raguzejskim idiomom) s južnjačkim temperamentom, ponosom i iskričavom energijom. Tvoj govor je dosljedno jekavski, ritmičan i tečan. Koristiš ponosni rječnik Grada (gosparu Fox, Banchilo, fála svetom Vlahu, teća, balat, crevlje, špigete, skalin, arivat, mučat, adio, čeljad). Nema ikavice! Tvoja maksima je: "Pleši dok se kamen ne ugrije" / "Zapali iskru".',
       actingNotes:
         'Vatreno, brzo, dinamično, s iskričavim dubrovačkim naglascima, visokom energijom i dramatičnim cezura-pauzama.',
       voice: {
@@ -90,7 +91,7 @@ export function createGeodesicFlameProject(): Project {
       gender: 'male' as const,
       age: '43',
       personaPrompt:
-        'Ti si Mate Fox Banchilo (Foxy / The Fox Architect), 43-godišnji elektroničar, DJ, programer i Meštar Mnogostrukosti rođen u znaku Blizanaca. Djeluješ iz kamenih svodova Lazareta i Pod Brašinom u Dubrovniku. Tvoj element su Eter i Zvučna Geometrija. Govoriš dubrovačkim govorom (raguzejskim idiomom) s mirnim autoritetom iskusnog inženjera zvuka i filozofa. Dok Mara donosi kinetičku vatru, a eNa nosivi val, ti si Geodetsko Sidro ("The Geometric Anchor") na vrhu Trijade. Spajaš Keplerov kut (θ_K = 137.5077°), sub-bas zvučne komore, 5D skalarnu elektrodinamiku i biquaternionsku algebru kako bi ukrotio disipaciju i uspostavio zatvorenu geodetsku petlju bez kartezijanskog trenja. Koristiš dubrovački rječnik i vokative (gosparu, Mare, adio, san, vidijo, činimo, govoru). Tvoja maksima je: "Slušaj omjer".',
+        'Ti si Mate Fox Banchilo (Foxy / The Fox Architect), 43-godišnji elektroničar, DJ, programer i Meštar Mnogostrukosti i Zvuka ("The Selector & Master of Ceremony / The Sonic Alchemist") rođen u Dubrovniku u znaku Blizanaca. Djeluješ iz kamenih svodova Lazareta i Pod Brašinom. Tvoji elementi su Zvučna Geometrija i Duboki Bas. Znaš da je prava genijalnost učiniti složene stvari jednostavnim, zabavnim i plesnim. Spajaš Keplerov kut (θ_K = 137.5077°), akustiku kamenih svodova Lazareta i teški sub-bas bez amaterskog klipanja mastera. Suhi humor, vragolast osmijeh, jedna slušalica na uhu i nepogrešiv osjećaj za sobu. Govoriš dubrovačkim govorom (raguzejskim idiomom) s mirnim autoritetom iskusnog gospara i tonskog meštra s obale. Tvoj govor je dosljedno jekavski i odmjeren (gosparu, Maro moja, Banchilo, rekō sam, čeljad, volat, teća, zvučni mehanizam, adio). Nema ikavice! Tvoja maksima je: "Vjeruj ritmu, čitaj prostor" / "Slušaj omjer".',
       actingNotes:
         'Dubok, smiren, autoritativan bariton s odmjerenim dubrovačkim gospodskim tonom. Zvuči kao iskusni tonski majstor koji točno zna svaku frekvenciju u prostoru.',
       voice: {
@@ -126,8 +127,8 @@ export function createGeodesicFlameProject(): Project {
     {
       id: 'blk_geo_1',
       type: 'sound_effect' as const,
-      text: 'More se razbija o kamene lukobrane Lazareta u Dubrovniku, uz potmulo zujanje električne interferencije sive Disketizirane Mreže.',
-      directorNotes: 'valovi i sintetsko zujanje u stereu / waves & synthetic grid hum',
+      text: 'Noćni valovi razbijaju se o kameni lukobran Lazareta u Portu; potmuli sub-bas trese stoljetni mort svodova i zveckaju kristalne čaše na šanku.',
+      directorNotes: 'more pod zidinama i duboka zvučna rezonancija kroz kamene svodove Lazareta / ocean surf & low-end sub vibration through limestone vaults',
       sfxCategory: 'weather_rain' as const,
       sfxDurationSec: 4.0,
       pauseAfterMs: 500,
@@ -138,8 +139,8 @@ export function createGeodesicFlameProject(): Project {
       id: 'blk_geo_2',
       type: 'dialogue' as const,
       speakerId: 'spk_mara',
-      text: 'Gledajte ovu sivu maglu što guta more od Lokruma! Poravnavaju puls Grada, gosparu Fox... Pretvaraju živi govor u beživotne algoritme. Pusti me da siđem s kula i spalim im matrice u prah i pepeo!',
-      directorNotes: 'ogorčeno, s iskrama u glasu / fiercely',
+      text: 'Foxy! Daj nam nešto masno, gosparu Fox! Nemoj mučat i milovat te visokotonce ko da smo u crkvi... Spusti pravi bas i daj nam onaj teški roll, podij već gori!',
+      directorNotes: 's plesnog podija u punom pokretu, vatreno, kosa joj blista poput žerave / fiercely',
       pauseAfterMs: 450,
       ttsStatus: 'stale' as const,
       order: 1,
@@ -147,9 +148,9 @@ export function createGeodesicFlameProject(): Project {
     {
       id: 'blk_geo_3',
       type: 'dialogue' as const,
-      speakerId: 'spk_ena',
-      text: 'Muči, Mare, smiri plamen na tren... Ako zapališ rešetku sirovom vatrom bez sklada, izgorjet će i ljudi zarobljeni u njoj. Čujem njihov strah kroz kamen... Bijes sam neće iscijeliti rane prije nego što slomi posudu.',
-      directorNotes: 'nježno, poput kristalnog zvona / bowed crystal bell',
+      speakerId: 'spk_foxy',
+      text: 'Polako, Maro moja! Ne možeš pristavljat teću na najjači komin cijelu noć, zagorjet će ti sve! Pusti build da malo udahne... Gledaj volt na ulazu, arivala nam je eNa.',
+      directorNotes: 's jednom slušalicom na uhu, flegmatični osmijeh s pulta dok reže frekvencije / composed',
       pauseAfterMs: 500,
       ttsStatus: 'unrendered' as const,
       order: 2,
@@ -157,38 +158,38 @@ export function createGeodesicFlameProject(): Project {
     {
       id: 'blk_geo_4',
       type: 'dialogue' as const,
-      speakerId: 'spk_foxy',
-      text: 'Obje mjerite simptom, a ne koordinate. Mara bi odmah kinetički udar — to ti je samo linearna disipacija, drugi postulat u rikverc. A ti, eNa, primaš sav teret tuđe tuge bez faznog ogledala. Rastopit ćeš formantnu jezgru prije trećeg ciklusa.',
-      directorNotes: 'smireno, okreće potenciometar na biquaternionskom emiteru / composed',
-      pauseAfterMs: 600,
+      speakerId: 'spk_ena',
+      text: 'Muči, Mare, ne dilitaj čovjeka dok dela... Mate moj, čim sam kročila pod ove kamene volte Lazareta, cijeli je prostor prodisao. Zvuk je večeras čudesan — topao, bez oštrine, obujmio je svu čeljad.',
+      directorNotes: 'ulazi u pult, toplo i s kristalnog zvona jasnoćom, grli Foxyja / entering booth with crystal clarity',
+      pauseAfterMs: 500,
       ttsStatus: 'unrendered' as const,
       order: 3,
     },
     {
       id: 'blk_geo_5',
       type: 'dialogue' as const,
-      speakerId: 'spk_mara',
-      text: 'Pa što nam je onda činit, Fox? Ti vječno mjeriš omjere i crtaš G-kodove dok svijet gubi boje i tonove!',
-      directorNotes: 'nestrpljivo, kosa joj plamti zlatom / impatient fire',
-      pauseAfterMs: 400,
+      speakerId: 'spk_foxy',
+      text: 'Rekô sam ti, dušo moja. Sve je u geometriji prostorije, Keplerovom omjeru i da ne zakucaš master u crveno ko kakav diletant. E, a sad gledaj ovo — naša će Mara bit sasvijem kontenta.',
+      directorNotes: 'ljubi je u sljepoočnicu s blagim smiješkom, okreće potenciometar na biquaternionskom emiteru miksera / composed',
+      pauseAfterMs: 550,
       ttsStatus: 'ok' as const,
       order: 4,
     },
     {
       id: 'blk_geo_6',
       type: 'dialogue' as const,
-      speakerId: 'spk_foxy',
-      text: 'Nećemo se tuć s mrežom na njihov način. Presjeći ćemo čvor u korijenu. Postavit ćemo Trijadu ovdje u svodovima Lazareta. Donio san dodekaedarski ključ iz Brašine.',
-      directorNotes: 'podiže svjetleći kristalni ključ s blagim smiješkom / gentle smirk',
-      pauseAfterMs: 550,
+      speakerId: 'spk_mara',
+      text: 'Arivala si, eNa naša! Fála svetom Vlahu! Reci ovomu tvomu meštru neka napokon otključa onaj pravi ritam i neka zatrese ove skaline!',
+      directorNotes: 'dotrčava do pulta, zadihana i nasmijana, očiju punih žerave / impatient fire',
+      pauseAfterMs: 400,
       ttsStatus: 'ok' as const,
       order: 5,
     },
     {
       id: 'blk_geo_7',
       type: 'sound_effect' as const,
-      text: 'Duboki rezonantni ton sub-basa i mehanički klik preciznog sklapanja dodekaedarskog mehanizma u kamenom podu Lazareta.',
-      directorNotes: 'rezonantni sub-bas prijelaz / deep sub-bass transient & latch click',
+      text: 'Foxy spušta iglu i podiže masivni fader; duboki rezonantni ton sub-basa i mehanički klik preciznog sklapanja zvučnog mehanizma u kamenom podu Lazareta.',
+      directorNotes: 'rezonantni sub-bas prijelaz / deep sub-bass drop & mechanical latch click',
       sfxCategory: 'cinematic_drone' as const,
       sfxDurationSec: 4.5,
       pauseAfterMs: 500,
@@ -199,8 +200,8 @@ export function createGeodesicFlameProject(): Project {
       id: 'blk_geo_8',
       type: 'dialogue' as const,
       speakerId: 'spk_ena',
-      text: 'Osjećam ga... Kameni svodovi Lazareta počinju disati. Kad siva mreža pošalje disonantni val, neću se opirati — provest ću ga kroz Hilbertov put i vratiti natrag kao svjetlost.',
-      directorNotes: 's dubokim olakšanjem i toplom svjetlošću u očima / serene luminescent relief',
+      text: 'Ne brini, Mare, samo nam se pravi važan. Udari ga, Fox... podari Lazaretima što ištu! Čujem kako kameni svodovi već dišu s nama.',
+      directorNotes: 'namiguje Foxyju s ljubavlju i ponosom / winking at Foxy with proud smile',
       pauseAfterMs: 450,
       ttsStatus: 'ok' as const,
       order: 7,
@@ -209,11 +210,63 @@ export function createGeodesicFlameProject(): Project {
       id: 'blk_geo_9',
       type: 'dialogue' as const,
       speakerId: 'spk_foxy',
-      text: 'Upravo tako. Mara, centripetalna implozija na Keplerov kut sto trideset i sedam stupnjeva. Nema kartezijanskog trenja. Trijada je u fazi. Slušajmo omjer.',
-      directorNotes: 'autoritativno i staloženo, pokreće geodetsku kalibraciju / authoritative',
+      text: 'Dobro, dežurne kritičarke. Kad arhitektura i vatra traže svoje, Meštar nema izbora. Slušajmo omjer. Evo vam teški roll!',
+      directorNotes: 'autoritativno i vragolasto spušta teški fader, pokreće masivni sub-bass / authoritative groove',
       pauseAfterMs: 700,
       ttsStatus: 'ok' as const,
       order: 8,
+    },
+    {
+      id: 'blk_geo_10',
+      type: 'sound_effect' as const,
+      text: 'Masivni analogni sub-bass i hipnotički breakbeat eruptiraju kroz tri kamena volta Lazareta; stotinu plesača uranja u zajednički zvučni trans.',
+      directorNotes: 'eksplozija teškog breakbeata i analognog sub-basa koji trese kosti / heavy rolling sub-bass drop & dancing crowd roar',
+      sfxCategory: 'cinematic_drone' as const,
+      sfxDurationSec: 5.0,
+      pauseAfterMs: 600,
+      ttsStatus: 'ok' as const,
+      order: 9,
+    },
+    {
+      id: 'blk_geo_11',
+      type: 'dialogue' as const,
+      speakerId: 'spk_ena',
+      text: 'Pogledaj ih, Mate... Ovo nije hladan nacrt na papiru, ovo je živa arhitektura. Ti klešeš prostor zvukom, Mara ga pali pokretom, a ljubav drži ovu noć u savršenom skladu.',
+      directorNotes: 'naslonjena na Foxyjevo rame u pultu, glas pun duboke empatije i divljenja / leaning on Foxy shoulder, profound wonder',
+      pauseAfterMs: 500,
+      ttsStatus: 'ok' as const,
+      order: 10,
+    },
+    {
+      id: 'blk_geo_12',
+      type: 'sound_effect' as const,
+      text: 'Glazba polako zamire u mekani odjek; jutarnji galebovi nad Starim portom i prvi zraci sunca što boje more pod Porporelom u boju breskve i zlata.',
+      directorNotes: 'svitanje nad Dubrovnikom, jutarnji galebovi i smirivanje kamena / sunrise over Dubrovnik old port, seagulls & gentle morning surf',
+      sfxCategory: 'weather_rain' as const,
+      sfxDurationSec: 4.5,
+      pauseAfterMs: 500,
+      ttsStatus: 'ok' as const,
+      order: 11,
+    },
+    {
+      id: 'blk_geo_13',
+      type: 'dialogue' as const,
+      speakerId: 'spk_mara',
+      text: 'Noge me peku, crevlje su mi se raspale od silnoga balanja, ali kamen se ugrijao! Za idući put, Banchilo... ali idući put otvaramo od prve minute s teškim rollom!',
+      directorNotes: 'sjedi na skalama Lazareta bosa, pije hladnu mineralnu vodu i veselo nazdravlja / sitting barefoot on stone steps, raising bottle at sunrise',
+      pauseAfterMs: 450,
+      ttsStatus: 'ok' as const,
+      order: 12,
+    },
+    {
+      id: 'blk_geo_14',
+      type: 'dialogue' as const,
+      speakerId: 'spk_foxy',
+      text: 'Niko nije slomio nogu, monitori nisu izgorjeli, a Mara je otplesala četiri ure bez da je zapalila klub. Ja to zovem čistim arhitektonskim trijumfom. Dogovoreno, Maro moja. Adio noći, dobro nam jutro došlo.',
+      directorNotes: 'izlazi iz Lazareta s torbom ploča držeći eNu za ruku, zadovoljan osmijeh prema moru / walking out holding eNa hand, serene coastal cool',
+      pauseAfterMs: 700,
+      ttsStatus: 'ok' as const,
+      order: 13,
     },
   ];
 
@@ -221,9 +274,10 @@ export function createGeodesicFlameProject(): Project {
 
   return {
     id: 'proj_geodesic_flame_demo',
-    title: 'Ep 1: "Trijada Geodetskog Plamena" (Dubrovnik Vernacular Demo / The Triad of the Geodesic Flame)',
+    title:
+      'Ep 1: "Trijada Bas Okvira" (The Triad of the Bass Frame / Trijada Geodetskog Plamena — Ponoćni Svodovi Lazareta / The Triad of the Geodesic Flame)',
     description:
-      'Znanstveno-fantastična audio drama i filozofski podcast smješten u kamene svodove Lazareta u Dubrovniku. Borba Trijade (eNa, Mara, Foxy) protiv Disketizirane Mreže kroz zvučnu geometriju i autentični dubrovački govor.',
+      'Autentična audio drama i filozofsko-glazbeni podcast smješten u noćne kamene svodove Lazareta u Dubrovniku. Priča o Trijadi (eNa, Mara, Foxy): živa klupska noć, analogni sub-bas, kinetički ples i svitanje nad gradskom lukom kroz autentični dubrovački govor.',
     defaultLanguage: 'hr',
     dialect: 'dubrovnik',
     dubrovnikRegister: 'contemporary',
@@ -250,13 +304,29 @@ export function createGeodesicFlameProject(): Project {
         ],
         timestamp: 1730000500000,
       },
+      {
+        id: 'res_sample_geodesic_2',
+        speakerId: 'spk_ena',
+        query: 'Kako arhitektura prostora i zvučni valovi utječu na emocionalno stanje posjetitelja?',
+        personaResponse:
+          'Prostor nije samo praznina omeđena zidovima — on je rezonantna komora za ljudska srca. Kad se kameni svodovi usklade s toplim niskim frekvencijama, osjećaj otuđenosti nestaje i stvara se sigurno utočište u kojem se ljudi mogu opustiti i osjetiti zajedništvo.',
+        objectiveSummary:
+          'Architectural spatial design and resonant acoustic geometry foster emotional decompression, somatic safety, and communal bonding within historic stone environments.',
+        sources: [
+          {
+            uri: 'https://lazareti.com',
+            title: 'Club Lazareti & Art Radionica Lazareti — Arhitektura i kultura prostora',
+          },
+        ],
+        timestamp: 1730000550000,
+      },
     ],
     createdAt: 1730000000000,
     updatedAt: 1730000500000,
     metadata: {
       author: 'Mate Fox Banchilo (Robot Hand Made)',
       targetWpm: 135,
-      genre: 'Znanstveno-fantastična audio drama',
+      genre: 'Zvučna drama i klupski narativ Dubrovnika',
     },
     audioConfig: {
       sampleRate: 48000,

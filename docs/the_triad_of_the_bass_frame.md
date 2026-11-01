@@ -1,4 +1,4 @@
-# The Triad of the Geodesic Flame
+# The Triad of the Bass Frame
 
 ### *Embers, Echoes, and the Midnight Vaults of Lazareti*
 

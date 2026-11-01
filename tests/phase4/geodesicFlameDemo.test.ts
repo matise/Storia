@@ -84,22 +84,30 @@ describe('The Triad of the Geodesic Flame Demo Project (Dubrovnik Vernacular Cas
     expect(maraBlock.text).toContain('gosparu Fox');
     expect(maraBlock.directorNotes).toContain('fiercely');
 
-    // eNa's dialogue
-    const enaBlock = project.blocks[2];
+    // Foxy's response (Block 3)
+    const foxyBlock1 = project.blocks[2];
+    expect(foxyBlock1.speakerId).toBe('spk_foxy');
+    expect(foxyBlock1.text).toContain('pristavljat teću');
+    expect(foxyBlock1.text).toContain('zagorjet');
+
+    // eNa's arrival dialogue (Block 4)
+    const enaBlock = project.blocks[3];
     expect(enaBlock.speakerId).toBe('spk_ena');
     expect(enaBlock.text).toContain('Muči, Mare');
+    expect(enaBlock.text).toContain('volte Lazareta');
+    expect(enaBlock.text).toContain('čeljad');
     expect(enaBlock.directorNotes).toContain('kristalnog zvona');
 
-    // Foxy's dialogue
-    const foxyBlock = project.blocks[3];
-    expect(foxyBlock.speakerId).toBe('spk_foxy');
-    expect(foxyBlock.text).toContain('formantnu jezgru');
-    expect(foxyBlock.directorNotes).toContain('biquaternionskom emiteru');
+    // Foxy's dialogue (Block 5)
+    const foxyBlock2 = project.blocks[4];
+    expect(foxyBlock2.speakerId).toBe('spk_foxy');
+    expect(foxyBlock2.text).toContain('Keplerovom omjeru');
+    expect(foxyBlock2.directorNotes).toContain('biquaternionskom emiteru');
 
-    // Sub-bass transient sfx
+    // Sub-bass transient sfx (Block 7)
     const sfx2 = project.blocks[6];
     expect(sfx2.type).toBe('sound_effect');
-    expect(sfx2.text).toContain('dodekaedarskog mehanizma');
+    expect(sfx2.text).toContain('zvučnog mehanizma');
 
     // Total duration is calculated by pacing calculator
     expect(project.blocks.every((b) => (b.estimatedDurationSec ?? 0) > 0)).toBe(true);

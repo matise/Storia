@@ -72,6 +72,7 @@ export const DUBROVNIK_DICTIONARY: DubrovnikLexicalEntry[] = [
   { standard: 'žarulja', dubrovnik: 'bumbeta', category: 'household_food', notes: 'električna žarulja' },
   { standard: 'šibica', dubrovnik: 'sumporin', category: 'household_food' },
   { standard: 'slavina', dubrovnik: 'rubinet', category: 'household_food' },
+  { standard: 'patike', dubrovnik: 'crevje', category: 'household_food' },
 
   // 2. Clothing, body & personal belongings
   { standard: 'hlače', dubrovnik: 'gaće', category: 'clothing_personal', notes: 'U Dubrovniku "gaće" uvijek označavaju duge hlače!' },

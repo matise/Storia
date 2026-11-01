@@ -9,14 +9,14 @@ import {
   UpdateBlockCommand,
   UpdateSpeakerCommand,
 } from '../../src/core/history/commands/scriptCommands';
-import { createSampleProject } from '../../src/i18n/sampleProject';
+import { createNoirSampleProject } from '../../src/i18n/sampleProject';
 import { Project, ScriptBlock } from '../../src/types/storia';
 
 function createMemoryAccessor(initial?: Project): {
   accessor: ProjectStateAccessor;
   getState: () => Project;
 } {
-  let state: Project = initial ?? createSampleProject();
+  let state: Project = initial ?? createNoirSampleProject();
   return {
     accessor: {
       getProject: () => state,

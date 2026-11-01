@@ -103,7 +103,7 @@ describe('Multi-Project (Episode) Studio Library & Episode Properties UI', () =>
 
     // 1. Switch episode via TopBar dropdown
     const switcher = screen.getByTestId('episode-switcher-select') as HTMLSelectElement;
-    expect(switcher.value).toBe('proj_magla_zagreb_ep1');
+    expect(switcher.value).toBe(useStoriaStore.getState().projects[0].id);
 
     fireEvent.change(switcher, { target: { value: 'proj_palagruza_ep2' } });
     expect(useStoriaStore.getState().project.id).toBe('proj_palagruza_ep2');

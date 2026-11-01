@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
+  <defs>
+    <linearGradient id="fav-bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f172a" />
+      <stop offset="1" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="fav-saffron" x1="12" y1="6" x2="20" y2="26" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fde047" />
+      <stop offset="1" stop-color="#eab308" />
+    </linearGradient>
+    <filter id="fav-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0.8" stdDeviation="0.6" flood-color="#000000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <!-- Deep Slate Midnight Squircle Badge -->
+  <rect width="32" height="32" rx="7" fill="url(#fav-bg)" stroke="#1e293b" stroke-width="1" />
+
+  <!-- Surrounding Magical Bits & Swirls -->
+  <!-- Top Violet Swirl -->
+  <path d="M10 9.5c1.8-2.2 4.8-2.8 7.2-1.5" stroke="#a855f7" stroke-width="2.2" stroke-linecap="round" />
+
+  <!-- Left Cyan Audio Arc -->
+  <path d="M7.5 15c-.8-2.5 1-5 3.5-5.5" stroke="#06b6d4" stroke-width="2.2" stroke-linecap="round" />
+
+  <!-- Right Rose / Coral Audio Arc -->
+  <path d="M22.5 16.5c2.2 1.2 2.8 4 1.2 6" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round" />
+
+  <!-- Bottom Emerald Loop -->
+  <path d="M8.5 21c-1 2.2 1 4.5 3.5 4.5" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" />
+
+  <!-- Top Emerald Sparkle Bit (matching original artwork) -->
+  <rect x="21" y="6" width="2.4" height="2.4" rx="0.5" fill="#10b981" transform="rotate(12 22 7)" />
+
+  <!-- Saffron Golden Particle -->
+  <circle cx="25" cy="11.5" r="1.2" fill="#facc15" />
+
+  <!-- Micro-particles for high-DPI sparkle -->
+  <circle cx="24.5" cy="15" r="0.9" fill="#f43f5e" />
+  <circle cx="7.2" cy="12" r="0.8" fill="#38bdf8" />
+
+  <!-- Deep Violet Drop Shadow for Golden S -->
+  <path d="M20.2 11.8c-1.2-1.8-3.6-2.2-5.4-1-1.8 1.2-1.8 3.2 0 4.6 2.6 1.8 3.8 2.8 3.8 5.4 0 2.8-2.4 4.5-5.2 4-2-.4-3.2-1.6-3.8-3"
+    stroke="#7c3aed" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Bold Central Golden "S" -->
+  <path d="M20.5 11c-1.2-1.8-3.6-2.2-5.4-1-1.8 1.2-1.8 3.2 0 4.6 2.6 1.8 3.8 2.8 3.8 5.4 0 2.8-2.4 4.5-5.2 4-2-.4-3.2-1.6-3.8-3"
+    stroke="url(#fav-saffron)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" filter="url(#fav-glow)" />
+</svg>

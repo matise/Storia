@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Feather,
   Headphones,
   Loader2,
   RefreshCw,
@@ -28,6 +29,7 @@ import {
   stripNonSpokenTokens,
 } from '../../core/pacing/pacingCalculator';
 import { restoreCroatianDiacritics } from '../../core/tts/croatianTextNormalizer';
+import { transformToDubrovnikDialect } from '../../core/dubrovnik/dubrovnikPhonetics';
 import { WaveformCanvas } from './WaveformCanvas';
 
 interface ScriptBlockCardProps {
@@ -144,6 +146,20 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
     updateBlock(block.id, {
       text: fixedText,
       directorNotes: fixedNotes,
+    });
+  };
+
+  const project = useStoriaStore((s) => s.project);
+
+  const handleApplyDubrovnikDialect = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!block.text) return;
+    const transformed = transformToDubrovnikDialect(
+      block.text,
+      project.dubrovnikRegister ?? 'contemporary'
+    );
+    updateBlock(block.id, {
+      text: transformed,
     });
   };
 
@@ -499,7 +515,18 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
 
       {/* Script Textarea + Live Karaoke Word Synchronizer Strip */}
       <div className="mb-2.5 space-y-1.5">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            data-testid={`transform-dubrovnik-dialect-${block.id}`}
+            onClick={handleApplyDubrovnikDialect}
+            title={t('dubrovnikDialectButtonTooltip')}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-950 hover:bg-amber-950/70 border border-slate-800 hover:border-amber-600/50 text-[10px] text-amber-300 font-mono transition-colors cursor-pointer"
+          >
+            <Feather className="w-2.5 h-2.5 text-amber-400" />
+            <span>Dubrovački</span>
+          </button>
+
           <button
             type="button"
             data-testid={`restore-croatian-diacritics-${block.id}`}

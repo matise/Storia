@@ -4,11 +4,11 @@ import {
   extractGroundingSources,
   runPersonaResearch,
 } from '../../src/services/geminiAgentService';
-import { useStoriaStore } from '../../src/store/useStoriaStore';
+import { createNoirSampleProject } from '../../src/i18n/sampleProject';
 
 describe('Phase 4.1: Persona-Grounded Research & Citation Extractor', () => {
   it('constructs dual-layer system instructions for Marko (HR) and Ana (EN) with gender agreement rules', () => {
-    const speakers = useStoriaStore.getState().project.speakers;
+    const speakers = createNoirSampleProject().speakers;
     const marko = speakers.find((s) => s.id === 'spk_marko')!;
     const ana = speakers.find((s) => s.id === 'spk_ana')!;
 
@@ -77,7 +77,7 @@ describe('Phase 4.1: Persona-Grounded Research & Citation Extractor', () => {
   });
 
   it('dispatches runPersonaResearch to the selected Gemini model endpoint with Google Search grounding tool', async () => {
-    const marko = useStoriaStore.getState().project.speakers[0];
+    const marko = createNoirSampleProject().speakers.find((s) => s.id === 'spk_marko')!;
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({

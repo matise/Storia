@@ -2,7 +2,6 @@ import React from 'react';
 import {
   AlertCircle,
   Cpu,
-  Globe,
   KeyRound,
   Loader2,
   Plus,
@@ -17,6 +16,8 @@ import {
 import {
   StoriaAppBrandIcon,
   MasterBroadcastDiskIcon,
+  FlagCroatia,
+  FlagUk,
 } from '../icons/StoriaIcons';
 import {
   GEMINI_TEXT_MODELS,
@@ -43,6 +44,7 @@ export const TopBar: React.FC = () => {
   const undo = useStoriaStore((s) => s.undo);
   const redo = useStoriaStore((s) => s.redo);
   const resetToSampleProject = useStoriaStore((s) => s.resetToSampleProject);
+  const loadGeodesicFlameDemo = useStoriaStore((s) => s.loadGeodesicFlameDemo);
   const setApiKeyModalOpen = useStoriaStore((s) => s.setApiKeyModalOpen);
   const hasConfiguredApiKey = useStoriaStore((s) => s.hasConfiguredApiKey);
   const ttsProvider = useStoriaStore((s) => s.ttsProvider);
@@ -76,31 +78,32 @@ export const TopBar: React.FC = () => {
 
   return (
     <div className="shrink-0 select-none">
-      <header className="h-13 border-b border-slate-800/90 bg-slate-950/95 px-3 sm:px-4 flex items-center justify-between gap-2 overflow-x-auto overflow-y-hidden select-none min-w-0">
+      <header className="h-14 border-b border-slate-800/90 bg-slate-950/95 px-3 sm:px-4 flex items-center justify-between gap-2.5 overflow-x-auto overflow-y-hidden select-none min-w-0">
         {/* Brand & Active Episode Selector */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 shadow-md shadow-indigo-950/40">
-              <StoriaAppBrandIcon size={32} />
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950/60 ring-1 ring-white/10 bg-slate-900/90 hover:scale-105 transition-transform cursor-pointer">
+              <StoriaAppBrandIcon size={40} />
             </div>
-            <span className="font-bold tracking-tight text-slate-100 text-base hidden sm:inline">
+            <span className="font-bold tracking-tight text-slate-100 text-lg hidden sm:inline">
               {t('appTitle')}
             </span>
           </div>
 
-          <div className="h-4 w-px bg-slate-800 shrink-0" />
+          <div className="h-5 w-px bg-slate-800 shrink-0" />
 
           {/* Multi-Episode Switcher & Episode Properties Controls */}
-          <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-md px-2 py-0.5 text-xs text-slate-200 font-medium min-w-0 shrink">
-            <span className="px-1 py-0.2 rounded bg-indigo-950/80 border border-indigo-700/50 text-[10px] font-mono text-indigo-300 uppercase shrink-0">
+          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-medium shrink-0 max-w-full shadow-xs">
+            <span className="px-1.5 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/50 text-[10px] font-mono text-indigo-300 uppercase shrink-0 font-bold">
               {project.defaultLanguage}
             </span>
             <select
               aria-label={t('episodeLabel')}
               data-testid="episode-switcher-select"
+              title={project.title}
               value={project.id}
               onChange={(e) => switchProject(e.target.value)}
-              className="bg-transparent text-xs text-slate-100 font-medium focus:outline-none max-w-28 sm:max-w-40 md:max-w-56 truncate cursor-pointer"
+              className="bg-transparent text-xs text-slate-100 font-medium focus:outline-none min-w-[140px] max-w-[220px] sm:max-w-[320px] md:max-w-[420px] lg:max-w-[520px] truncate cursor-pointer py-0.5"
             >
               {projects.map((ep) => (
                 <option
@@ -134,15 +137,47 @@ export const TopBar: React.FC = () => {
             </button>
           </div>
 
-          {/* Bilingual EN / HR Switcher */}
+          {/* Bilingual EN / HR Switcher with Flags */}
           <button
             type="button"
             onClick={toggleLanguage}
             title="Switch English / Croatian (EN/HR)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-indigo-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            data-testid="language-toggle-btn"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-indigo-200 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-xs hover:border-indigo-500/50 active:scale-95"
           >
-            <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span>{uiLanguage === 'en' ? 'EN / hr' : 'en / HR'}</span>
+            {uiLanguage === 'en' ? (
+              <div className="flex items-center gap-1.5">
+                <FlagUk className="w-4.5 h-3 rounded-[2px] shadow-xs" />
+                <span className="font-bold text-slate-100 text-xs">EN</span>
+                <span className="text-slate-600 text-[10px]">/</span>
+                <FlagCroatia className="w-4 h-2.5 rounded-[2px] opacity-40 hover:opacity-100 transition-opacity" />
+                <span className="text-slate-500 text-[10px]">hr</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <FlagCroatia className="w-4.5 h-3 rounded-[2px] shadow-xs" />
+                <span className="font-bold text-slate-100 text-xs">HR</span>
+                <span className="text-slate-600 text-[10px]">/</span>
+                <FlagUk className="w-4 h-2.5 rounded-[2px] opacity-40 hover:opacity-100 transition-opacity" />
+                <span className="text-slate-500 text-[10px]">en</span>
+              </div>
+            )}
+          </button>
+
+          {/* Quick Demo: Trijada Geodetskog Plamena Button */}
+          <button
+            type="button"
+            data-testid="load-geodesic-flame-demo-btn"
+            onClick={loadGeodesicFlameDemo}
+            title={t('loadGeodesicFlameDemoTooltip')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              project.id === 'proj_geodesic_flame_demo'
+                ? 'bg-amber-950/80 border-amber-500/70 text-amber-200 shadow-sm shadow-amber-950/40'
+                : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-amber-300'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="hidden xl:inline">{t('geodesicFlameBadge')}</span>
           </button>
         </div>
 

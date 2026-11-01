@@ -10,10 +10,10 @@ import {
   prepareTextForTts,
   restoreCroatianDiacritics,
 } from '../../src/core/tts/croatianTextNormalizer';
-import { createSampleProject } from '../../src/i18n/sampleProject';
+import { createNoirSampleProject } from '../../src/i18n/sampleProject';
 
 describe('Phase 2 — Invisible Acoustic Directives, Didaskalije Parser & SSML Builder', () => {
-  const project = createSampleProject();
+  const project = createNoirSampleProject();
   const marko = project.speakers.find((s) => s.id === 'spk_marko')!;
   const ana = project.speakers.find((s) => s.id === 'spk_ana')!;
 

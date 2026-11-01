@@ -8,7 +8,6 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { SupportedLanguage } from '../../types/storia';
 import { useStoriaStore } from '../../store/useStoriaStore';
 import { useTranslation } from '../../i18n/useTranslation';
 
@@ -178,18 +177,61 @@ export const ProjectPropertiesModal: React.FC = () => {
                 </label>
                 <select
                   data-testid="modal-episode-lang-select"
-                  value={project.defaultLanguage}
-                  onChange={(e) =>
-                    updateProjectProperties({
-                      defaultLanguage: e.target.value as SupportedLanguage,
-                    })
+                  value={
+                    project.defaultLanguage === 'en'
+                      ? 'en'
+                      : project.dialect === 'dubrovnik'
+                        ? 'hr-dubrovnik'
+                        : 'hr'
                   }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'en') {
+                      updateProjectProperties({
+                        defaultLanguage: 'en',
+                        dialect: 'standard',
+                      });
+                    } else if (val === 'hr-dubrovnik') {
+                      updateProjectProperties({
+                        defaultLanguage: 'hr',
+                        dialect: 'dubrovnik',
+                      });
+                    } else {
+                      updateProjectProperties({
+                        defaultLanguage: 'hr',
+                        dialect: 'standard',
+                      });
+                    }
+                  }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-md px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="hr">Hrvatski (HR)</option>
+                  <option value="hr">Hrvatski (Standardni HR)</option>
+                  <option value="hr-dubrovnik">Hrvatski — Dubrovački govor (Ragusa)</option>
                   <option value="en">English (EN)</option>
                 </select>
               </div>
+
+              {project.defaultLanguage === 'hr' && project.dialect === 'dubrovnik' && (
+                <div className="space-y-1">
+                  <label className="text-amber-400 font-semibold block">
+                    {t('dubrovnikRegisterLabel')}
+                  </label>
+                  <select
+                    data-testid="modal-dubrovnik-register-select"
+                    value={project.dubrovnikRegister ?? 'contemporary'}
+                    onChange={(e) =>
+                      updateProjectProperties({
+                        dubrovnikRegister: e.target.value as 'classical' | 'traditional' | 'contemporary',
+                      })
+                    }
+                    className="w-full bg-slate-950 border border-amber-800/80 rounded-md px-2.5 py-1.5 text-amber-200 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="contemporary">Suvremeni razgovorni</option>
+                    <option value="traditional">Tradicionalni pučki govor Grada (19./20. st.)</option>
+                    <option value="classical">Klasični barokni (Držić / Gundulić)</option>
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-slate-300 font-semibold block">

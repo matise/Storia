@@ -3,6 +3,8 @@ import {
   AppSettings,
   BlockType,
   CoWriterBeatBlockDraft,
+  CroatianDialect,
+  DubrovnikRegister,
   GeminiTextModelId,
   GeminiTtsModelId,
   PersonaResearchRecord,
@@ -15,6 +17,7 @@ import {
 import {
   createInitialProjectLibrary,
   createSampleProject,
+  createGeodesicFlameProject,
 } from '../i18n/sampleProject';
 import { HistoryManager } from '../core/history/Command';
 import {
@@ -203,6 +206,8 @@ export interface ProjectPropertiesPatch {
   title?: string;
   description?: string;
   defaultLanguage?: SupportedLanguage;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
   author?: string;
   genre?: string;
   targetWpm?: number;
@@ -318,6 +323,7 @@ export interface StoriaStoreState {
   undo: () => void;
   redo: () => void;
   resetToSampleProject: () => void;
+  loadGeodesicFlameDemo: () => void;
 }
 
 const initialProjectsLibrary = loadInitialProjectsLibrary();
@@ -600,6 +606,11 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           patch.defaultLanguage !== undefined
             ? patch.defaultLanguage
             : current.defaultLanguage,
+        dialect: patch.dialect !== undefined ? patch.dialect : current.dialect,
+        dubrovnikRegister:
+          patch.dubrovnikRegister !== undefined
+            ? patch.dubrovnikRegister
+            : current.dubrovnikRegister,
         blocks: nextBlocks,
         metadata: {
           ...current.metadata,
@@ -1872,6 +1883,31 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         project: fresh,
         projects: freshLib,
         selectedBlockId: fresh.blocks[0]?.id ?? null,
+        editingSpeakerId: null,
+        isEpisodePropertiesModalOpen: false,
+        previewingSpeakerId: null,
+        playingBlockId: null,
+        ttsErrorMessage: null,
+        undoCount: 0,
+        redoCount: 0,
+      });
+    },
+
+    loadGeodesicFlameDemo: () => {
+      stopAllAudioPlayback();
+      singletonHistory.clear();
+      const freshLib = createInitialProjectLibrary();
+      const demo = createGeodesicFlameProject();
+      const existingIdx = freshLib.findIndex((p) => p.id === demo.id);
+      const updatedLib =
+        existingIdx >= 0
+          ? freshLib.map((p) => (p.id === demo.id ? demo : p))
+          : [demo, ...freshLib];
+      persistProject(demo, updatedLib);
+      set({
+        project: demo,
+        projects: updatedLib,
+        selectedBlockId: demo.blocks[0]?.id ?? null,
         editingSpeakerId: null,
         isEpisodePropertiesModalOpen: false,
         previewingSpeakerId: null,

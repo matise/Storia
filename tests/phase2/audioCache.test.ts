@@ -10,12 +10,13 @@ describe('Phase 2 — Content-Addressed IndexedDB Audio Cache & Store Invalidati
   beforeEach(async () => {
     await clearAllAudioCache();
     useStoriaStore.getState().resetToSampleProject();
+    useStoriaStore.getState().switchProject('proj_magla_zagreb_ep1');
   });
 
   it('produces identical SHA-256 cache keys for identical inputs and invalidates on text, directorNotes, or voice mutation', async () => {
     const project = useStoriaStore.getState().project;
-    const block = project.blocks[0];
-    const marko = project.speakers.find((s) => s.id === block.speakerId)!;
+    const block = project.blocks.find((b) => Boolean(b.speakerId)) ?? project.blocks[0];
+    const marko = project.speakers.find((s) => s.id === block.speakerId) ?? project.speakers[0];
 
     const key1 = await computeBlockCacheKey(block, marko, 'hr');
     const key2 = await computeBlockCacheKey({ ...block }, { ...marko }, 'hr');

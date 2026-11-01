@@ -275,6 +275,14 @@ export interface TranslationDictionary {
   exportStemsSuccessNotice: string;
   exportStemsSuccessNoticeMp3: string;
 
+  // Dubrovnik Vernacular & Dialect Extension
+  dubrovnikDialectButtonTooltip: string;
+  applyDubrovnikDialectTooltip: string;
+  dubrovnikRegisterLabel: string;
+  dubrovnikDialectOption: string;
+  loadGeodesicFlameDemoTooltip: string;
+  geodesicFlameBadge: string;
+
   // Additional UI & Dialog Labels
   autoDiacriticsTooltip: string;
   exportSubtitle: string;
@@ -566,6 +574,13 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     exportStemsSuccessNotice: 'Speaker stems (WAV) generated and downloaded successfully!',
     exportStemsSuccessNoticeMp3: 'Speaker stems (MP3 320 kbps) generated and downloaded successfully!',
 
+    dubrovnikDialectButtonTooltip: 'Convert text to authentic Dubrovnik vernacular (Raguzejski idiom)',
+    applyDubrovnikDialectTooltip: 'Apply Dubrovnik vernacular vocabulary and phonetics',
+    dubrovnikRegisterLabel: 'Dubrovnik Register',
+    dubrovnikDialectOption: 'Croatian — Dubrovnik Dialect (Ragusa)',
+    loadGeodesicFlameDemoTooltip: 'Load Demo: The Triad of the Geodesic Flame (Dubrovnik Cast)',
+    geodesicFlameBadge: 'Triad Demo',
+
     autoDiacriticsTooltip: 'Auto-restore Croatian diacritics (č, ć, ž, š, đ)',
     exportSubtitle: 'Configure broadcast loudness normalization, bit depth, and script archival',
     exportScriptArchiveDesc: 'Export human-readable production scripts or lossless Storia project bundles for backup and cross-machine restoration.',
@@ -851,6 +866,13 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     exportMasterSuccessNoticeMp3: 'Masterirani MP3 (320 kbps) uspješno generiran i spreman za emitiranje!',
     exportStemsSuccessNotice: 'Zasebni WAV stemovi uloga uspješno generirani i preuzeti!',
     exportStemsSuccessNoticeMp3: 'Zasebni MP3 (320 kbps) stemovi uloga uspješno generirani i preuzeti!',
+
+    dubrovnikDialectButtonTooltip: 'Pretvori tekst u autentični dubrovački govor (Raguzejski idiom)',
+    applyDubrovnikDialectTooltip: 'Primijeni dubrovački leksik i fonetiku',
+    dubrovnikRegisterLabel: 'Dubrovački registar',
+    dubrovnikDialectOption: 'Hrvatski — Dubrovački govor (Ragusa)',
+    loadGeodesicFlameDemoTooltip: 'Učitaj demo: Trijada Geodetskog Plamena (Dubrovačka ekipa)',
+    geodesicFlameBadge: 'Trijada Demo',
 
     autoDiacriticsTooltip: 'Automatski dodaj hrvatske dijakritičke znakove (č, ć, ž, š, đ)',
     exportSubtitle: 'Podesite normalizaciju glasnoće, bitnu dubinu i arhivu scenarija',

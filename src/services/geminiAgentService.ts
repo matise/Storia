@@ -3,6 +3,8 @@ import {
   CoWriterAttachment,
   CoWriterBeatCandidate,
   CoWriterWorkflowMode,
+  CroatianDialect,
+  DubrovnikRegister,
   GeminiTextModelId,
   GroundingSource,
   PersonaResearchRecord,
@@ -12,6 +14,34 @@ import {
   SupportedLanguage,
 } from '../types/storia';
 import { calculateBlockPacing } from '../core/pacing/pacingCalculator';
+import { transformToDubrovnikDialect } from '../core/dubrovnik/dubrovnikPhonetics';
+
+/**
+ * Builds the official Dubrovnik Vernacular (Raguzejski idiom) linguistic guidance prompt
+ * based on the Dubrovnik Agent Dialect Specification.
+ */
+export function buildDubrovnikAgentInstructions(
+  register: DubrovnikRegister = 'contemporary'
+): string {
+  return [
+    'UPUTE ZA DUBROVAČKI GOVOR (RAGUZEJSKI IDIOM / GRADSKA ŠTOKAVŠTINA):',
+    '1. Identitet i dijalekt: Generiraj autentične dijaloge na dubrovačkom govoru. Riječ je o jekavskom štokavskom idiomu prožetom specifičnom romanskom i povijesnom baštinom.',
+    '2. Refleks jata: ISKLJUČIVO (i)jekavski (mlijeko, brijeme, dijete, svijet, snijeg). Nikada ne pretvaraj govor u čakavsku ili splitsku ikavicu!',
+    '3. Zamjenice: Isključivo "što" (nikada "šta" u nominativu; genitiv "šta / od šta"). NIKADA "ča" ili "ćaća" (Dubrovčani kažu tata, otac ili ćaćko)!',
+    '4. Sažimanja: Diftong -ao i -uo prelazi u dugo -ō (rekō, gledō, poslō, umbô). "Bio" -> "bijo", "vidio" -> "vidijo", "mjerio" -> "mírijo".',
+    '5. Suglasnici: Završno -m prelazi u -n ("znala san", "s drugōn robōn", "jon"). /hv/ -> /f/ ("fála", "fálit"). Ispadanje zubnih okluziva ("bôles", "čis", "dësē", "mâs").',
+    '6. Muška imena na -o: Sklanjaj ISKLJUČIVO po a-deklinaciji (Vlaho, Maro, Baldo, Đuro, Niko, Luko -> G: Vlaha, Mara, Balda; D/L: Vlahu, Maru; A: Vlaha, Mara). NIKADA "Mari", "Đuri", "Vlahi"!',
+    '7. Posvojni pridjevi muških imena: Nastavak -ov (Matov, Đurov, Vlahov, Nikov - NIKADA Matin, Đurin)!',
+    '8. Dativ i lokativ ž.r.: Nastavak -om ("po njegovom smrti", "mojom kćeri", enklitika "jon").',
+    '9. 3. lice množine prezenta: Nastavak -u (oni govoru, vidu, stoju, činu, živu, mislu, nosu, dadu, znadu, imadu).',
+    '10. Rječnik: Koristi autentične izraze: pantaruo (vilica), ožica (žlica), pjat (tanjur), teća (lonac), prosuja (tava), broka (vrč), kadin (lavor), pilo (sudoper), šugaman (ručnik), kušin (jastuk), funjestra (prozor), koltrina (zavjesa), patata (krumpir), pomadora (rajčica), dinja (lubenica!), pipun (dinja!), cukar (šećer), beškotin (keks/dvopek), butiga (dućan), placa (tržnica/Stradun), saket (vrećica), skalin (stepenica), gaće (duge hlače!), bječve (čarape), crevlje (cipele), vestit (odijelo), takujin (novčanik), lapis (olovka), čeljad (ljudi), našjenac (domaći), furesti (stranci), kučak (pas), manjgura (cura), gospar (gospodin/vlastelin), sinjora (gospođa), mučat (šutjeti), hodit (ići), pasat (proći), fermat (stati), arivat (stići), guštat (uživati), škerac (šala), drito (ravno), šesan (skladan/lijep), sikur (siguran), zdenjoz (ponosan/otresit), kontent (zadovoljan).',
+    register === 'classical'
+      ? '11. Registar: RENESANSNO-BAROKNI (16.-18. st. - Držić, Gundulić): Koristi aorist/imperfekt (rijeh, dah, pisah), "čertamente", "parer", "drago prolitje", "bivši moja volja".'
+      : register === 'traditional'
+        ? '11. Registar: TRADICIONALNI PUČKI GOVOR GRADA (kraj 19. i prva polovina 20. st.): Čistokrvni govor unutar zidina, perfekt/pluskvamperfekt ("bijo sam došō"), talijanizmi kućanstva i pomorstva.'
+        : '11. Registar: SUVREMENI RAZGOVORNI DUBROVAČKI: Očuvana organska jezgra (patata, skalin, pantaruo, pomadora, gaće, čeljad, butiga), zatvoreni vokali, jekavizam i dubrovački ton.',
+  ].join('\n');
+}
 
 /**
  * Constructs the dual-layer system instruction for Persona-Grounded Research,
@@ -20,7 +50,9 @@ import { calculateBlockPacing } from '../core/pacing/pacingCalculator';
  */
 export function buildPersonaResearchSystemPrompt(
   speaker: Speaker,
-  language: SupportedLanguage
+  language: SupportedLanguage,
+  dialect?: CroatianDialect,
+  dubrovnikRegister?: DubrovnikRegister
 ): string {
   const genderRule =
     language === 'hr'
@@ -32,16 +64,22 @@ export function buildPersonaResearchSystemPrompt(
       : `Speaker Gender: ${speaker.gender}.`;
 
   if (language === 'hr') {
+    const dialectPrompt =
+      dialect === 'dubrovnik' ? buildDubrovnikAgentInstructions(dubrovnikRegister) : '';
+
     return [
       `Ti si ${speaker.name} (Dob: ${speaker.age}).`,
       `PERSONA I SVJETONAZOR: ${speaker.personaPrompt}`,
       `GLUMAČKE UPUTE I GOVORNI RITAM: ${speaker.actingNotes}`,
       genderRule,
+      dialectPrompt,
       'PRAVILA ODGOVARANJA:',
       '1. Odgovori ISKLJUČIVO u prvom licu ("ja") iz perspektive svog lika, koristeći njegov rječnik, ton i ritam govora.',
       '2. Temelji sve povijesne, znanstvene ili činjenične tvrdnje na provjerenim činjenicama.',
       '3. Odgovor mora zvučati kao autentična izgovorena replika u radio-drami ili podcastu (2 do 4 rečenice).',
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   return [
@@ -182,6 +220,8 @@ export async function runPersonaResearch(options: {
   apiKey?: string | null;
   modelId?: GeminiTextModelId;
   enableSearchGrounding?: boolean;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
 }): Promise<PersonaResearchRecord> {
   const {
@@ -191,6 +231,8 @@ export async function runPersonaResearch(options: {
     apiKey,
     modelId = 'gemini-3-flash-preview',
     enableSearchGrounding = true,
+    dialect,
+    dubrovnikRegister,
     fetchImpl = fetch,
   } = options;
 
@@ -200,10 +242,22 @@ export async function runPersonaResearch(options: {
   }
 
   if (!apiKey || apiKey.trim().length < 10) {
-    return buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
+    const fallback = buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
+    if (dialect === 'dubrovnik' && language === 'hr') {
+      fallback.personaResponse = transformToDubrovnikDialect(
+        fallback.personaResponse,
+        dubrovnikRegister
+      );
+    }
+    return fallback;
   }
 
-  const systemInstruction = buildPersonaResearchSystemPrompt(speaker, language);
+  const systemInstruction = buildPersonaResearchSystemPrompt(
+    speaker,
+    language,
+    dialect,
+    dubrovnikRegister
+  );
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     modelId
   )}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
@@ -788,6 +842,8 @@ export async function generateNextSceneBeats(options: {
   attachments?: CoWriterAttachment[];
   deepResearch?: boolean;
   mode?: CoWriterWorkflowMode;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
 }): Promise<CoWriterBeatCandidate[]> {
   const {
@@ -800,11 +856,24 @@ export async function generateNextSceneBeats(options: {
     attachments,
     deepResearch = false,
     mode = 'scene_beats',
+    dialect,
+    dubrovnikRegister,
     fetchImpl = fetch,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
-    return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch, mode);
+    const fallbacks = buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch, mode);
+    if (dialect === 'dubrovnik' && language === 'hr') {
+      return fallbacks.map((beat) => ({
+        ...beat,
+        title: transformToDubrovnikDialect(beat.title, dubrovnikRegister),
+        blocks: beat.blocks.map((blk) => ({
+          ...blk,
+          text: transformToDubrovnikDialect(blk.text, dubrovnikRegister),
+        })),
+      }));
+    }
+    return fallbacks;
   }
 
   const contextLines = precedingBlocks
@@ -835,6 +904,11 @@ export async function generateNextSceneBeats(options: {
     ? 'DEEP RESEARCH MODE IS ACTIVE: Conduct thorough analytical research (using Google Search grounding if relevant) and deep multimodal document/visual examination. Extract hidden dramatic clues, subtext, period-accurate details, and geopolitical context.'
     : '';
 
+  const dubrovnikDialectInstructions =
+    language === 'hr' && dialect === 'dubrovnik'
+      ? buildDubrovnikAgentInstructions(dubrovnikRegister)
+      : '';
+
   let modeRolePrompt = `You are an expert audio drama Co-Writer generating 3 candidate narrative continuation beats in ${
     language === 'hr' ? 'Croatian (hr)' : 'English (en)'
   }.`;
@@ -862,6 +936,7 @@ export async function generateNextSceneBeats(options: {
     directionHint ? `Director Hint / Topic Prompt: ${directionHint}` : '',
     attachmentDescriptions,
     deepResearchInstructions,
+    dubrovnikDialectInstructions,
     modeStructureInstruction,
   ]
     .filter(Boolean)
@@ -1101,6 +1176,8 @@ export async function doctorDialogueBlock(options: {
   language: SupportedLanguage;
   apiKey?: string | null;
   modelId?: GeminiTextModelId;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
 }): Promise<ScriptDoctorOption[]> {
   const {
@@ -1110,12 +1187,27 @@ export async function doctorDialogueBlock(options: {
     language,
     apiKey,
     modelId = 'gemini-3-flash-preview',
+    dialect,
+    dubrovnikRegister,
     fetchImpl = fetch,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
-    return buildFallbackDoctorOptions(block, speaker, targetWpm, language);
+    const fallbacks = buildFallbackDoctorOptions(block, speaker, targetWpm, language);
+    if (dialect === 'dubrovnik' && language === 'hr') {
+      return fallbacks.map((opt) => ({
+        ...opt,
+        text: transformToDubrovnikDialect(opt.text, dubrovnikRegister),
+        styleLabel: opt.styleLabel + ' (Dubrovački)',
+      }));
+    }
+    return fallbacks;
   }
+
+  const dubrovnikDialectPrompt =
+    language === 'hr' && dialect === 'dubrovnik'
+      ? buildDubrovnikAgentInstructions(dubrovnikRegister)
+      : '';
 
   const prompt = [
     `You are an audio drama Script Doctor polishing a spoken line for ${
@@ -1124,9 +1216,12 @@ export async function doctorDialogueBlock(options: {
     `Original Line: "${block.text}"`,
     `Current Director Notes: "${block.directorNotes ?? ''}"`,
     `Language: ${language === 'hr' ? 'Croatian (hr)' : 'English (en)'}`,
+    dubrovnikDialectPrompt,
     'Return ONLY a JSON object with property "options" containing 3 polished alternatives:',
     '{ "options": [ { "id": "doc_1", "styleLabel": "...", "text": "...", "directorNotes": "...", "rationale": "..." } ] }',
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     modelId
@@ -1199,8 +1294,10 @@ export function buildBilingualAdapterPrompt(options: {
   speaker?: Speaker;
   sourceLang: SupportedLanguage;
   targetLang: SupportedLanguage;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
 }): string {
-  const { block, speaker, sourceLang, targetLang } = options;
+  const { block, speaker, sourceLang, targetLang, dialect, dubrovnikRegister } = options;
   const gender = speaker?.gender ?? 'neutral';
 
   const croatianMorphologyRule =
@@ -1212,14 +1309,22 @@ export function buildBilingualAdapterPrompt(options: {
           : 'CROATIAN GENDER AGREEMENT: Neutral / narrator morphology.'
       : `Speaker gender context: ${gender}. Preserve spoken syllable count and persona idioms.`;
 
+  const dubrovnikDialectRule =
+    targetLang === 'hr' && dialect === 'dubrovnik'
+      ? buildDubrovnikAgentInstructions(dubrovnikRegister)
+      : '';
+
   return [
     `Adapt the following audio drama script block from ${sourceLang.toUpperCase()} to ${targetLang.toUpperCase()}.`,
     `Speaker: ${speaker?.name ?? 'Narrator'} (Gender: ${gender}, Persona: ${speaker?.personaPrompt ?? 'N/A'})`,
     croatianMorphologyRule,
+    dubrovnikDialectRule,
     `Original Text: "${block.text}"`,
     `Original Director Notes: "${block.directorNotes ?? ''}"`,
     'Return ONLY a JSON object with: { "adaptedText": "...", "adaptedDirectorNotes": "...", "culturalNotes": "...", "genderAgreementApplied": "..." }',
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function buildFallbackBilingualAdaptation(options: {
@@ -1227,8 +1332,10 @@ function buildFallbackBilingualAdaptation(options: {
   speaker?: Speaker;
   sourceLang: SupportedLanguage;
   targetLang: SupportedLanguage;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
 }): BilingualAdaptationResult {
-  const { block, speaker, sourceLang, targetLang } = options;
+  const { block, speaker, sourceLang, targetLang, dialect, dubrovnikRegister } = options;
   const text = block.text.trim();
   const isFemale = speaker?.gender === 'female';
 
@@ -1295,6 +1402,10 @@ function buildFallbackBilingualAdaptation(options: {
     }
   }
 
+  if (targetLang === 'hr' && dialect === 'dubrovnik') {
+    adaptedHr = transformToDubrovnikDialect(adaptedHr, dubrovnikRegister);
+  }
+
   return {
     sourceLang,
     targetLang,
@@ -1302,7 +1413,9 @@ function buildFallbackBilingualAdaptation(options: {
     adaptedText: adaptedHr,
     adaptedDirectorNotes: block.directorNotes || 'prirodno / natural',
     culturalNotes:
-      'Prilagođeno autentičnom zagrebačkom govornom ritmu uz očuvanje trajanja izgovora.',
+      dialect === 'dubrovnik'
+        ? 'Prilagođeno autentičnom dubrovačkom govoru (raguzejski idiom) uz očuvanje trajanja izgovora.'
+        : 'Prilagođeno autentičnom zagrebačkom govornom ritmu uz očuvanje trajanja izgovora.',
     genderAgreementApplied: isFemale
       ? 'Ženski rod (-la glagolski pridjev radni: "vidjela sam / znala sam")'
       : 'Muški rod (-o glagolski pridjev radni: "vidio sam / znao sam")',
@@ -1320,6 +1433,8 @@ export async function adaptBlockBilingually(options: {
   targetLang: SupportedLanguage;
   apiKey?: string | null;
   modelId?: GeminiTextModelId;
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
 }): Promise<BilingualAdaptationResult> {
   const {
@@ -1329,11 +1444,28 @@ export async function adaptBlockBilingually(options: {
     targetLang,
     apiKey,
     modelId = 'gemini-3-flash-preview',
+    dialect,
+    dubrovnikRegister,
     fetchImpl = fetch,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
-    return buildFallbackBilingualAdaptation({ block, speaker, sourceLang, targetLang });
+    const fallback = buildFallbackBilingualAdaptation({
+      block,
+      speaker,
+      sourceLang,
+      targetLang,
+      dialect,
+      dubrovnikRegister,
+    });
+    if (targetLang === 'hr' && dialect === 'dubrovnik') {
+      fallback.adaptedText = transformToDubrovnikDialect(
+        fallback.adaptedText,
+        dubrovnikRegister
+      );
+      fallback.culturalNotes += ' Prilagođeno dubrovačkom govoru (raguzejski idiom).';
+    }
+    return fallback;
   }
 
   const prompt = buildBilingualAdapterPrompt({
@@ -1341,6 +1473,8 @@ export async function adaptBlockBilingually(options: {
     speaker,
     sourceLang,
     targetLang,
+    dialect,
+    dubrovnikRegister,
   });
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(

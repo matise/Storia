@@ -83,6 +83,7 @@ describe('Phase 3 — DOD Canvas 2D SoA Waveform Renderer & Scrubber', () => {
 
   it('renders Master Episode Waveform Transport deck and per-block inline waveform transport controls', () => {
     useStoriaStore.getState().resetToSampleProject();
+    useStoriaStore.getState().switchProject('proj_magla_zagreb_ep1');
     render(<App />);
 
     // 1. Master Episode Waveform Transport Deck

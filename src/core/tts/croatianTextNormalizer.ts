@@ -1,4 +1,5 @@
-import { SupportedLanguage } from '../../types/storia';
+import { CroatianDialect, SupportedLanguage } from '../../types/storia';
+import { prepareDubrovnikTtsText } from '../dubrovnik/dubrovnikPhonetics';
 
 /**
  * Dictionary of common Croatian words frequently typed without diacritics (č, ć, ž, š, đ)
@@ -284,7 +285,8 @@ export function localizeDirectorCueForLanguage(
  */
 export function prepareTextForTts(
   rawText: string,
-  language: SupportedLanguage
+  language: SupportedLanguage,
+  dialect?: CroatianDialect
 ): string {
   if (!rawText) return '';
   let text = normalizeCroatianUnicode(rawText);
@@ -294,6 +296,9 @@ export function prepareTextForTts(
     text = restoreCroatianDiacritics(text);
     for (const [pattern, replacement] of CROATIAN_ABBREVIATIONS) {
       text = text.replace(pattern, replacement);
+    }
+    if (dialect === 'dubrovnik') {
+      text = prepareDubrovnikTtsText(text);
     }
   }
 

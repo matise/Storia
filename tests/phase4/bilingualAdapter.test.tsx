@@ -7,13 +7,15 @@ import {
 import { useStoriaStore } from '../../src/store/useStoriaStore';
 import { AgentDock } from '../../src/components/layout/AgentDock';
 
+import { createNoirSampleProject } from '../../src/i18n/sampleProject';
+
 describe('Phase 4.4 & 4.5: Bilingual Cultural Adapter & AgentDock Gemini Model Picker', () => {
   beforeEach(() => {
     useStoriaStore.getState().resetToSampleProject();
   });
 
   it('enforces Croatian masculine (-o) vs feminine (-la) l-participle morphological gender agreement', async () => {
-    const { project } = useStoriaStore.getState();
+    const project = createNoirSampleProject();
     const marko = project.speakers.find((s) => s.id === 'spk_marko')!;
     const ana = project.speakers.find((s) => s.id === 'spk_ana')!;
 

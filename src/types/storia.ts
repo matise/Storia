@@ -277,6 +277,9 @@ export interface BilingualAdaptationResult {
   genderAgreementApplied: string;
 }
 
+export type CroatianDialect = 'standard' | 'dubrovnik';
+export type DubrovnikRegister = 'classical' | 'traditional' | 'contemporary';
+
 export interface AIAgentSettings {
   apiKey?: string; // User-supplied Gemini API key (BYOK)
   textModel: GeminiTextModelId;
@@ -285,6 +288,8 @@ export interface AIAgentSettings {
   enableSearchGrounding: boolean; // Enables Google Search tool for research
   temperature: number; // 0.2 (strict facts) to 0.85 (creative fiction)
   audioOutputFormat: 'pcm_48khz' | 'pcm_24khz' | 'ogg_opus';
+  dialect?: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
 }
 
 export interface Project {
@@ -292,6 +297,8 @@ export interface Project {
   title: string;
   description: string;
   defaultLanguage: SupportedLanguage; // 'en' | 'hr'
+  dialect?: CroatianDialect; // 'standard' | 'dubrovnik'
+  dubrovnikRegister?: DubrovnikRegister; // 'classical' | 'traditional' | 'contemporary'
   speakers: Speaker[];
   blocks: ScriptBlock[];
   researchNotebook?: PersonaResearchRecord[];

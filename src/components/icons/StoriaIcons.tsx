@@ -487,10 +487,186 @@ export const BilingualGlobeBookIcon: React.FC<StoriaIconProps> = ({
 };
 
 /**
+ * 10. FlagCroatia
+ * Crisp, authentic vector flag of the Republic of Croatia (3:2 ratio)
+ * Red, white, and blue tricolor with stylized central coat of arms (šahovnica).
+ */
+export const FlagCroatia: React.FC<{
+  className?: string;
+  size?: number | string;
+  title?: string;
+}> = ({ className = 'w-4.5 h-3', size, title = 'Hrvatska (HR)' }) => (
+  <svg
+    viewBox="0 0 30 20"
+    width={size ? (typeof size === 'number' ? size * 1.5 : size) : undefined}
+    height={size ?? undefined}
+    className={`inline-block overflow-hidden rounded-[2px] shadow-xs shrink-0 select-none ${className}`}
+    aria-label={title}
+    role="img"
+  >
+    <title>{title}</title>
+    {/* Red top stripe */}
+    <rect width="30" height="6.67" y="0" fill="#FF0000" />
+    {/* White middle stripe */}
+    <rect width="30" height="6.67" y="6.67" fill="#FFFFFF" />
+    {/* Blue bottom stripe */}
+    <rect width="30" height="6.67" y="13.33" fill="#003893" />
+    {/* Croatian Shield & Crown */}
+    <g transform="translate(10.75, 3.2)">
+      {/* Historical crown arches */}
+      <path
+        d="M0.5,2.6 L1.3,0.9 L2.3,2.6 L3.3,0.9 L4.3,2.6 L5.3,0.9 L6.3,2.6 L7.3,0.9 L8.0,2.6"
+        fill="none"
+        stroke="#003893"
+        strokeWidth="0.8"
+        strokeLinecap="round"
+      />
+      {/* Shield border */}
+      <path
+        d="M0.8,2.7 H7.7 V8.2 C7.7,10.8 4.25,12.2 4.25,12.2 C4.25,12.2 0.8,10.8 0.8,8.2 Z"
+        fill="#FFFFFF"
+        stroke="#003893"
+        strokeWidth="0.6"
+      />
+      {/* 3x3 checkered red squares */}
+      <rect x="1.5" y="3.3" width="1.75" height="1.6" fill="#FF0000" />
+      <rect x="5.25" y="3.3" width="1.75" height="1.6" fill="#FF0000" />
+      <rect x="3.375" y="4.9" width="1.75" height="1.6" fill="#FF0000" />
+      <rect x="1.5" y="6.5" width="1.75" height="1.6" fill="#FF0000" />
+      <rect x="5.25" y="6.5" width="1.75" height="1.6" fill="#FF0000" />
+      <rect x="3.375" y="8.1" width="1.75" height="1.6" fill="#FF0000" />
+    </g>
+  </svg>
+);
+
+/**
+ * 11. FlagUk
+ * Crisp, authentic vector flag of the United Kingdom (Union Jack, 3:2 ratio)
+ * Royal blue field, St Andrew/St Patrick saltires, and St George central cross.
+ */
+export const FlagUk: React.FC<{
+  className?: string;
+  size?: number | string;
+  title?: string;
+}> = ({ className = 'w-4.5 h-3', size, title = 'English (EN)' }) => (
+  <svg
+    viewBox="0 0 30 20"
+    width={size ? (typeof size === 'number' ? size * 1.5 : size) : undefined}
+    height={size ?? undefined}
+    className={`inline-block overflow-hidden rounded-[2px] shadow-xs shrink-0 select-none ${className}`}
+    aria-label={title}
+    role="img"
+  >
+    <title>{title}</title>
+    <defs>
+      <clipPath id="uk-flag-clip-storia">
+        <rect width="30" height="20" rx="2" />
+      </clipPath>
+    </defs>
+    <g clipPath="url(#uk-flag-clip-storia)">
+      <rect width="30" height="20" fill="#012169" />
+      {/* White diagonal saltire */}
+      <path d="M0,0 L30,20 M30,0 L0,20" stroke="#FFFFFF" strokeWidth="4" />
+      {/* Red diagonal saltire */}
+      <path d="M0,0 L30,20 M30,0 L0,20" stroke="#C8102E" strokeWidth="2.2" />
+      {/* White central cross */}
+      <path d="M15,0 V20 M0,10 H30" stroke="#FFFFFF" strokeWidth="6" />
+      {/* Red central cross */}
+      <path d="M15,0 V20 M0,10 H30" stroke="#C8102E" strokeWidth="3.6" />
+    </g>
+  </svg>
+);
+
+/**
+ * 12. StoriaFaviconIcon
+ * Optimized micro-scale favicon symbol:
+ * Bold golden "S" centerpiece with vibrant purple shadow, cyan audio wave,
+ * rose/coral arc, and top emerald sparkle particle on deep slate midnight squircle.
+ * Simplified for 16x16, 32x32, and 48x48 pixel grid clarity.
+ */
+export const StoriaFaviconIcon: React.FC<StoriaIconProps> = ({
+  size = 32,
+  className = '',
+  ...props
+}) => {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      fill="none"
+      className={className}
+      aria-label="Storia Favicon Icon"
+      {...props}
+    >
+      <defs>
+        <linearGradient id="fav-bg-react" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0f172a" />
+          <stop offset="1" stopColor="#020617" />
+        </linearGradient>
+        <linearGradient id="fav-saffron-react" x1="12" y1="6" x2="20" y2="26" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fde047" />
+          <stop offset="1" stopColor="#eab308" />
+        </linearGradient>
+        <filter id="fav-glow-react" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="0.8" stdDeviation="0.6" floodColor="#000000" floodOpacity="0.7" />
+        </filter>
+      </defs>
+
+      {/* Deep Slate Midnight Squircle Badge */}
+      <rect width="32" height="32" rx="7" fill="url(#fav-bg-react)" stroke="#1e293b" strokeWidth="1" />
+
+      {/* Surrounding Magical Bits & Swirls */}
+      {/* Top Violet Swirl */}
+      <path d="M10 9.5c1.8-2.2 4.8-2.8 7.2-1.5" stroke="#a855f7" strokeWidth="2.2" strokeLinecap="round" />
+
+      {/* Left Cyan Audio Arc */}
+      <path d="M7.5 15c-.8-2.5 1-5 3.5-5.5" stroke="#06b6d4" strokeWidth="2.2" strokeLinecap="round" />
+
+      {/* Right Rose / Coral Audio Arc */}
+      <path d="M22.5 16.5c2.2 1.2 2.8 4 1.2 6" stroke="#f43f5e" strokeWidth="2.2" strokeLinecap="round" />
+
+      {/* Bottom Emerald Loop */}
+      <path d="M8.5 21c-1 2.2 1 4.5 3.5 4.5" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" />
+
+      {/* Top Emerald Sparkle Bit (matching original artwork) */}
+      <rect x="21" y="6" width="2.4" height="2.4" rx="0.5" fill="#10b981" transform="rotate(12 22 7)" />
+
+      {/* Saffron Golden Particle */}
+      <circle cx="25" cy="11.5" r="1.2" fill="#facc15" />
+
+      {/* Micro-particles for high-DPI sparkle */}
+      <circle cx="24.5" cy="15" r="0.9" fill="#f43f5e" />
+      <circle cx="7.2" cy="12" r="0.8" fill="#38bdf8" />
+
+      {/* Deep Violet Drop Shadow for Golden S */}
+      <path
+        d="M20.2 11.8c-1.2-1.8-3.6-2.2-5.4-1-1.8 1.2-1.8 3.2 0 4.6 2.6 1.8 3.8 2.8 3.8 5.4 0 2.8-2.4 4.5-5.2 4-2-.4-3.2-1.6-3.8-3"
+        stroke="#7c3aed"
+        strokeWidth="3.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Bold Central Golden S */}
+      <path
+        d="M20.5 11c-1.2-1.8-3.6-2.2-5.4-1-1.8 1.2-1.8 3.2 0 4.6 2.6 1.8 3.8 2.8 3.8 5.4 0 2.8-2.4 4.5-5.2 4-2-.4-3.2-1.6-3.8-3"
+        stroke="url(#fav-saffron-react)"
+        strokeWidth="3.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#fav-glow-react)"
+      />
+    </svg>
+  );
+};
+
+/**
  * Unified Icon Registry exporting all custom Storia symbols.
  */
 export const StoriaIcons = {
   Brand: StoriaAppBrandIcon,
+  Favicon: StoriaFaviconIcon,
   Storybook: StorybookIcon,
   AudioWave: AudioDramaWaveIcon,
   Persona: SpeakerPersonaIcon,
@@ -499,6 +675,8 @@ export const StoriaIcons = {
   MasterExport: MasterBroadcastDiskIcon,
   ScriptDoctor: ScriptDoctorQuillIcon,
   Bilingual: BilingualGlobeBookIcon,
+  FlagCroatia,
+  FlagUk,
 } as const;
 
 export type StoriaIconName = keyof typeof StoriaIcons;

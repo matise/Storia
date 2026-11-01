@@ -115,6 +115,8 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         speaker,
         query: queryText,
         language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
         modelId: activeTextModel,
         enableSearchGrounding: searchGroundingEnabled,
@@ -195,6 +197,8 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         precedingBlocks: project.blocks,
         speakers: project.speakers,
         language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
         modelId: activeTextModel,
         directionHint,
@@ -217,6 +221,8 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         speaker: activeBlockSpeaker,
         targetWpm: project.metadata?.targetWpm ?? 140,
         language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
         modelId: activeTextModel,
       });
@@ -244,6 +250,8 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         speaker: activeBlockSpeaker,
         sourceLang,
         targetLang,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
         modelId: activeTextModel,
       });
@@ -369,6 +377,26 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
             <span className="truncate">{t('tabAdapter')}</span>
           </button>
         </div>
+
+        {/* Dubrovnik Vernacular Active Indicator */}
+        {project.defaultLanguage === 'hr' && project.dialect === 'dubrovnik' && (
+          <div
+            data-testid="dock-dubrovnik-active-pill"
+            className="flex items-center justify-between px-2.5 py-1 rounded-md bg-amber-950/40 border border-amber-600/40 text-[10px] text-amber-200 font-mono shrink-0"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="font-semibold">Dubrovački govor (Raguzejski idiom)</span>
+            </span>
+            <span className="text-amber-400/80 capitalize">
+              {project.dubrovnikRegister === 'classical'
+                ? 'Renesansni'
+                : project.dubrovnikRegister === 'traditional'
+                  ? 'Tradicionalni'
+                  : 'Suvremeni'}
+            </span>
+          </div>
+        )}
 
         {/* ================================================================= */}
         {/* TAB 1: PERSONA-GROUNDED RESEARCH                                  */}

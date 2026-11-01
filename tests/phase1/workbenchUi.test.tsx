@@ -13,7 +13,7 @@ describe('Phase 1 — Studio Workbench 3-Pane UI Integration', () => {
     render(<App />);
 
     // Verify default sample episode and speakers are rendered
-    expect(screen.getByText('Ep 1: "Magla nad Zagrebom"')).toBeDefined();
+    expect(screen.getByText(/Trijada Geodetskog Plamena/i)).toBeDefined();
     expect(screen.getByText('CAST & SPEAKERS')).toBeDefined();
     expect(screen.getByText('AI AGENT & RESEARCH DOCK')).toBeDefined();
 

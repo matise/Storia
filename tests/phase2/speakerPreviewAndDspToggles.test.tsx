@@ -12,25 +12,26 @@ describe('Phase 2 & 3 — Gemini TTS vs Local Browser TTS, Speaker Preview & EQ/
 
   it('toggles speaker Biquad EQ and Dynamics Compressor ON/OFF with full Undo/Redo support', () => {
     const store = useStoriaStore.getState();
-    const markoInitial = store.project.speakers.find((s) => s.id === 'spk_marko')!;
-    expect(markoInitial.voice.acoustics.biquadEq?.enabled ?? true).toBe(true);
-    expect(markoInitial.voice.acoustics.compression?.enabled ?? true).toBe(true);
+    const targetSpeaker = store.project.speakers[0];
+    const speakerId = targetSpeaker.id;
+    expect(targetSpeaker.voice.acoustics.biquadEq?.enabled ?? true).toBe(true);
+    expect(targetSpeaker.voice.acoustics.compression?.enabled ?? true).toBe(true);
 
     // Toggle EQ OFF
-    store.toggleSpeakerEq('spk_marko');
+    store.toggleSpeakerEq(speakerId);
     expect(
       useStoriaStore
         .getState()
-        .project.speakers.find((s) => s.id === 'spk_marko')
+        .project.speakers.find((s) => s.id === speakerId)
         ?.voice.acoustics.biquadEq?.enabled
     ).toBe(false);
 
     // Toggle Dynamics OFF
-    store.toggleSpeakerDynamics('spk_marko');
+    store.toggleSpeakerDynamics(speakerId);
     expect(
       useStoriaStore
         .getState()
-        .project.speakers.find((s) => s.id === 'spk_marko')
+        .project.speakers.find((s) => s.id === speakerId)
         ?.voice.acoustics.compression?.enabled
     ).toBe(false);
 
@@ -39,7 +40,7 @@ describe('Phase 2 & 3 — Gemini TTS vs Local Browser TTS, Speaker Preview & EQ/
     expect(
       useStoriaStore
         .getState()
-        .project.speakers.find((s) => s.id === 'spk_marko')
+        .project.speakers.find((s) => s.id === speakerId)
         ?.voice.acoustics.compression?.enabled
     ).toBe(true);
 
@@ -47,7 +48,7 @@ describe('Phase 2 & 3 — Gemini TTS vs Local Browser TTS, Speaker Preview & EQ/
     expect(
       useStoriaStore
         .getState()
-        .project.speakers.find((s) => s.id === 'spk_marko')
+        .project.speakers.find((s) => s.id === speakerId)
         ?.voice.acoustics.biquadEq?.enabled
     ).toBe(true);
   });

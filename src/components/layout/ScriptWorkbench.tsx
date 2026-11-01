@@ -15,7 +15,7 @@ import {
   Trash2,
   Volume2,
 } from 'lucide-react';
-import { ScriptBlock, SupportedLanguage } from '../../types/storia';
+import { ScriptBlock } from '../../types/storia';
 import { transientPlaybackRef, useStoriaStore } from '../../store/useStoriaStore';
 import { useTranslation } from '../../i18n/useTranslation';
 import { ScriptBlockCard } from '../workbench/ScriptBlockCard';
@@ -462,6 +462,7 @@ export const ScriptWorkbench: React.FC = () => {
             </div>
 
             {/* Episode Primary Language */}
+            {/* Language & Regional Dialect */}
             <div className="md:col-span-2 flex flex-col gap-0.5">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                 <Globe className="w-3 h-3 text-indigo-400" />
@@ -469,18 +470,62 @@ export const ScriptWorkbench: React.FC = () => {
               </label>
               <select
                 data-testid="workbench-episode-lang-select"
-                value={project.defaultLanguage}
-                onChange={(e) =>
-                  updateProjectProperties({
-                    defaultLanguage: e.target.value as SupportedLanguage,
-                  })
+                value={
+                  project.defaultLanguage === 'en'
+                    ? 'en'
+                    : project.dialect === 'dubrovnik'
+                      ? 'hr-dubrovnik'
+                      : 'hr'
                 }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'en') {
+                    updateProjectProperties({
+                      defaultLanguage: 'en',
+                      dialect: 'standard',
+                    });
+                  } else if (val === 'hr-dubrovnik') {
+                    updateProjectProperties({
+                      defaultLanguage: 'hr',
+                      dialect: 'dubrovnik',
+                    });
+                  } else {
+                    updateProjectProperties({
+                      defaultLanguage: 'hr',
+                      dialect: 'standard',
+                    });
+                  }
+                }}
                 className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-xs font-medium text-indigo-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
               >
-                <option value="hr">Hrvatski (HR)</option>
+                <option value="hr">Hrvatski (Standardni HR)</option>
+                <option value="hr-dubrovnik">Hrvatski — Dubrovački govor (Ragusa)</option>
                 <option value="en">English (EN)</option>
               </select>
             </div>
+
+            {/* Dubrovnik Register Selector (when Dubrovnik dialect is active) */}
+            {project.defaultLanguage === 'hr' && project.dialect === 'dubrovnik' && (
+              <div className="md:col-span-2 flex flex-col gap-0.5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                  <span>{t('dubrovnikRegisterLabel')}</span>
+                </label>
+                <select
+                  data-testid="workbench-dubrovnik-register-select"
+                  value={project.dubrovnikRegister ?? 'contemporary'}
+                  onChange={(e) =>
+                    updateProjectProperties({
+                      dubrovnikRegister: e.target.value as 'classical' | 'traditional' | 'contemporary',
+                    })
+                  }
+                  className="w-full px-2 py-1 rounded bg-slate-950 border border-amber-800/80 text-xs font-medium text-amber-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="contemporary">Suvremeni razgovorni</option>
+                  <option value="traditional">Tradicionalni pučki govor Grada (19./20. st.)</option>
+                  <option value="classical">Klasični barokni (Držić / Gundulić)</option>
+                </select>
+              </div>
+            )}
 
             {/* Genre / Format */}
             <div className="md:col-span-2 flex flex-col gap-0.5">

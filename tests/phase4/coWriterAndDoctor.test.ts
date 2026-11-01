@@ -8,6 +8,7 @@ import { useStoriaStore } from '../../src/store/useStoriaStore';
 describe('Phase 4.2 & 4.3: Co-Writer Structured Scene Generator & Script Doctor', () => {
   beforeEach(() => {
     useStoriaStore.getState().resetToSampleProject();
+    useStoriaStore.getState().switchProject('proj_magla_zagreb_ep1');
   });
 
   it('parses structured JSON scene beats from Gemini and falls back gracefully on malformed payloads', async () => {

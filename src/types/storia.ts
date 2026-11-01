@@ -308,6 +308,7 @@ export type EffectModuleType =
   | 'dynamics_compressor'
   | 'gain_trim'
   | 'state_variable_filter'
+  | 'dattorro_reverb'
   | 'passthrough';
 
 export interface BaseEffectConfig {
@@ -351,6 +352,19 @@ export interface StateVariableFilterEffectConfig extends BaseEffectConfig {
   q?: number;
 }
 
+export interface DattorroReverbEffectConfig extends BaseEffectConfig {
+  type: 'dattorro_reverb';
+  decay?: number; // T60 decay time in seconds (0.1 to 30.0, default: 2.8)
+  damping?: number; // HF absorption cutoff in Hz (500 to 20000, default: 4500)
+  preDelay?: number; // Pre-delay in milliseconds (0 to 500, default: 20)
+  bandwidth?: number; // Input bandwidth cutoff in Hz (1000 to 20000, default: 12000)
+  modDepth?: number; // LFO modulation depth (0.0 to 1.0, default: 0.35)
+  modRate?: number; // LFO modulation rate in Hz (0.1 to 5.0, default: 0.7)
+  lowCut?: number; // Low-cut high-pass in Hz (10 to 600, default: 80)
+  mix?: number; // Equal-power wet/dry balance (0.0 to 1.0, default: 0.4)
+  gain?: number; // Master output gain (0.0 to 2.0, default: 1.0)
+}
+
 export interface PassthroughEffectConfig extends BaseEffectConfig {
   type: 'passthrough';
 }
@@ -360,6 +374,7 @@ export type AudioEffectConfig =
   | DynamicsEffectConfig
   | GainTrimEffectConfig
   | StateVariableFilterEffectConfig
+  | DattorroReverbEffectConfig
   | PassthroughEffectConfig;
 
 export interface AuxBusConfig {

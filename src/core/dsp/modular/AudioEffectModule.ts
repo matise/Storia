@@ -1,12 +1,14 @@
 import {
   AudioEffectConfig,
   BiquadEqEffectConfig,
+  DattorroReverbEffectConfig,
   DynamicsEffectConfig,
   EffectModuleType,
   GainTrimEffectConfig,
   PassthroughEffectConfig,
   StateVariableFilterEffectConfig,
 } from '../../../types/storia';
+import { DattorroReverb } from './DattorroReverb';
 
 /**
  * Standard interface implemented by all modular audio processing modules.
@@ -329,6 +331,97 @@ export class StateVariableFilterEffectModule extends BaseEffectModule<StateVaria
 }
 
 /**
+ * Dattorro 1997 Plate Reverberator Module
+ * High-diffusion figure-eight FDN with asynchronous LFO modal dispersion,
+ * damping lowpass filters, and equal-power wet/dry crossfade.
+ */
+export class DattorroReverbEffectModule implements IAudioEffectModule {
+  public readonly id: string;
+  public readonly name: string;
+  public readonly type = 'dattorro_reverb' as const;
+  public readonly inputNode: AudioNode;
+  public readonly outputNode: AudioNode;
+  private readonly reverb: DattorroReverb;
+  private config: DattorroReverbEffectConfig;
+
+  constructor(ctx: BaseAudioContext, config: DattorroReverbEffectConfig) {
+    this.id = config.id;
+    this.name = config.name;
+    this.config = { ...config };
+
+    this.reverb = new DattorroReverb(ctx, {
+      decay: config.decay,
+      damping: config.damping,
+      preDelay: config.preDelay,
+      bandwidth: config.bandwidth,
+      modDepth: config.modDepth,
+      modRate: config.modRate,
+      lowCut: config.lowCut,
+      mix: config.mix,
+      gain: config.gain,
+      bypass: !(config.enabled ?? true),
+    });
+
+    this.inputNode = this.reverb.inputNode;
+    this.outputNode = this.reverb.outputNode;
+  }
+
+  public isEnabled(): boolean {
+    return this.config.enabled ?? true;
+  }
+
+  public setEnabled(enabled: boolean, immediate = false): void {
+    this.config = { ...this.config, enabled };
+    this.reverb.setBypass(!enabled, immediate);
+  }
+
+  public applyConfig(config: AudioEffectConfig, immediate = false): void {
+    if (config.type !== 'dattorro_reverb') return;
+    this.config = { ...config };
+
+    if (config.enabled !== undefined) {
+      this.reverb.setBypass(!config.enabled, immediate);
+    }
+    if (config.decay !== undefined) {
+      this.reverb.setDecay(config.decay, 0.05, immediate);
+    }
+    if (config.damping !== undefined) {
+      this.reverb.setDamping(config.damping, 0.05, immediate);
+    }
+    if (config.preDelay !== undefined) {
+      this.reverb.setPreDelay(config.preDelay, 0.03, immediate);
+    }
+    if (config.bandwidth !== undefined) {
+      this.reverb.setBandwidth(config.bandwidth, 0.05, immediate);
+    }
+    if (config.lowCut !== undefined) {
+      this.reverb.setLowCut(config.lowCut, 0.05, immediate);
+    }
+    if (config.modDepth !== undefined || config.modRate !== undefined) {
+      this.reverb.setModulation(config.modDepth ?? 0.35, config.modRate, 0.05, immediate);
+    }
+    if (config.mix !== undefined) {
+      this.reverb.setMix(config.mix, 0.03, immediate);
+    }
+    if (config.gain !== undefined) {
+      this.reverb.setGain(config.gain, 0.03, immediate);
+    }
+  }
+
+  public getConfig(): AudioEffectConfig {
+    return { ...this.config, enabled: this.isEnabled() };
+  }
+
+  public disconnect(): void {
+    this.reverb.disconnect();
+  }
+
+  public dispose(): void {
+    this.reverb.dispose();
+  }
+}
+
+/**
  * Direct Audio Sync Passthrough Module (Zero processing, exact sample alignment)
  */
 export class PassthroughEffectModule implements IAudioEffectModule {
@@ -399,6 +492,8 @@ export function createAudioEffectModule(
       return new GainTrimEffectModule(ctx, config);
     case 'state_variable_filter':
       return new StateVariableFilterEffectModule(ctx, config);
+    case 'dattorro_reverb':
+      return new DattorroReverbEffectModule(ctx, config);
     case 'passthrough':
       return new PassthroughEffectModule(ctx, config);
     default:

@@ -1,6 +1,7 @@
 import {
   AudioEffectConfig,
   BiquadEqEffectConfig,
+  DattorroReverbEffectConfig,
   DynamicsEffectConfig,
   EffectModuleType,
   GainTrimEffectConfig,
@@ -29,6 +30,7 @@ export interface EffectParamDescriptor {
 export type VisualizerType =
   | 'gain_reduction_meter'
   | 'eq_response_curve'
+  | 'reverb_decay_curve'
   | 'stereo_vu_meter'
   | 'phase_correlation';
 
@@ -320,6 +322,134 @@ export const GAIN_TRIM_DESCRIPTOR: EffectUIDescriptor = {
   ],
 };
 
+export const DATTORRO_REVERB_DESCRIPTOR: EffectUIDescriptor = {
+  type: 'dattorro_reverb',
+  name: 'Dattorro Plate Reverb',
+  category: 'spatial',
+  accentColor: '#8b5cf6', // Violet
+  iconName: 'Waves',
+  description:
+    "Jon Dattorro's classic 1997 figure-eight plate reverberator with 4-stage input diffusers, dual LFO modal dispersion, and damping.",
+  visualizers: [
+    {
+      id: 'reverb_curve',
+      type: 'reverb_decay_curve',
+      label: 'T60 Exponential Decay & Pre-Delay Envelope',
+      heightPx: 64,
+    },
+  ],
+  params: [
+    {
+      id: 'decay',
+      label: 'Decay Time',
+      widget: 'knob',
+      min: 0.1,
+      max: 20.0,
+      step: 0.1,
+      defaultValue: 2.8,
+      unit: 's',
+      scale: 'logarithmic',
+      formatDisplay: (v: number) => `${v.toFixed(1)} s`,
+    },
+    {
+      id: 'preDelay',
+      label: 'Pre-Delay',
+      widget: 'slider',
+      min: 0,
+      max: 300,
+      step: 1,
+      defaultValue: 20,
+      unit: 'ms',
+      scale: 'linear',
+      formatDisplay: (v: number) => `${Math.round(v)} ms`,
+    },
+    {
+      id: 'damping',
+      label: 'HF Damping',
+      widget: 'slider',
+      min: 1000,
+      max: 20000,
+      step: 250,
+      defaultValue: 4500,
+      unit: 'Hz',
+      scale: 'logarithmic',
+      formatDisplay: (v: number) => `${Math.round(v)} Hz`,
+    },
+    {
+      id: 'lowCut',
+      label: 'Low Cut',
+      widget: 'slider',
+      min: 20,
+      max: 500,
+      step: 10,
+      defaultValue: 80,
+      unit: 'Hz',
+      scale: 'linear',
+      formatDisplay: (v: number) => `${Math.round(v)} Hz`,
+    },
+    {
+      id: 'bandwidth',
+      label: 'Bandwidth',
+      widget: 'slider',
+      min: 2000,
+      max: 20000,
+      step: 500,
+      defaultValue: 12000,
+      unit: 'Hz',
+      scale: 'logarithmic',
+      formatDisplay: (v: number) => `${Math.round(v)} Hz`,
+    },
+    {
+      id: 'modDepth',
+      label: 'Mod Depth',
+      widget: 'slider',
+      min: 0.0,
+      max: 1.0,
+      step: 0.05,
+      defaultValue: 0.35,
+      unit: '%',
+      scale: 'linear',
+      formatDisplay: (v: number) => `${Math.round(v * 100)}%`,
+    },
+    {
+      id: 'modRate',
+      label: 'Mod Rate',
+      widget: 'slider',
+      min: 0.1,
+      max: 4.0,
+      step: 0.1,
+      defaultValue: 0.7,
+      unit: 'Hz',
+      scale: 'linear',
+      formatDisplay: (v: number) => `${v.toFixed(1)} Hz`,
+    },
+    {
+      id: 'mix',
+      label: 'Wet / Dry',
+      widget: 'knob',
+      min: 0.0,
+      max: 1.0,
+      step: 0.02,
+      defaultValue: 0.4,
+      unit: '%',
+      scale: 'linear',
+      formatDisplay: (v: number) => `${Math.round(v * 100)}%`,
+    },
+    {
+      id: 'gain',
+      label: 'Output Gain',
+      widget: 'knob',
+      min: 0.0,
+      max: 2.0,
+      step: 0.05,
+      defaultValue: 1.0,
+      unit: 'ratio',
+      scale: 'linear',
+      formatDisplay: (v: number) => `${v.toFixed(2)}x`,
+    },
+  ],
+};
+
 export const PASSTHROUGH_DESCRIPTOR: EffectUIDescriptor = {
   type: 'passthrough',
   name: 'Direct Audio Sync (Passthrough)',
@@ -335,6 +465,7 @@ export const EFFECT_DESCRIPTORS: Record<EffectModuleType, EffectUIDescriptor> = 
   dynamics_compressor: DYNAMICS_COMPRESSOR_DESCRIPTOR,
   state_variable_filter: STATE_VARIABLE_FILTER_DESCRIPTOR,
   gain_trim: GAIN_TRIM_DESCRIPTOR,
+  dattorro_reverb: DATTORRO_REVERB_DESCRIPTOR,
   passthrough: PASSTHROUGH_DESCRIPTOR,
 };
 
@@ -393,6 +524,23 @@ export function createDefaultEffectConfig(type: EffectModuleType, id?: string): 
         gainDb: 0,
         invertPolarity: false,
       } as GainTrimEffectConfig;
+
+    case 'dattorro_reverb':
+      return {
+        id: generatedId,
+        name: 'Dattorro Plate Reverb',
+        type: 'dattorro_reverb',
+        enabled: true,
+        decay: 2.8,
+        damping: 4500,
+        preDelay: 20,
+        bandwidth: 12000,
+        modDepth: 0.35,
+        modRate: 0.7,
+        lowCut: 80,
+        mix: 0.4,
+        gain: 1.0,
+      } as DattorroReverbEffectConfig;
 
     case 'passthrough':
       return {

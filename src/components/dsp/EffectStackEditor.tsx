@@ -9,15 +9,21 @@ import {
   Activity,
   Filter,
   Volume2,
+  Waves,
   ArrowRight,
 } from 'lucide-react';
-import { AudioEffectConfig, EffectModuleType } from '../../types/storia';
+import {
+  AudioEffectConfig,
+  DattorroReverbEffectConfig,
+  EffectModuleType,
+} from '../../types/storia';
 import {
   createDefaultEffectConfig,
   getEffectDescriptor,
 } from '../../core/dsp/modular/EffectDescriptorRegistry';
 import { EqResponseCurve } from './visualizers/EqResponseCurve';
 import { GainReductionMeter } from './visualizers/GainReductionMeter';
+import { ReverbDecayCurve } from './visualizers/ReverbDecayCurve';
 
 export interface EffectStackEditorProps {
   modules: AudioEffectConfig[];
@@ -35,6 +41,7 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   Activity,
   Filter,
   Volume2,
+  Waves,
   ArrowRight,
 };
 
@@ -256,6 +263,13 @@ export const EffectStackEditor: React.FC<EffectStackEditorProps> = ({
                   <GainReductionMeter height={16} />
                 )}
 
+                {mod.type === 'dattorro_reverb' && (
+                  <ReverbDecayCurve
+                    config={mod as DattorroReverbEffectConfig}
+                    heightPx={64}
+                  />
+                )}
+
                 {/* 2. Interactive Parameter Controls Grid */}
                 {desc && desc.params.length > 0 && (
                   <div
@@ -404,6 +418,13 @@ export const EffectStackEditor: React.FC<EffectStackEditorProps> = ({
               className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-amber-900/60 hover:border-amber-600 text-xs font-medium text-amber-300 transition-colors cursor-pointer"
             >
               + Gain Trim
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAddModule('dattorro_reverb')}
+              className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-violet-900/60 hover:border-violet-600 text-xs font-medium text-violet-300 transition-colors cursor-pointer"
+            >
+              + Plate Reverb
             </button>
           </div>
         </div>

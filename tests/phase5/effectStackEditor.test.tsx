@@ -98,6 +98,14 @@ describe('Phase 2 — EffectStackEditor Component', () => {
     expect(updatedCall.length).toBe(3);
     expect(updatedCall[2].type).toBe('state_variable_filter');
 
+    // Add Plate Reverb
+    const addReverbBtn = screen.getByText('+ Plate Reverb');
+    fireEvent.click(addReverbBtn);
+    expect(handleChange).toHaveBeenCalledTimes(2);
+    const updatedCall2 = handleChange.mock.calls[1][0];
+    expect(updatedCall2.length).toBe(3);
+    expect(updatedCall2[2].type).toBe('dattorro_reverb');
+
     // Remove first module
     const removeBtns = screen.getAllByTitle('Remove module');
     fireEvent.click(removeBtns[0]);

@@ -27,11 +27,11 @@ import { useStoriaStore } from '../../store/useStoriaStore';
 import { useTranslation } from '../../i18n/useTranslation';
 import {
   formatDurationReadout,
-  stripNonSpokenTokens,
 } from '../../core/pacing/pacingCalculator';
 import { restoreCroatianDiacritics } from '../../core/tts/croatianTextNormalizer';
 import { transformToDubrovnikDialect } from '../../core/dubrovnik/dubrovnikPhonetics';
 import { WaveformCanvas } from './WaveformCanvas';
+import { UnifiedScriptEditor } from './UnifiedScriptEditor';
 
 interface ScriptBlockCardProps {
   block: ScriptBlock;
@@ -72,12 +72,12 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
   const deleteBlockAudio = useStoriaStore((s) => s.deleteBlockAudio);
   const auditionBlock = useStoriaStore((s) => s.auditionBlock);
   const playingBlockId = useStoriaStore((s) => s.playingBlockId);
+  const stopAudioPreview = useStoriaStore((s) => s.stopAudioPreview);
   const previewSpeakerVoice = useStoriaStore((s) => s.previewSpeakerVoice);
   const previewingSpeakerId = useStoriaStore((s) => s.previewingSpeakerId);
   const toggleSpeakerEq = useStoriaStore((s) => s.toggleSpeakerEq);
   const toggleSpeakerDynamics = useStoriaStore((s) => s.toggleSpeakerDynamics);
   const sfxFileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const [localScrubProgress, setLocalScrubProgress] = React.useState(0);
 
   React.useEffect(() => {
@@ -133,11 +133,6 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
         {t('ttsUnrendered')}
       </span>
     );
-
-  const spokenWords = React.useMemo(() => {
-    const cleaned = stripNonSpokenTokens(block.text);
-    return cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
-  }, [block.text]);
 
   const handleAutoRestoreCroatianDiacritics = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -541,57 +536,25 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
           </button>
         </div>
 
-        <textarea
-          ref={textareaRef}
-          rows={2}
-          value={block.text}
-          onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-              e.preventDefault();
-              addBlock('dialogue', block.id);
+        <UnifiedScriptEditor
+          blockId={block.id}
+          text={block.text}
+          placeholder={placeholder}
+          isPlaying={isPlayingThisBlock || Boolean(isActivePlayheadBlock)}
+          playheadProgress={effectiveProgress}
+          activeWordIndex={activeWordIndex}
+          durationSec={durationSec}
+          onChangeText={(val) => updateBlock(block.id, { text: val })}
+          onAddNextBlock={() => addBlock('dialogue', block.id)}
+          onSeekWord={(prog) => {
+            setLocalScrubProgress(prog);
+            onSeekWithinBlock?.(block, prog);
+            if (isPlayingThisBlock) {
+              void auditionBlock(block.id, prog * durationSec);
             }
           }}
-          placeholder={placeholder}
-          className="w-full rounded-lg bg-slate-950/70 border border-slate-800/80 focus:border-indigo-500/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none resize-y leading-relaxed"
+          onStopPlayback={stopAudioPreview}
         />
-
-        {/* Spoken Word Karaoke & Timing Strip — Always visible for dialogue and narration blocks */}
-        {spokenWords.length > 0 && (
-          <div
-            data-testid={`karaoke-words-${block.id}`}
-            className={`px-2.5 py-1.5 rounded-md border text-xs flex flex-wrap gap-1 items-center transition-colors ${
-              isActivePlayheadBlock || isPlayingThisBlock
-                ? 'bg-slate-950/95 border-emerald-800/60 shadow-xs shadow-emerald-950/40'
-                : 'bg-slate-950/60 border-slate-800/60'
-            }`}
-          >
-            {spokenWords.map((w, wIdx) => {
-              const isCurrent =
-                (isActivePlayheadBlock || isPlayingThisBlock) &&
-                wIdx === activeWordIndex;
-              const isPast =
-                (isActivePlayheadBlock || isPlayingThisBlock) &&
-                activeWordIndex >= 0 &&
-                wIdx < activeWordIndex;
-
-              return (
-                <span
-                  key={wIdx}
-                  className={`px-1.5 py-0.5 rounded transition-all ${
-                    isCurrent
-                      ? 'bg-emerald-500/35 text-emerald-200 font-semibold ring-1 ring-emerald-400/60 shadow-xs shadow-emerald-900/50'
-                      : isPast
-                        ? 'text-slate-200 font-medium'
-                        : 'text-slate-400'
-                  }`}
-                >
-                  {w}
-                </span>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Bottom Strip: DOD Canvas 2D SoA Waveform, Audition/Render, Regenerate/Waveform/Delete Audio Tools, Pause & Timing */}

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ChevronUp,
   FastForward,
   Pause,
   Play,
@@ -37,6 +38,7 @@ export interface EpisodeWaveformTransportProps {
   onUpdatePauseAfterMs?: (blockId: string, pauseAfterMs: number) => void;
   onSelectBlockId?: (blockId: string) => void;
   onReorderBlocks?: (fromIndex: number, toIndex: number) => void;
+  onToggleCollapse?: () => void;
 }
 
 export interface DragReorderState {
@@ -278,6 +280,7 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   onUpdatePauseAfterMs,
   onSelectBlockId,
   onReorderBlocks,
+  onToggleCollapse,
 }) => {
   const { t } = useTranslation();
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
@@ -672,6 +675,19 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
       {/* Top Row: Transport Buttons, Zoom Controls, Timecode Readout & Speed Control */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
+          {/* Collapse Deck Button (integrated directly into the transport panel) */}
+          {onToggleCollapse && (
+            <button
+              type="button"
+              data-testid="transport-collapse-btn"
+              onClick={onToggleCollapse}
+              title={t('collapseWaveformTransportTooltip')}
+              className="p-1.5 rounded-md bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer mr-0.5"
+            >
+              <ChevronUp className="w-3.5 h-3.5 text-emerald-400" />
+            </button>
+          )}
+
           {/* Jump to Start (0:00) */}
           <button
             type="button"

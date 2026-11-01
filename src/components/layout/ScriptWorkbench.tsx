@@ -292,51 +292,82 @@ export const ScriptWorkbench: React.FC = () => {
 
   return (
     <main className="flex-1 flex flex-col bg-slate-950 min-w-0 overflow-hidden">
-      {/* Studio Transport, Batch Waveform / Audio Data Tools & Quick Block Insertion Header */}
-      <div className="min-h-12 py-1.5 border-b border-slate-800/90 bg-slate-900/40 px-4 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Studio Header: Unified Compact Action Bar */}
+      <div className="min-h-11 py-1.5 border-b border-slate-800/90 bg-slate-900/40 px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
+        {/* Left: Waveform Timeline Toggle & Quick Playback (when transport is collapsed) */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleToggleMasterPlay}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-              isPlaying
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700'
+            data-testid="toggle-waveform-transport-btn"
+            onClick={() => setShowWaveformTransport((prev) => !prev)}
+            title={
+              showWaveformTransport
+                ? t('collapseWaveformTransportTooltip')
+                : t('expandWaveformTransportTooltip')
+            }
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors cursor-pointer ${
+              showWaveformTransport
+                ? 'bg-emerald-950/70 border-emerald-600/50 text-emerald-300 shadow-xs shadow-emerald-950/40'
+                : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
             }`}
           >
-            {isPlaying ? (
-              <>
-                <Pause className="w-3.5 h-3.5 shrink-0" />
-                <span>{t('pause')}</span>
-              </>
+            {showWaveformTransport ? (
+              <ChevronUp className="w-3.5 h-3.5 text-emerald-400" />
             ) : (
-              <>
-                <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-                <span>{t('playAll')}</span>
-              </>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             )}
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{t('waveformTransportBtn')}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsLooping((l) => !l)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-              isLooping
-                ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-300'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Repeat className="w-3.5 h-3.5 shrink-0" />
-            <span>{t('loop')}</span>
-          </button>
+          {/* Quick Play/Pause & Timecode (Only visible when master waveform transport is collapsed to avoid duplicate controls) */}
+          {!showWaveformTransport && (
+            <>
+              <button
+                type="button"
+                onClick={handleToggleMasterPlay}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                  isPlaying
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                }`}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause className="w-3 h-3 fill-current" />
+                    <span>{t('pause')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>{t('playAll')}</span>
+                  </>
+                )}
+              </button>
 
-          <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 whitespace-nowrap shrink-0">
-            {formatDurationReadout(playheadSec, true)} /{' '}
-            {formatDurationReadout(totalDurationSec, true)}
-          </span>
+              <button
+                type="button"
+                onClick={() => setIsLooping((l) => !l)}
+                title={t('loop')}
+                className={`p-1 rounded-md border text-xs transition-colors cursor-pointer ${
+                  isLooping
+                    ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-300'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Repeat className="w-3.5 h-3.5" />
+              </button>
 
-          <div className="h-4 w-px bg-slate-800 mx-0.5 shrink-0" />
+              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 tabular-nums">
+                {formatDurationReadout(playheadSec, true)} /{' '}
+                {formatDurationReadout(totalDurationSec, true)}
+              </span>
+            </>
+          )}
+        </div>
 
+        {/* Right: Quick Block Insertion, Batch Audio Management Tools & Episode Properties */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => addBlock('dialogue')}
@@ -346,10 +377,10 @@ export const ScriptWorkbench: React.FC = () => {
             <span>{t('addLine')}</span>
           </button>
 
-          <div className="h-4 w-px bg-slate-800 mx-0.5 shrink-0" />
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
 
-          {/* Episode-Wide Audio & Waveform Management Tools */}
-          <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-md p-0.5 shrink-0">
+          {/* Episode-Wide Audio & Waveform Management Icon Tools */}
+          <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800 rounded-lg p-0.5 shrink-0">
             {isBatchSynthesizing ? (
               <button
                 type="button"
@@ -359,7 +390,7 @@ export const ScriptWorkbench: React.FC = () => {
                 title={t('stopGeneration')}
               >
                 <Square className="w-3 h-3 fill-current shrink-0" />
-                <span>{t('stopGeneration')}</span>
+                <span className="hidden sm:inline">{t('stopGeneration')}</span>
               </button>
             ) : (
               <button
@@ -367,10 +398,11 @@ export const ScriptWorkbench: React.FC = () => {
                 data-testid="regen-all-audio-btn"
                 disabled={isBatchSynthesizing}
                 onClick={() => void regenerateAllBlocksAudio()}
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:bg-indigo-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                title={t('regenAllAudio')}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/70 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3 shrink-0" />
-                <span>{t('regenAllAudio')}</span>
+                <span className="hidden xl:inline">{t('regenAllAudio')}</span>
               </button>
             )}
 
@@ -379,10 +411,11 @@ export const ScriptWorkbench: React.FC = () => {
               data-testid="rebuild-all-waveforms-btn"
               disabled={isBatchSynthesizing}
               onClick={() => void rebuildAllWaveforms()}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-emerald-300 hover:bg-emerald-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              title={t('rebuildAllWaveforms')}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-emerald-300 hover:text-emerald-200 hover:bg-emerald-950/70 disabled:opacity-40 transition-colors cursor-pointer"
             >
               <Activity className="w-3 h-3 shrink-0" />
-              <span>{t('rebuildAllWaveforms')}</span>
+              <span className="hidden xl:inline">{t('rebuildAllWaveforms')}</span>
             </button>
 
             <button
@@ -390,69 +423,36 @@ export const ScriptWorkbench: React.FC = () => {
               data-testid="clear-all-audio-btn"
               disabled={isBatchSynthesizing}
               onClick={() => void purgeAudioCache()}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-rose-300 hover:bg-rose-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              title={t('clearAllAudio')}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-rose-300 hover:text-rose-200 hover:bg-rose-950/70 disabled:opacity-40 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3 h-3 shrink-0" />
-              <span>{t('clearAllAudio')}</span>
+              <span className="hidden xl:inline">{t('clearAllAudio')}</span>
             </button>
           </div>
 
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
+
+          {/* Episode Properties Collapse / Expand Button */}
           <button
             type="button"
             data-testid="toggle-episode-banner-btn"
             onClick={() => setShowEpisodeBanner((prev) => !prev)}
             title={t('toggleEpisodeMetaTooltip')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               showEpisodeBanner
                 ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
                 : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            <SlidersHorizontal className="w-3 h-3 shrink-0" />
-            <span>{t('episodePropertiesBtn')}</span>
+            <SlidersHorizontal className="w-3 h-3 text-indigo-400 shrink-0" />
+            <span className="hidden sm:inline">{t('episodePropertiesBtn')}</span>
             {showEpisodeBanner ? (
-              <ChevronUp className="w-3 h-3 shrink-0" />
+              <ChevronUp className="w-3 h-3 text-slate-400 shrink-0" />
             ) : (
-              <ChevronDown className="w-3 h-3 shrink-0" />
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
             )}
           </button>
-
-          <button
-            type="button"
-            data-testid="toggle-waveform-transport-btn"
-            onClick={() => setShowWaveformTransport((prev) => !prev)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-              showWaveformTransport
-                ? 'bg-emerald-950/70 border-emerald-600/50 text-emerald-200'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Activity className="w-3 h-3 shrink-0" />
-            <span>{t('waveformTransportBtn')}</span>
-            {showWaveformTransport ? (
-              <ChevronUp className="w-3 h-3 shrink-0" />
-            ) : (
-              <ChevronDown className="w-3 h-3 shrink-0" />
-            )}
-          </button>
-        </div>
-
-        {/* On-Demand Render Loop Status Pill */}
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-mono whitespace-nowrap shrink-0 transition-colors ${
-            isPlaying || isScrubbing
-              ? 'bg-emerald-950/60 border-emerald-700/60 text-emerald-300'
-              : 'bg-slate-900 border-slate-800 text-slate-400'
-          }`}
-        >
-          <Activity
-            className={`w-3.5 h-3.5 ${
-              isPlaying || isScrubbing ? 'text-emerald-400 animate-pulse' : 'text-slate-500'
-            }`}
-          />
-          <span>
-            {t('frameloopDemand')}: {isPlaying || isScrubbing ? t('frameloopActive') : t('frameloopIdle')}
-          </span>
         </div>
       </div>
 
@@ -653,6 +653,7 @@ export const ScriptWorkbench: React.FC = () => {
             scrollToBlock(blockId);
           }}
           onReorderBlocks={reorderBlocks}
+          onToggleCollapse={() => setShowWaveformTransport((prev) => !prev)}
         />
       )}
 

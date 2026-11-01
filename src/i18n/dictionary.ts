@@ -36,6 +36,8 @@ export interface TranslationDictionary {
   stopSpeakerPreview: string;
   stopGeneration: string;
   cancelOperation: string;
+  wordTransportPlayingNotice: string;
+  exitTransportToEdit: string;
   eqToggleLabel: string;
   dynToggleLabel: string;
   dspQuickSliders: string;
@@ -233,6 +235,8 @@ export interface TranslationDictionary {
 
   // Waveform Transport Controls
   waveformTransportBtn: string;
+  collapseWaveformTransportTooltip: string;
+  expandWaveformTransportTooltip: string;
   masterTimelineWaveformLabel: string;
   transportJumpStart: string;
   transportPrevBlock: string;
@@ -349,6 +353,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     stopSpeakerPreview: 'Stop Preview',
     stopGeneration: 'Stop Generation',
     cancelOperation: 'Cancel',
+    wordTransportPlayingNotice: 'Playing — Click word to seek / Double-click to edit',
+    exitTransportToEdit: 'Edit text',
     eqToggleLabel: 'EQ',
     dynToggleLabel: 'Dyn',
     dspQuickSliders: 'Quick DSP & Audio Tools',
@@ -541,6 +547,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     toggleEpisodeMetaTooltip: 'Show / Hide Episode Properties Bar',
 
     waveformTransportBtn: 'Waveform Transport',
+    collapseWaveformTransportTooltip: 'Collapse Waveform Timeline',
+    expandWaveformTransportTooltip: 'Expand Waveform Timeline',
     masterTimelineWaveformLabel: 'Master Episode Waveform & Transport',
     transportJumpStart: 'Jump to Start',
     transportPrevBlock: 'Previous Block',
@@ -650,6 +658,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     stopSpeakerPreview: 'Zaustavi',
     stopGeneration: 'Zaustavi generiranje',
     cancelOperation: 'Odustani',
+    wordTransportPlayingNotice: 'Reprodukcija — Kliknite riječ za skok / Dvoklik za uređivanje',
+    exitTransportToEdit: 'Uredi tekst',
     eqToggleLabel: 'EQ',
     dynToggleLabel: 'Din',
     dspQuickSliders: 'Brzi DSP i Audio Alati',
@@ -842,6 +852,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     toggleEpisodeMetaTooltip: 'Prikaži / Sakrij traku sa svojstvima epizode',
 
     waveformTransportBtn: 'Valni transport',
+    collapseWaveformTransportTooltip: 'Sakrij vremensku crtu',
+    expandWaveformTransportTooltip: 'Prikaži vremensku crtu',
     masterTimelineWaveformLabel: 'Glavni valni oblik i transport epizode',
     transportJumpStart: 'Skok na početak',
     transportPrevBlock: 'Prethodni blok',

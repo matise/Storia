@@ -126,4 +126,26 @@ describe('Phase 3 — DOD Canvas 2D SoA Waveform Renderer & Scrubber', () => {
     const restoreHrBtn = screen.getByTestId('restore-croatian-diacritics-blk_1');
     expect(restoreHrBtn).toBeDefined();
   });
+
+  it('collapses and expands Master Episode Waveform Transport via panel collapse button and topbar toggle', () => {
+    useStoriaStore.getState().resetToSampleProject();
+    render(<App />);
+
+    // Initially expanded
+    expect(screen.getByTestId('episode-waveform-transport-deck')).toBeDefined();
+
+    // Click integrated collapse button directly on transport panel
+    const panelCollapseBtn = screen.getByTestId('transport-collapse-btn');
+    fireEvent.click(panelCollapseBtn);
+
+    // Deck is now collapsed / unmounted
+    expect(screen.queryByTestId('episode-waveform-transport-deck')).toBeNull();
+
+    // Click topbar toggle button to re-expand
+    const topBarToggleBtn = screen.getByTestId('toggle-waveform-transport-btn');
+    fireEvent.click(topBarToggleBtn);
+
+    // Deck is expanded again
+    expect(screen.getByTestId('episode-waveform-transport-deck')).toBeDefined();
+  });
 });

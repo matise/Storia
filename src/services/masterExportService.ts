@@ -196,10 +196,11 @@ export async function renderMasterEpisodeMix(
       // Apply volume gain and fade-in / fade-out curves
       const gainDb = block.volumeGainDb ?? 0;
       const gainLinear = !Number.isFinite(gainDb) || gainDb <= -48 ? 0 : Math.pow(10, gainDb / 20);
+      const effectiveGain = block.directMute ? 0 : gainLinear;
       applyVolumeEnvelope(
         dspSamples,
         internalSampleRate,
-        gainLinear,
+        effectiveGain,
         block.fadeInMs ?? 0,
         block.fadeInCurve ?? 0,
         block.fadeOutMs ?? 0,
@@ -354,10 +355,11 @@ export async function renderSpeakerStems(
       // Apply volume gain and fade-in / fade-out curves
       const gainDb = blk.volumeGainDb ?? 0;
       const gainLinear = !Number.isFinite(gainDb) || gainDb <= -48 ? 0 : Math.pow(10, gainDb / 20);
+      const effectiveGain = blk.directMute ? 0 : gainLinear;
       applyVolumeEnvelope(
         dspSamples,
         internalSampleRate,
-        gainLinear,
+        effectiveGain,
         blk.fadeInMs ?? 0,
         blk.fadeInCurve ?? 0,
         blk.fadeOutMs ?? 0,

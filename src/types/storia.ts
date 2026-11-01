@@ -50,6 +50,7 @@ export interface SpeakerAcousticProfile {
     attackMs: number; // 10ms - 30ms
     releaseMs: number; // 50ms - 200ms
   };
+  effectStack?: AudioEffectConfig[]; // Modular real-time DSP effect stack
 }
 
 /**
@@ -132,6 +133,9 @@ export interface ScriptBlock {
   sfxDurationSec?: number; // Target duration in seconds for sound_effect synthesis
   sfxIntensity?: number; // Intensity / gain [0.1, 1.0] for sound_effect synthesis
   volumeGainDb?: number; // Volume gain knob in dB: -Infinity (-60dB floor) to +10dB, default 0dB
+  auxSendDb?: number; // Aux Send knob in dB: -Infinity (-48dB floor) to +10dB, default 0dB (unity)
+  auxSendBusId?: string; // Target Aux Bus identifier (default 'aux_bus_main')
+  directMute?: boolean; // When true, direct dry channel is muted (pre-fader send to aux)
   fadeInMs?: number; // Clip fade-in duration in milliseconds (default 0)
   fadeOutMs?: number; // Clip fade-out duration in milliseconds (default 0)
   fadeInCurve?: number; // Clip fade-in curvature: -1.0 (concave exponential) to 0 (linear) to +1.0 (convex logarithmic)
@@ -296,6 +300,113 @@ export interface AIAgentSettings {
   dubrovnikRegister?: DubrovnikRegister;
 }
 
+/**
+ * Modular Audio DSP Effect Stack & Aux Send Bus Schemas
+ */
+export type EffectModuleType =
+  | 'biquad_eq'
+  | 'dynamics_compressor'
+  | 'gain_trim'
+  | 'state_variable_filter'
+  | 'passthrough';
+
+export interface BaseEffectConfig {
+  id: string;
+  name: string;
+  type: EffectModuleType;
+  enabled: boolean; // Direct Audio Sync: when false, signal bypasses effect with 0 phase delay
+}
+
+export interface BiquadEqEffectConfig extends BaseEffectConfig {
+  type: 'biquad_eq';
+  lowShelfFreqHz?: number; // default 120Hz
+  lowShelfGainDb: number;
+  midPeakFreqHz?: number; // default 2500Hz
+  midPeakGainDb: number;
+  midPeakQ?: number; // default 1.0
+  highShelfFreqHz?: number; // default 8000Hz
+  highShelfGainDb: number;
+}
+
+export interface DynamicsEffectConfig extends BaseEffectConfig {
+  type: 'dynamics_compressor';
+  thresholdDb: number;
+  ratio: number;
+  attackMs: number;
+  releaseMs: number;
+  kneeDb?: number; // default 0dB
+}
+
+export interface GainTrimEffectConfig extends BaseEffectConfig {
+  type: 'gain_trim';
+  gainDb: number;
+  invertPolarity?: boolean;
+  mute?: boolean;
+}
+
+export interface StateVariableFilterEffectConfig extends BaseEffectConfig {
+  type: 'state_variable_filter';
+  filterType: 'lowpass' | 'highpass' | 'bandpass' | 'notch';
+  frequencyHz: number;
+  q?: number;
+}
+
+export interface PassthroughEffectConfig extends BaseEffectConfig {
+  type: 'passthrough';
+}
+
+export type AudioEffectConfig =
+  | BiquadEqEffectConfig
+  | DynamicsEffectConfig
+  | GainTrimEffectConfig
+  | StateVariableFilterEffectConfig
+  | PassthroughEffectConfig;
+
+export interface AuxBusConfig {
+  id: string;
+  name: string;
+  color?: string; // Visual accent color (e.g. emerald #10b981)
+  returnGainDb: number; // Master return level (-inf to +10 dB, default 0.0)
+  enabled: boolean;
+  modules: AudioEffectConfig[];
+}
+
+export function createDefaultMainAuxBus(): AuxBusConfig {
+  return {
+    id: 'aux_bus_main',
+    name: 'Main FX (EQ + Dyn)',
+    color: '#10b981',
+    returnGainDb: 0.0,
+    enabled: true,
+    modules: [
+      {
+        id: 'fx_main_eq',
+        name: '3-Band Biquad EQ',
+        type: 'biquad_eq',
+        enabled: true,
+        lowShelfFreqHz: 120,
+        lowShelfGainDb: 0,
+        midPeakFreqHz: 2500,
+        midPeakGainDb: 0,
+        midPeakQ: 1.0,
+        highShelfFreqHz: 8000,
+        highShelfGainDb: 0,
+      },
+      {
+        id: 'fx_main_dyn',
+        name: 'Studio Dynamics Compressor',
+        type: 'dynamics_compressor',
+        enabled: true,
+        thresholdDb: -20,
+        ratio: 2.5,
+        attackMs: 15,
+        releaseMs: 100,
+        kneeDb: 0,
+      },
+    ],
+  };
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -305,6 +416,7 @@ export interface Project {
   dubrovnikRegister?: DubrovnikRegister; // 'classical' | 'traditional' | 'contemporary'
   speakers: Speaker[];
   blocks: ScriptBlock[];
+  auxBusses?: AuxBusConfig[]; // Modular Aux Send Busses & Effect Stacks
   researchNotebook?: PersonaResearchRecord[];
   createdAt: number;
   updatedAt: number;

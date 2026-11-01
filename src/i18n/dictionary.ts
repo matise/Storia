@@ -163,6 +163,9 @@ export interface TranslationDictionary {
 
   // SpeakerConfigModal
   speakerModalTitle: string;
+  speakerTabVoice: string;
+  speakerTabDsp: string;
+  speakerTabPersona: string;
   speakerName: string;
   speakerGender: string;
   speakerAge: string;
@@ -255,6 +258,13 @@ export interface TranslationDictionary {
   blockWaveformRestartTooltip: string;
   gainKnobLabel: string;
   gainKnobTooltip: string;
+  auxKnobLabel: string;
+  auxKnobTooltip: string;
+  auxBusModalTitle: string;
+  auxBusReturnGainLabel: string;
+  auxBusBypassLabel: string;
+  auxBusAddModuleLabel: string;
+  auxBusRackTooltip: string;
   unrenderedWaveformNotice: string;
   pauseDragHandleTooltip: string;
   fadeInTooltip: string;
@@ -477,6 +487,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     phase4PreviewNotice: 'Connected to Research Notebook — ready for live Gemini queries.',
 
     speakerModalTitle: 'Speaker & Voice DSP Configuration',
+    speakerTabVoice: 'Voice & TTS',
+    speakerTabDsp: 'DSP Effect Stack',
+    speakerTabPersona: 'Persona & Notes',
     speakerName: 'Name',
     speakerGender: 'Gender',
     speakerAge: 'Age',
@@ -569,6 +582,13 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     blockWaveformRestartTooltip: 'Restart block from 0:00',
     gainKnobLabel: 'Gain',
     gainKnobTooltip: 'Volume gain knob (-inf to +10 dB, double-click to reset 0 dB)',
+    auxKnobLabel: 'Aux',
+    auxKnobTooltip: 'Aux Send knob (-inf to +10 dB, double-click to reset 0 dB)',
+    auxBusModalTitle: 'Aux Send Bus & DSP Effects Rack',
+    auxBusReturnGainLabel: 'Return Gain',
+    auxBusBypassLabel: 'Bus Bypass',
+    auxBusAddModuleLabel: 'Add Effect Module',
+    auxBusRackTooltip: 'Configure Modular Aux Send Bus & DSP Effect Stacks',
     unrenderedWaveformNotice: 'No audio generated yet',
     pauseDragHandleTooltip: 'Drag pause duration between segments',
     fadeInTooltip: 'Drag horizontally for Fade In, vertically for curve',
@@ -784,6 +804,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     phase4PreviewNotice: 'Povezano s istraživačkom bilježnicom — spremno za Gemini upite.',
 
     speakerModalTitle: 'Konfiguracija govornika i DSP glasa',
+    speakerTabVoice: 'Glas i sinteza',
+    speakerTabDsp: 'DSP stog efekata',
+    speakerTabPersona: 'Lik i bilješke',
     speakerName: 'Ime',
     speakerGender: 'Spol / Rod',
     speakerAge: 'Dob',
@@ -876,6 +899,13 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     blockWaveformRestartTooltip: 'Vrati blok na 0:00',
     gainKnobLabel: 'Pojačanje',
     gainKnobTooltip: 'Potenciometar glasnoće (-inf do +10 dB, dvoklik za 0 dB)',
+    auxKnobLabel: 'Aux',
+    auxKnobTooltip: 'Aux Send potenciometar (-inf do +10 dB, dvoklik za 0 dB)',
+    auxBusModalTitle: 'Pomoćna Aux sabirnica i DSP stalak s efektima',
+    auxBusReturnGainLabel: 'Izlazno pojačanje',
+    auxBusBypassLabel: 'Zaobilaženje sabirnice',
+    auxBusAddModuleLabel: 'Dodaj modul efekta',
+    auxBusRackTooltip: 'Konfiguriraj modularne Aux sabirnice i efektne stogove',
     unrenderedWaveformNotice: 'Zvuk još nije generiran',
     pauseDragHandleTooltip: 'Podesi trajanje pauze između segmenata povlačenjem',
     fadeInTooltip: 'Povuci vodoravno za Fade In, okomito za oblik krivulje',

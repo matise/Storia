@@ -1,4 +1,4 @@
-import { Speaker, SupportedLanguage } from '../../types/storia';
+import { Speaker, SupportedLanguage, createDefaultMainAuxBus } from '../../types/storia';
 import { stripNonSpokenTokens } from '../pacing/pacingCalculator';
 import { registerTtsSpeaker, studioTransportEngine } from './StudioTransportEngine';
 import { scheduleFadeEnvelope } from './VolumeEnvelope';
@@ -12,6 +12,8 @@ interface ActiveWebAudioSession {
   source: AudioBufferSourceNode;
   clipFadeGain: GainNode;
   volumeGainNode: GainNode;
+  auxSendGainNode?: GainNode;
+  directGainNode?: GainNode;
   speakerId: string;
   blockId: string;
   startContextTime: number;
@@ -22,6 +24,8 @@ interface ActiveWebAudioSession {
   fadeInCurve: number;
   fadeOutCurve: number;
   volumeGainDb: number;
+  auxSendDb?: number;
+  directMute?: boolean;
 }
 
 let activeWebAudioSession: ActiveWebAudioSession | null = null;
@@ -143,6 +147,10 @@ export function stopAllAudioPlayback(): void {
     try {
       activeWebAudioSession.source.stop();
       activeWebAudioSession.source.disconnect();
+      activeWebAudioSession.clipFadeGain.disconnect();
+      activeWebAudioSession.volumeGainNode.disconnect();
+      activeWebAudioSession.directGainNode?.disconnect();
+      activeWebAudioSession.auxSendGainNode?.disconnect();
     } catch {
       // Ignore if already stopped
     }
@@ -202,6 +210,8 @@ export function updateLiveBlockAudio(
   blockId: string,
   params: {
     volumeGainDb?: number;
+    auxSendDb?: number;
+    directMute?: boolean;
     fadeInMs?: number;
     fadeOutMs?: number;
     fadeInCurve?: number;
@@ -211,6 +221,36 @@ export function updateLiveBlockAudio(
   if (activeWebAudioSession && activeWebAudioSession.blockId === blockId) {
     const session = activeWebAudioSession;
     const now = session.ctx.currentTime;
+
+    if (session.auxSendGainNode && typeof params.auxSendDb === 'number') {
+      const auxLin =
+        !Number.isFinite(params.auxSendDb) || params.auxSendDb <= -48
+          ? 0.0
+          : Math.pow(10, params.auxSendDb / 20);
+      try {
+        if (typeof session.auxSendGainNode.gain.setTargetAtTime === 'function') {
+          session.auxSendGainNode.gain.setTargetAtTime(auxLin, now, 0.015);
+        } else {
+          session.auxSendGainNode.gain.value = auxLin;
+        }
+      } catch {
+        session.auxSendGainNode.gain.value = auxLin;
+      }
+      session.auxSendDb = params.auxSendDb;
+    }
+
+    if (session.directGainNode && typeof params.directMute === 'boolean') {
+      const directLin = params.directMute ? 0.0 : 1.0;
+      try {
+        if (typeof session.directGainNode.gain.setTargetAtTime === 'function') {
+          session.directGainNode.gain.setTargetAtTime(directLin, now, 0.015);
+        } else {
+          session.directGainNode.gain.value = directLin;
+        }
+      } catch {
+        session.directGainNode.gain.value = directLin;
+      }
+    }
 
     if (typeof params.volumeGainDb === 'number') {
       const linGain =
@@ -267,6 +307,9 @@ export async function playAudioWithSpeakerDsp({
   audioBlob,
   speaker,
   volumeGainDb = 0,
+  auxSendDb = 0,
+  auxSendBusId = 'aux_bus_main',
+  directMute = false,
   blockId = 'preview_block',
   fadeInMs = 0,
   fadeOutMs = 0,
@@ -280,6 +323,9 @@ export async function playAudioWithSpeakerDsp({
   audioBlob?: Blob;
   speaker?: Speaker;
   volumeGainDb?: number;
+  auxSendDb?: number;
+  auxSendBusId?: string;
+  directMute?: boolean;
   blockId?: string;
   fadeInMs?: number;
   fadeOutMs?: number;
@@ -330,12 +376,35 @@ export async function playAudioWithSpeakerDsp({
     source.connect(clipFadeGain);
     clipFadeGain.connect(volumeGainNode);
 
-    // 2. Connect into unified SpeakerDspChain -> Master Limiter -> Master Analyser -> Destination
+    // 2. Dual-Branch Routing: Direct Dry Path + Aux Send Path
+    const directGainNode = ctx.createGain();
+    directGainNode.gain.value = directMute ? 0.0 : 1.0;
+    volumeGainNode.connect(directGainNode);
+
+    const auxSendGainNode = ctx.createGain();
+    const auxLin =
+      !Number.isFinite(auxSendDb) || auxSendDb <= -48
+        ? 0.0
+        : Math.pow(10, auxSendDb / 20);
+    auxSendGainNode.gain.value = auxLin;
+    volumeGainNode.connect(auxSendGainNode);
+
+    // Direct path into speakerChain -> master limiter
     const speakerChain = studioTransportEngine.getOrCreateSpeakerChain(speaker);
     if (speakerChain) {
-      volumeGainNode.connect(speakerChain.inputNode);
+      directGainNode.connect(speakerChain.inputNode);
     } else {
-      volumeGainNode.connect(ctx.destination);
+      directGainNode.connect(ctx.destination);
+    }
+
+    // Aux send path into AuxBusEngine -> master limiter
+    const auxBus = studioTransportEngine.getOrCreateAuxBus(
+      auxSendBusId && auxSendBusId !== 'aux_bus_main'
+        ? { ...createDefaultMainAuxBus(), id: auxSendBusId }
+        : undefined
+    );
+    if (auxBus) {
+      auxSendGainNode.connect(auxBus.inputNode);
     }
 
     void studioTransportEngine.resume();
@@ -350,6 +419,8 @@ export async function playAudioWithSpeakerDsp({
       source,
       clipFadeGain,
       volumeGainNode,
+      directGainNode,
+      auxSendGainNode,
       speakerId: speaker?.id ?? 'default',
       blockId,
       startContextTime: ctx.currentTime,
@@ -360,6 +431,8 @@ export async function playAudioWithSpeakerDsp({
       fadeInCurve,
       fadeOutCurve,
       volumeGainDb,
+      auxSendDb,
+      directMute,
     };
 
     activeWebAudioSession = session;

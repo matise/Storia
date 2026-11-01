@@ -3,6 +3,7 @@ import { Pause, Play, RotateCcw } from 'lucide-react';
 import { WaveformPeakData } from '../../types/storia';
 import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
 import { VolumeGainKnob } from './VolumeGainKnob';
+import { AuxSendKnob } from './AuxSendKnob';
 import { useTranslation } from '../../i18n/useTranslation';
 import { updateLiveBlockAudio } from '../../core/dsp/LiveAudioPreviewer';
 
@@ -356,6 +357,9 @@ export interface WaveformCanvasProps {
   volumeGainDb?: number; // Volume gain knob value in dB (-inf to +10dB, default 0)
   onChangeGainDb?: (gainDb: number) => void;
   gainKnobLabel?: string;
+  auxSendDb?: number; // Aux Send knob value in dB (-inf to +10dB, default 0)
+  onChangeAuxSendDb?: (sendDb: number) => void;
+  auxKnobLabel?: string;
   fadeInMs?: number;
   fadeOutMs?: number;
   fadeInCurve?: number;
@@ -388,6 +392,9 @@ export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
   volumeGainDb = 0,
   onChangeGainDb,
   gainKnobLabel = 'Gain',
+  auxSendDb = 0,
+  onChangeAuxSendDb,
+  auxKnobLabel = 'Aux',
   fadeInMs = 0,
   fadeOutMs = 0,
   fadeInCurve = 0,
@@ -871,6 +878,24 @@ export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
             }}
             size={26}
             label={gainKnobLabel}
+          />
+        </div>
+      )}
+
+      {/* Emerald Aux Send Knob (routes signal into modular Aux DSP Bus) */}
+      {isRenderedAudio && onChangeAuxSendDb && (
+        <div className="flex items-center px-1 border-r border-slate-800/80 mr-0.5">
+          <AuxSendKnob
+            testId={blockId ? `aux-send-knob-${blockId}` : 'aux-send-knob'}
+            valueDb={auxSendDb}
+            onChange={(send) => {
+              onChangeAuxSendDb(send);
+              if (blockId) {
+                updateLiveBlockAudio(blockId, { auxSendDb: send });
+              }
+            }}
+            size={26}
+            label={auxKnobLabel}
           />
         </div>
       )}

@@ -898,6 +898,9 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             volumeGainDb={block.volumeGainDb ?? 0}
             onChangeGainDb={(gainDb) => updateBlock(block.id, { volumeGainDb: gainDb })}
             gainKnobLabel={t('gainKnobLabel')}
+            auxSendDb={block.auxSendDb ?? 0}
+            onChangeAuxSendDb={(sendDb) => updateBlock(block.id, { auxSendDb: sendDb })}
+            auxKnobLabel={t('auxKnobLabel')}
             fadeInMs={block.fadeInMs ?? 0}
             fadeOutMs={block.fadeOutMs ?? 0}
             fadeInCurve={block.fadeInCurve ?? 0}

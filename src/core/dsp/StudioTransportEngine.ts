@@ -1,8 +1,17 @@
-import { Project, ScriptBlock, Speaker, SupportedLanguage } from '../../types/storia';
+import {
+  AudioEffectConfig,
+  AuxBusConfig,
+  createDefaultMainAuxBus,
+  Project,
+  ScriptBlock,
+  Speaker,
+  SupportedLanguage,
+} from '../../types/storia';
 import {
   SpeakerDspChain,
   processSpeakerDspBuffer,
 } from './BiquadChain';
+import { AuxBusEngine } from './modular/AuxBusEngine';
 import { LoudnessMeasurement, LoudnessMeter } from './LoudnessMeter';
 import { scheduleFadeEnvelope } from './VolumeEnvelope';
 import { getLatestBlockAudioEntry } from '../storage/audioCache';
@@ -114,9 +123,12 @@ export class StudioTransportEngine {
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private pcmDataArray: Float32Array | null = null;
   private speakerChains = new Map<string, SpeakerDspChain>();
+  private auxBusses = new Map<string, AuxBusEngine>();
   private activeSource: AudioBufferSourceNode | null = null;
   private activeBlockFadeGain: GainNode | null = null;
   private activeBlockVolumeGain: GainNode | null = null;
+  private activeBlockDirectGain: GainNode | null = null;
+  private activeBlockAuxSendGain: GainNode | null = null;
   private activeBlockDurationSec = 0;
   private activeBlockFadeInMs = 0;
   private activeBlockFadeOutMs = 0;
@@ -143,6 +155,7 @@ export class StudioTransportEngine {
   };
 
   private ensureAudioContext(): AudioContext | null {
+    if (this.ctx) return this.ctx;
     if (typeof window === 'undefined') return null;
     const AudioCtx =
       window.AudioContext ||
@@ -206,6 +219,57 @@ export class StudioTransportEngine {
       chain.applySpeakerSettings(speaker);
     }
     return chain;
+  }
+
+  /**
+   * Resolves or instantiates an Aux Send Bus Engine and connects its output into the master limiter.
+   */
+  public getOrCreateAuxBus(busConfig?: AuxBusConfig): AuxBusEngine | null {
+    const ctx = this.ensureAudioContext();
+    if (!ctx || !this.masterLimiter) return null;
+
+    const id = busConfig?.id ?? 'aux_bus_main';
+    let bus = this.auxBusses.get(id);
+    if (!bus) {
+      bus = new AuxBusEngine(ctx, busConfig ?? createDefaultMainAuxBus());
+      bus.outputNode.connect(this.masterLimiter);
+      this.auxBusses.set(id, bus);
+    }
+    return bus;
+  }
+
+  public getAuxBus(busId = 'aux_bus_main'): AuxBusEngine | undefined {
+    return this.auxBusses.get(busId);
+  }
+
+  public updateAuxBusConfig(
+    busId: string,
+    params: { enabled?: boolean; returnGainDb?: number }
+  ): void {
+    const bus = this.auxBusses.get(busId);
+    if (!bus) return;
+    if (params.enabled !== undefined) bus.setEnabled(params.enabled);
+    if (params.returnGainDb !== undefined) bus.setReturnGainDb(params.returnGainDb);
+  }
+
+  public updateAuxModuleConfig(
+    busId: string,
+    moduleId: string,
+    config: AudioEffectConfig
+  ): void {
+    const bus = this.auxBusses.get(busId);
+    if (bus) {
+      bus.updateModuleConfig(moduleId, config);
+    }
+  }
+
+  public toggleAuxModule(busId: string, moduleId: string, explicitState?: boolean): boolean {
+    const bus = this.auxBusses.get(busId);
+    if (!bus) return false;
+    if (explicitState !== undefined) {
+      return bus.setModuleEnabled(moduleId, explicitState);
+    }
+    return bus.toggleModuleEnabled(moduleId);
   }
 
   /**
@@ -517,10 +581,33 @@ export class StudioTransportEngine {
 
       source.connect(fadeGain);
       fadeGain.connect(volGain);
-      volGain.connect(chain.inputNode);
+
+      // Dual-Branch Signal Routing: Direct Dry Path + Aux Send Path
+      const directGain = ctx.createGain();
+      directGain.gain.value = block.directMute ? 0.0 : 1.0;
+      volGain.connect(directGain);
+      directGain.connect(chain.inputNode);
+
+      const auxSendGain = ctx.createGain();
+      const auxDb = block.auxSendDb ?? 0.0;
+      const auxLin =
+        !Number.isFinite(auxDb) || auxDb <= -48
+          ? 0.0
+          : Math.pow(10, auxDb / 20);
+      auxSendGain.gain.value = auxLin;
+      volGain.connect(auxSendGain);
+
+      const targetBusId = block.auxSendBusId ?? 'aux_bus_main';
+      const projectBusConfig = project.auxBusses?.find((b) => b.id === targetBusId);
+      const auxBus = this.getOrCreateAuxBus(projectBusConfig);
+      if (auxBus) {
+        auxSendGain.connect(auxBus.inputNode);
+      }
 
       this.activeBlockFadeGain = fadeGain;
       this.activeBlockVolumeGain = volGain;
+      this.activeBlockDirectGain = directGain;
+      this.activeBlockAuxSendGain = auxSendGain;
       this.activeBlockDurationSec = audioBuffer.duration;
       this.activeBlockFadeInMs = block.fadeInMs ?? 0;
       this.activeBlockFadeOutMs = block.fadeOutMs ?? 0;
@@ -561,6 +648,8 @@ export class StudioTransportEngine {
     blockId: string,
     params: {
       volumeGainDb?: number;
+      auxSendDb?: number;
+      directMute?: boolean;
       fadeInMs?: number;
       fadeOutMs?: number;
       fadeInCurve?: number;
@@ -569,6 +658,35 @@ export class StudioTransportEngine {
   ): void {
     if (this.activeBlockId !== blockId || !this.ctx) return;
     const now = this.ctx.currentTime;
+
+    if (this.activeBlockAuxSendGain && typeof params.auxSendDb === 'number') {
+      const auxLin =
+        !Number.isFinite(params.auxSendDb) || params.auxSendDb <= -48
+          ? 0.0
+          : Math.pow(10, params.auxSendDb / 20);
+      try {
+        if (typeof this.activeBlockAuxSendGain.gain.setTargetAtTime === 'function') {
+          this.activeBlockAuxSendGain.gain.setTargetAtTime(auxLin, now, 0.015);
+        } else {
+          this.activeBlockAuxSendGain.gain.value = auxLin;
+        }
+      } catch {
+        this.activeBlockAuxSendGain.gain.value = auxLin;
+      }
+    }
+
+    if (this.activeBlockDirectGain && typeof params.directMute === 'boolean') {
+      const directLin = params.directMute ? 0.0 : 1.0;
+      try {
+        if (typeof this.activeBlockDirectGain.gain.setTargetAtTime === 'function') {
+          this.activeBlockDirectGain.gain.setTargetAtTime(directLin, now, 0.015);
+        } else {
+          this.activeBlockDirectGain.gain.value = directLin;
+        }
+      } catch {
+        this.activeBlockDirectGain.gain.value = directLin;
+      }
+    }
 
     if (this.activeBlockVolumeGain && typeof params.volumeGainDb === 'number') {
       const lin =
@@ -673,6 +791,18 @@ export class StudioTransportEngine {
         this.activeBlockVolumeGain.disconnect();
       } catch {}
       this.activeBlockVolumeGain = null;
+    }
+    if (this.activeBlockDirectGain) {
+      try {
+        this.activeBlockDirectGain.disconnect();
+      } catch {}
+      this.activeBlockDirectGain = null;
+    }
+    if (this.activeBlockAuxSendGain) {
+      try {
+        this.activeBlockAuxSendGain.disconnect();
+      } catch {}
+      this.activeBlockAuxSendGain = null;
     }
   }
 

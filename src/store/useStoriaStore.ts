@@ -13,6 +13,8 @@ import {
   Speaker,
   SupportedLanguage,
   TtsEngineProvider,
+  createDefaultMainAuxBus,
+  AudioEffectConfig,
 } from '../types/storia';
 import {
   createInitialProjectLibrary,
@@ -87,7 +89,11 @@ function hydrateProjectTimeline(parsed: Project): Project {
     parsed.speakers,
     parsed.metadata?.targetWpm ?? 140
   );
-  return { ...parsed, blocks };
+  const auxBusses =
+    parsed.auxBusses && parsed.auxBusses.length > 0
+      ? parsed.auxBusses
+      : [createDefaultMainAuxBus()];
+  return { ...parsed, blocks, auxBusses };
 }
 
 function loadInitialProjectsLibrary(): Project[] {
@@ -229,6 +235,7 @@ export interface StoriaStoreState {
   isApiKeyModalOpen: boolean;
   isEpisodePropertiesModalOpen: boolean;
   isExportMasterModalOpen: boolean;
+  isAuxBusModalOpen: boolean;
   hasConfiguredApiKey: boolean;
   ttsProvider: TtsEngineProvider;
   useProceduralFallback: boolean;
@@ -253,6 +260,7 @@ export interface StoriaStoreState {
   setApiKeyModalOpen: (open: boolean) => void;
   setEpisodePropertiesModalOpen: (open: boolean) => void;
   setExportMasterModalOpen: (open: boolean) => void;
+  setAuxBusModalOpen: (open: boolean) => void;
   importProjectFromBundle: (bundle: Project) => void;
   setActiveTtsProvider: (provider: TtsEngineProvider) => void;
   setGeminiTextModel: (modelId: GeminiTextModelId) => void;
@@ -301,6 +309,11 @@ export interface StoriaStoreState {
   // Speaker DSP Quick Toggles & Voice Preview Tools
   toggleSpeakerEq: (speakerId: string) => void;
   toggleSpeakerDynamics: (speakerId: string) => void;
+  toggleAuxBusModule: (busId: string, moduleId: string) => void;
+  setAuxBusReturnGainDb: (busId: string, returnGainDb: number) => void;
+  updateAuxBusModuleConfig: (busId: string, moduleId: string, config: AudioEffectConfig) => void;
+  addAuxBusModule: (busId: string, module: AudioEffectConfig) => void;
+  removeAuxBusModule: (busId: string, moduleId: string) => void;
   previewSpeakerVoice: (
     speakerId: string,
     customSampleText?: string,
@@ -367,6 +380,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
     isApiKeyModalOpen: false,
     isEpisodePropertiesModalOpen: false,
     isExportMasterModalOpen: false,
+    isAuxBusModalOpen: false,
     hasConfiguredApiKey: hasValidApiKey(),
     ttsProvider: initialProvider,
     useProceduralFallback: initialProvider === 'browser_tts',
@@ -430,6 +444,10 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
 
     setExportMasterModalOpen: (open: boolean) => {
       set({ isExportMasterModalOpen: open });
+    },
+
+    setAuxBusModalOpen: (open: boolean) => {
+      set({ isAuxBusModalOpen: open });
     },
 
     importProjectFromBundle: (bundle: Project) => {
@@ -1052,6 +1070,22 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         },
       };
       get().updateSpeaker(updated);
+
+      // Realtime Aux Bus module sync (EQ:ON in toolbar)
+      studioTransportEngine.toggleAuxModule('aux_bus_main', 'fx_main_eq', nextEnabled);
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      const updatedBusses = currentBusses.map((bus) => {
+        if (bus.id !== 'aux_bus_main') return bus;
+        return {
+          ...bus,
+          modules: bus.modules.map((m) =>
+            m.id === 'fx_main_eq' ? { ...m, enabled: nextEnabled } : m
+          ),
+        };
+      });
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
     },
 
     toggleSpeakerDynamics: (speakerId: string) => {
@@ -1079,6 +1113,104 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         },
       };
       get().updateSpeaker(updated);
+
+      // Realtime Aux Bus module sync (Dyn:ON in toolbar)
+      studioTransportEngine.toggleAuxModule('aux_bus_main', 'fx_main_dyn', nextEnabled);
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      const updatedBusses = currentBusses.map((bus) => {
+        if (bus.id !== 'aux_bus_main') return bus;
+        return {
+          ...bus,
+          modules: bus.modules.map((m) =>
+            m.id === 'fx_main_dyn' ? { ...m, enabled: nextEnabled } : m
+          ),
+        };
+      });
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
+    },
+
+    toggleAuxBusModule: (busId: string, moduleId: string) => {
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      let nextState = false;
+      const updatedBusses = currentBusses.map((bus) => {
+        if (bus.id !== busId) return bus;
+        return {
+          ...bus,
+          modules: bus.modules.map((m) => {
+            if (m.id !== moduleId) return m;
+            nextState = !m.enabled;
+            return { ...m, enabled: nextState };
+          }),
+        };
+      });
+      studioTransportEngine.toggleAuxModule(busId, moduleId, nextState);
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
+    },
+
+    setAuxBusReturnGainDb: (busId: string, returnGainDb: number) => {
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      const updatedBusses = currentBusses.map((bus) =>
+        bus.id === busId ? { ...bus, returnGainDb } : bus
+      );
+      studioTransportEngine.updateAuxBusConfig(busId, { returnGainDb });
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
+    },
+
+    updateAuxBusModuleConfig: (busId: string, moduleId: string, config: AudioEffectConfig) => {
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      const updatedBusses = currentBusses.map((bus) => {
+        if (bus.id !== busId) return bus;
+        return {
+          ...bus,
+          modules: bus.modules.map((m) => (m.id === moduleId ? config : m)),
+        };
+      });
+      studioTransportEngine.updateAuxModuleConfig(busId, moduleId, config);
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
+    },
+
+    addAuxBusModule: (busId: string, module: AudioEffectConfig) => {
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      const updatedBusses = currentBusses.map((bus) => {
+        if (bus.id !== busId) return bus;
+        return {
+          ...bus,
+          modules: [...bus.modules, module],
+        };
+      });
+      const engineBus = studioTransportEngine.getAuxBus(busId);
+      if (engineBus) {
+        engineBus.addModule(module);
+      }
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
+    },
+
+    removeAuxBusModule: (busId: string, moduleId: string) => {
+      const currentBusses = get().project.auxBusses ?? [createDefaultMainAuxBus()];
+      const updatedBusses = currentBusses.map((bus) => {
+        if (bus.id !== busId) return bus;
+        return {
+          ...bus,
+          modules: bus.modules.filter((m) => m.id !== moduleId),
+        };
+      });
+      const engineBus = studioTransportEngine.getAuxBus(busId);
+      if (engineBus) {
+        engineBus.removeModule(moduleId);
+      }
+      const nextProj = { ...get().project, auxBusses: updatedBusses };
+      persistProject(nextProj, get().projects);
+      set({ project: nextProj });
     },
 
     stopAudioPreview: () => {
@@ -1277,6 +1409,9 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           speaker,
           blockId: block.id,
           volumeGainDb: block.volumeGainDb,
+          auxSendDb: block.auxSendDb,
+          auxSendBusId: block.auxSendBusId,
+          directMute: block.directMute,
           fadeInMs: block.fadeInMs,
           fadeOutMs: block.fadeOutMs,
           fadeInCurve: block.fadeInCurve,
@@ -1309,6 +1444,9 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           speaker,
           blockId: block.id,
           volumeGainDb: block.volumeGainDb,
+          auxSendDb: block.auxSendDb,
+          auxSendBusId: block.auxSendBusId,
+          directMute: block.directMute,
           fadeInMs: block.fadeInMs,
           fadeOutMs: block.fadeOutMs,
           fadeInCurve: block.fadeInCurve,

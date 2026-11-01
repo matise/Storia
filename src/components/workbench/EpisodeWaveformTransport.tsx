@@ -13,9 +13,11 @@ import {
   ZoomIn,
   ZoomOut,
   ArrowLeftRight,
+  Sliders,
 } from 'lucide-react';
 import { ScriptBlock, Speaker } from '../../types/storia';
 import { useTranslation } from '../../i18n/useTranslation';
+import { useStoriaStore } from '../../store/useStoriaStore';
 import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
 import { generateSyntheticPreviewPeaks } from './WaveformCanvas';
 import { BroadcastVuMeter } from './BroadcastVuMeter';
@@ -306,6 +308,7 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   }, [meterSnapshot]);
 
   const activeMeterSnapshot = meterSnapshot ?? internalMeterSnapshot;
+  const setAuxBusModalOpen = useStoriaStore((s) => s.setAuxBusModalOpen);
 
   const isDraggingRef = React.useRef(false);
   const isDraggingPauseRef = React.useRef<{
@@ -936,6 +939,18 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
             isPlaying={isPlaying}
             compact
           />
+
+          {/* Modular Aux Bus DSP Rack Inspector Trigger */}
+          <button
+            type="button"
+            data-testid="timeline-aux-bus-btn"
+            onClick={() => setAuxBusModalOpen(true)}
+            title={t('auxBusRackTooltip')}
+            className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-emerald-800/60 hover:border-emerald-600/80 text-[11px] font-mono font-semibold text-emerald-400 transition-colors cursor-pointer shrink-0 ml-1"
+          >
+            <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+            <span>FX Bus</span>
+          </button>
         </div>
       </div>
 

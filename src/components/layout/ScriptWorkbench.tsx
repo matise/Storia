@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Repeat,
   SlidersHorizontal,
+  Square,
   Trash2,
   Volume2,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ export const ScriptWorkbench: React.FC = () => {
   const selectBlock = useStoriaStore((s) => s.selectBlock);
   const addBlock = useStoriaStore((s) => s.addBlock);
   const isBatchSynthesizing = useStoriaStore((s) => s.isBatchSynthesizing);
+  const abortBatchSynthesis = useStoriaStore((s) => s.abortBatchSynthesis);
   const regenerateAllBlocksAudio = useStoriaStore((s) => s.regenerateAllBlocksAudio);
   const rebuildAllWaveforms = useStoriaStore((s) => s.rebuildAllWaveforms);
   const purgeAudioCache = useStoriaStore((s) => s.purgeAudioCache);
@@ -348,16 +350,29 @@ export const ScriptWorkbench: React.FC = () => {
 
           {/* Episode-Wide Audio & Waveform Management Tools */}
           <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-md p-0.5 shrink-0">
-            <button
-              type="button"
-              data-testid="regen-all-audio-btn"
-              disabled={isBatchSynthesizing}
-              onClick={() => void regenerateAllBlocksAudio()}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:bg-indigo-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3 shrink-0" />
-              <span>{t('regenAllAudio')}</span>
-            </button>
+            {isBatchSynthesizing ? (
+              <button
+                type="button"
+                data-testid="workbench-stop-synthesis-btn"
+                onClick={() => abortBatchSynthesis()}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-rose-300 bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 whitespace-nowrap shrink-0 transition-colors cursor-pointer animate-pulse"
+                title={t('stopGeneration')}
+              >
+                <Square className="w-3 h-3 fill-current shrink-0" />
+                <span>{t('stopGeneration')}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-testid="regen-all-audio-btn"
+                disabled={isBatchSynthesizing}
+                onClick={() => void regenerateAllBlocksAudio()}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:bg-indigo-950/80 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3 shrink-0" />
+                <span>{t('regenAllAudio')}</span>
+              </button>
+            )}
 
             <button
               type="button"

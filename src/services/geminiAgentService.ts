@@ -223,6 +223,7 @@ export async function runPersonaResearch(options: {
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
+  abortSignal?: AbortSignal;
 }): Promise<PersonaResearchRecord> {
   const {
     speaker,
@@ -234,6 +235,7 @@ export async function runPersonaResearch(options: {
     dialect,
     dubrovnikRegister,
     fetchImpl = fetch,
+    abortSignal,
   } = options;
 
   const trimmedQuery = query.trim();
@@ -292,6 +294,7 @@ export async function runPersonaResearch(options: {
     const response = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortSignal,
       body: JSON.stringify(requestBody),
     });
 
@@ -328,7 +331,10 @@ export async function runPersonaResearch(options: {
       modelUsed: modelId,
       timestamp: Date.now(),
     };
-  } catch {
+  } catch (err) {
+    if (abortSignal?.aborted || (err as Error)?.name === 'AbortError') {
+      throw err;
+    }
     return buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
   }
 }
@@ -845,6 +851,7 @@ export async function generateNextSceneBeats(options: {
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
+  abortSignal?: AbortSignal;
 }): Promise<CoWriterBeatCandidate[]> {
   const {
     precedingBlocks,
@@ -859,6 +866,7 @@ export async function generateNextSceneBeats(options: {
     dialect,
     dubrovnikRegister,
     fetchImpl = fetch,
+    abortSignal,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
@@ -986,6 +994,7 @@ export async function generateNextSceneBeats(options: {
     const response = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortSignal,
       body: JSON.stringify(requestPayload),
     });
 
@@ -1075,7 +1084,10 @@ export async function generateNextSceneBeats(options: {
       });
 
     return hydratedBeats;
-  } catch {
+  } catch (err) {
+    if (abortSignal?.aborted || (err as Error)?.name === 'AbortError') {
+      throw err;
+    }
     return buildFallbackSceneBeats(speakers, language, directionHint, attachments, deepResearch, mode);
   }
 }
@@ -1179,6 +1191,7 @@ export async function doctorDialogueBlock(options: {
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
+  abortSignal?: AbortSignal;
 }): Promise<ScriptDoctorOption[]> {
   const {
     block,
@@ -1190,6 +1203,7 @@ export async function doctorDialogueBlock(options: {
     dialect,
     dubrovnikRegister,
     fetchImpl = fetch,
+    abortSignal,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
@@ -1231,6 +1245,7 @@ export async function doctorDialogueBlock(options: {
     const response = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortSignal,
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
@@ -1281,7 +1296,10 @@ export async function doctorDialogueBlock(options: {
         audioTokenEstimate: pacing.audioTokenEstimate,
       };
     });
-  } catch {
+  } catch (err) {
+    if (abortSignal?.aborted || (err as Error)?.name === 'AbortError') {
+      throw err;
+    }
     return buildFallbackDoctorOptions(block, speaker, targetWpm, language);
   }
 }
@@ -1436,6 +1454,7 @@ export async function adaptBlockBilingually(options: {
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
   fetchImpl?: typeof fetch;
+  abortSignal?: AbortSignal;
 }): Promise<BilingualAdaptationResult> {
   const {
     block,
@@ -1447,6 +1466,7 @@ export async function adaptBlockBilingually(options: {
     dialect,
     dubrovnikRegister,
     fetchImpl = fetch,
+    abortSignal,
   } = options;
 
   if (!apiKey || apiKey.trim().length < 10) {
@@ -1485,6 +1505,7 @@ export async function adaptBlockBilingually(options: {
     const response = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortSignal,
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
@@ -1520,7 +1541,10 @@ export async function adaptBlockBilingually(options: {
         parsed.genderAgreementApplied ||
         (speaker?.gender === 'female' ? 'Feminine (-la)' : 'Masculine (-o)'),
     };
-  } catch {
+  } catch (err) {
+    if (abortSignal?.aborted || (err as Error)?.name === 'AbortError') {
+      throw err;
+    }
     return buildFallbackBilingualAdaptation({ block, speaker, sourceLang, targetLang });
   }
 }

@@ -145,7 +145,8 @@ export function normalizeBufferToLufs(
  */
 export async function renderMasterEpisodeMix(
   project: Project,
-  onProgress?: (progressPct: number) => void
+  onProgress?: (progressPct: number) => void,
+  abortSignal?: AbortSignal
 ): Promise<RenderedMasterEpisode> {
   const internalSampleRate = 48000;
   const blocks = project.blocks;
@@ -161,6 +162,9 @@ export async function renderMasterEpisodeMix(
   let totalSampleCount = 0;
 
   for (let idx = 0; idx < blocks.length; idx++) {
+    if (abortSignal?.aborted) {
+      throw new DOMException('Master rendering was aborted', 'AbortError');
+    }
     const block = blocks[idx];
     const speaker = block.speakerId ? speakerMap.get(block.speakerId) : undefined;
 
@@ -298,7 +302,8 @@ export async function renderMasterEpisodeMix(
  */
 export async function renderSpeakerStems(
   project: Project,
-  onProgress?: (progressPct: number) => void
+  onProgress?: (progressPct: number) => void,
+  abortSignal?: AbortSignal
 ): Promise<RenderedSpeakerStem[]> {
   const internalSampleRate = 48000;
   const blocks = project.blocks;
@@ -320,6 +325,9 @@ export async function renderSpeakerStems(
   let totalEpisodeSamples = 0;
 
   for (let idx = 0; idx < blocks.length; idx++) {
+    if (abortSignal?.aborted) {
+      throw new DOMException('Stem rendering was aborted', 'AbortError');
+    }
     const blk = blocks[idx];
     const spk = blk.speakerId ? speakers.find((s) => s.id === blk.speakerId) : undefined;
     const { samples: rawSamples, sampleRate: srcRate } =

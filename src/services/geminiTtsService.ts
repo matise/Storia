@@ -420,6 +420,7 @@ export async function synthesizeGeminiAudioWithPeaks({
   ttsModel = 'gemini-2.5-flash-preview-tts',
   speakImmediatelyOnBrowserTts = false,
   forceProcedural = false,
+  abortSignal,
 }: {
   block: ScriptBlock;
   speaker?: Speaker;
@@ -431,6 +432,7 @@ export async function synthesizeGeminiAudioWithPeaks({
   ttsModel?: GeminiTtsModelId;
   speakImmediatelyOnBrowserTts?: boolean;
   forceProcedural?: boolean;
+  abortSignal?: AbortSignal;
 }): Promise<SynthesisPipelineResult> {
   const effectiveProvider: TtsEngineProvider = forceProcedural ? 'browser_tts' : provider;
 
@@ -495,6 +497,7 @@ export async function synthesizeGeminiAudioWithPeaks({
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortSignal,
       body: JSON.stringify({
         contents: [
           {

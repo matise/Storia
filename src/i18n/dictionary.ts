@@ -34,6 +34,8 @@ export interface TranslationDictionary {
   editSpeakerTooltip: string;
   previewSpeakerVoice: string;
   stopSpeakerPreview: string;
+  stopGeneration: string;
+  cancelOperation: string;
   eqToggleLabel: string;
   dynToggleLabel: string;
   dspQuickSliders: string;
@@ -345,6 +347,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     editSpeakerTooltip: 'Configure voice, persona & Biquad EQ',
     previewSpeakerVoice: 'Preview Voice',
     stopSpeakerPreview: 'Stop Preview',
+    stopGeneration: 'Stop Generation',
+    cancelOperation: 'Cancel',
     eqToggleLabel: 'EQ',
     dynToggleLabel: 'Dyn',
     dspQuickSliders: 'Quick DSP & Audio Tools',
@@ -644,6 +648,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     editSpeakerTooltip: 'Konfiguriraj glas, personu i Biquad EQ',
     previewSpeakerVoice: 'Poslušaj glas',
     stopSpeakerPreview: 'Zaustavi',
+    stopGeneration: 'Zaustavi generiranje',
+    cancelOperation: 'Odustani',
     eqToggleLabel: 'EQ',
     dynToggleLabel: 'Din',
     dspQuickSliders: 'Brzi DSP i Audio Alati',

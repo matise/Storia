@@ -208,12 +208,12 @@ export function renderWaveformToCanvas(
     const clampedMin = Math.max(-1.0, Math.min(1.0, rawMin));
     const clampedMax = Math.max(-1.0, Math.min(1.0, rawMax));
 
-    const minY = midY + clampedMin * (midY * 0.90);
-    const maxY = midY + clampedMax * (midY * 0.90);
-    const barH = Math.max(1.2, minY - maxY);
+    const topY = midY + clampedMin * (midY * 0.88);
+    const bottomY = midY + clampedMax * (midY * 0.88);
+    const barH = Math.max(1.5, bottomY - topY);
 
     ctx.fillStyle = isPlayed ? playedFill : unplayedFill;
-    ctx.fillRect(x, maxY, barWidth, barH);
+    ctx.fillRect(x, topY, barWidth, barH);
   }
 
   // 4. Draw Adobe Audition Volume Envelope Curve & Drag Handles (Yellow) if configured

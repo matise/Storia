@@ -43,6 +43,7 @@ export interface SfxSynthesisOptions {
   apiKey?: string | null;
   useAiCompiler?: boolean;
   fetchImpl?: typeof fetch;
+  abortSignal?: AbortSignal;
 }
 
 /**
@@ -219,7 +220,8 @@ export function classifySfxPrompt(
 export async function compileSfxRecipeWithGemini(
   block: ScriptBlock,
   apiKey: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  abortSignal?: AbortSignal
 ): Promise<SfxSynthesisRecipe> {
   const baseRecipe = classifySfxPrompt(
     block.text,
@@ -251,6 +253,7 @@ export async function compileSfxRecipeWithGemini(
     const response = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortSignal,
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
@@ -710,12 +713,12 @@ export function renderSfxRecipeToPcm16(
 export async function synthesizeSfxAudio(
   options: SfxSynthesisOptions
 ): Promise<SfxSynthesisResult> {
-  const { block, apiKey, useAiCompiler = true, fetchImpl = fetch } = options;
+  const { block, apiKey, useAiCompiler = true, fetchImpl = fetch, abortSignal } = options;
   const sampleRate = 24000;
 
   const recipe =
     useAiCompiler && apiKey && apiKey.trim().length > 0
-      ? await compileSfxRecipeWithGemini(block, apiKey, fetchImpl)
+      ? await compileSfxRecipeWithGemini(block, apiKey, fetchImpl, abortSignal)
       : classifySfxPrompt(
           block.text,
           block.directorNotes,

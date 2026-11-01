@@ -13,6 +13,7 @@ import {
   Paperclip,
   Search,
   Sparkles,
+  Square,
   Upload,
   Wand2,
   X,
@@ -89,6 +90,24 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   const [adaptationResult, setAdaptationResult] =
     React.useState<BilingualAdaptationResult | null>(null);
 
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const handleAbortAgentCall = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+  };
+
   const activeBlock =
     project.blocks.find((b) => b.id === selectedBlockId) ?? project.blocks[0];
   const activeBlockSpeaker = project.speakers.find(
@@ -109,6 +128,12 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
       project.speakers[0];
     if (!speaker || !queryText.trim()) return;
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    abortControllerRef.current = ctrl;
+
     setIsLoading(true);
     try {
       const record = await runPersonaResearch({
@@ -120,11 +145,19 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         apiKey: getApiKey(),
         modelId: activeTextModel,
         enableSearchGrounding: searchGroundingEnabled,
+        abortSignal: ctrl.signal,
       });
+      if (ctrl.signal.aborted) return;
       addResearchRecord(record);
       setActiveRecordId(record.id);
+    } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
+      console.warn('Persona research error:', err);
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === ctrl) {
+        abortControllerRef.current = null;
+        setIsLoading(false);
+      }
     }
   };
 
@@ -191,6 +224,12 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   };
 
   const handleGenerateSceneBeats = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    abortControllerRef.current = ctrl;
+
     setIsLoading(true);
     try {
       const beats = await generateNextSceneBeats({
@@ -205,15 +244,30 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         attachments: coWriterAttachments,
         deepResearch: isDeepResearchEnabled,
         mode: coWriterMode,
+        abortSignal: ctrl.signal,
       });
+      if (ctrl.signal.aborted) return;
       setSceneBeats(beats);
+    } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
+      console.warn('Co-writer error:', err);
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === ctrl) {
+        abortControllerRef.current = null;
+        setIsLoading(false);
+      }
     }
   };
 
   const handleRunScriptDoctor = async () => {
     if (!activeBlock) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    abortControllerRef.current = ctrl;
+
     setIsLoading(true);
     try {
       const options = await doctorDialogueBlock({
@@ -225,10 +279,18 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
         modelId: activeTextModel,
+        abortSignal: ctrl.signal,
       });
+      if (ctrl.signal.aborted) return;
       setDoctorOptions(options);
+    } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
+      console.warn('Script doctor error:', err);
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === ctrl) {
+        abortControllerRef.current = null;
+        setIsLoading(false);
+      }
     }
   };
 
@@ -243,6 +305,13 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   const handleRunBilingualAdapter = async () => {
     if (!activeBlock) return;
     const sourceLang: SupportedLanguage = targetLang === 'en' ? 'hr' : 'en';
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    abortControllerRef.current = ctrl;
+
     setIsLoading(true);
     try {
       const adapted = await adaptBlockBilingually({
@@ -254,10 +323,18 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
         modelId: activeTextModel,
+        abortSignal: ctrl.signal,
       });
+      if (ctrl.signal.aborted) return;
       setAdaptationResult(adapted);
+    } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
+      console.warn('Bilingual adapter error:', err);
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === ctrl) {
+        abortControllerRef.current = null;
+        setIsLoading(false);
+      }
     }
   };
 
@@ -439,20 +516,39 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
               />
             </div>
 
-            <button
-              type="button"
-              data-testid="run-persona-research-btn"
-              disabled={isLoading || !queryText.trim()}
-              onClick={() => void handleRunPersonaResearch()}
-              className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              {isLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
+            {isLoading ? (
+              <div className="flex items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-1.5 px-3 rounded-md bg-indigo-600/70 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>{t('researchViaGoogle')}</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="abort-persona-research-btn"
+                  onClick={handleAbortAgentCall}
+                  className="py-1.5 px-2.5 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title={t('cancelOperation')}
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  <span>{t('cancelOperation')}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                data-testid="run-persona-research-btn"
+                disabled={!queryText.trim()}
+                onClick={() => void handleRunPersonaResearch()}
+                className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
                 <Search className="w-3.5 h-3.5" />
-              )}
-              <span>{t('researchViaGoogle')}</span>
-            </button>
+                <span>{t('researchViaGoogle')}</span>
+              </button>
+            )}
 
             {displayedRecord && (
               <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-3 space-y-2.5">
@@ -753,35 +849,61 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
             )}
 
             {/* Generate Beats Action Button */}
-            <button
-              type="button"
-              data-testid="generate-beats-btn"
-              disabled={isLoading}
-              onClick={() => void handleGenerateSceneBeats()}
-              className={`w-full py-2 px-3 rounded-md text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${
-                isDeepResearchEnabled
-                  ? 'bg-cyan-600 hover:bg-cyan-500 shadow-md shadow-cyan-950/40'
-                  : 'bg-indigo-600/90 hover:bg-indigo-500'
-              }`}
-            >
-              {isLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : isDeepResearchEnabled ? (
-                <Compass className="w-3.5 h-3.5" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              <span>
-                {coWriterMode === 'complete_story'
-                  ? t('coWriterGenerateStoryBtn')
-                  : coWriterMode === 'podcast_episode'
-                    ? t('coWriterGeneratePodcastBtn')
-                    : t('generateBeatsBtn')}
-                {coWriterAttachments.length > 0
-                  ? ` (${coWriterAttachments.length})`
-                  : ''}
-              </span>
-            </button>
+            {isLoading ? (
+              <div className="flex items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-2 px-3 rounded-md bg-indigo-600/70 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>
+                    {coWriterMode === 'complete_story'
+                      ? t('coWriterGenerateStoryBtn')
+                      : coWriterMode === 'podcast_episode'
+                        ? t('coWriterGeneratePodcastBtn')
+                        : t('generateBeatsBtn')}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="abort-co-writer-btn"
+                  onClick={handleAbortAgentCall}
+                  className="py-2 px-2.5 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title={t('cancelOperation')}
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  <span>{t('cancelOperation')}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                data-testid="generate-beats-btn"
+                onClick={() => void handleGenerateSceneBeats()}
+                className={`w-full py-2 px-3 rounded-md text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${
+                  isDeepResearchEnabled
+                    ? 'bg-cyan-600 hover:bg-cyan-500 shadow-md shadow-cyan-950/40'
+                    : 'bg-indigo-600/90 hover:bg-indigo-500'
+                }`}
+              >
+                {isDeepResearchEnabled ? (
+                  <Compass className="w-3.5 h-3.5" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {coWriterMode === 'complete_story'
+                    ? t('coWriterGenerateStoryBtn')
+                    : coWriterMode === 'podcast_episode'
+                      ? t('coWriterGeneratePodcastBtn')
+                      : t('generateBeatsBtn')}
+                  {coWriterAttachments.length > 0
+                    ? ` (${coWriterAttachments.length})`
+                    : ''}
+                </span>
+              </button>
+            )}
 
             {/* Generated Scene Beats Cards */}
             <div className="space-y-2.5">
@@ -870,20 +992,39 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
               </div>
             )}
 
-            <button
-              type="button"
-              data-testid="run-doctor-btn"
-              disabled={isLoading || !activeBlock}
-              onClick={() => void handleRunScriptDoctor()}
-              className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              {isLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
+            {isLoading ? (
+              <div className="flex items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-1.5 px-3 rounded-md bg-indigo-600/70 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>{t('runDoctorBtn')}</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="abort-doctor-btn"
+                  onClick={handleAbortAgentCall}
+                  className="py-1.5 px-2.5 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title={t('cancelOperation')}
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  <span>{t('cancelOperation')}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                data-testid="run-doctor-btn"
+                disabled={!activeBlock}
+                onClick={() => void handleRunScriptDoctor()}
+                className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
                 <Wand2 className="w-3.5 h-3.5" />
-              )}
-              <span>{t('runDoctorBtn')}</span>
-            </button>
+                <span>{t('runDoctorBtn')}</span>
+              </button>
+            )}
 
             <div className="space-y-2">
               {doctorOptions.map((opt, idx) => (
@@ -958,20 +1099,39 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
               </select>
             </div>
 
-            <button
-              type="button"
-              data-testid="run-adapter-btn"
-              disabled={isLoading || !activeBlock}
-              onClick={() => void handleRunBilingualAdapter()}
-              className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              {isLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
+            {isLoading ? (
+              <div className="flex items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-1.5 px-3 rounded-md bg-indigo-600/70 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>{t('runAdapterBtn')}</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="abort-adapter-btn"
+                  onClick={handleAbortAgentCall}
+                  className="py-1.5 px-2.5 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title={t('cancelOperation')}
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  <span>{t('cancelOperation')}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                data-testid="run-adapter-btn"
+                disabled={!activeBlock}
+                onClick={() => void handleRunBilingualAdapter()}
+                className="w-full py-1.5 px-3 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
                 <Languages className="w-3.5 h-3.5" />
-              )}
-              <span>{t('runAdapterBtn')}</span>
-            </button>
+                <span>{t('runAdapterBtn')}</span>
+              </button>
+            )}
 
             {adaptationResult && (
               <div

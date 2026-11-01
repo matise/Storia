@@ -195,16 +195,16 @@ export function renderEpisodeTimelineWaveform(
               : '#334155';
 
         const x = xStart + i * stepX;
-        const minY =
+        const topY =
           midY +
           Math.max(-1.0, Math.min(1.0, peaks.minPeaks[peakIdx] * gainLin)) *
             (waveformAreaH * 0.42);
-        const maxY =
+        const bottomY =
           midY +
           Math.max(-1.0, Math.min(1.0, peaks.maxPeaks[peakIdx] * gainLin)) *
             (waveformAreaH * 0.42);
-        const barH = Math.max(1.5, minY - maxY);
-        ctx.fillRect(x, maxY, barW, barH);
+        const barH = Math.max(1.5, bottomY - topY);
+        ctx.fillRect(x, topY, barW, barH);
       }
     }
 

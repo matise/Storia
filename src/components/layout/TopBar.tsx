@@ -3,12 +3,12 @@ import {
   AlertCircle,
   Cpu,
   KeyRound,
-  Loader2,
   Plus,
   Redo2,
   RotateCcw,
   Settings2,
   Sparkles,
+  Square,
   Undo2,
   Volume2,
   X,
@@ -52,6 +52,7 @@ export const TopBar: React.FC = () => {
   const setGeminiTextModel = useStoriaStore((s) => s.setGeminiTextModel);
   const isBatchSynthesizing = useStoriaStore((s) => s.isBatchSynthesizing);
   const synthesizeAllBlocks = useStoriaStore((s) => s.synthesizeAllBlocks);
+  const abortBatchSynthesis = useStoriaStore((s) => s.abortBatchSynthesis);
   const ttsErrorMessage = useStoriaStore((s) => s.ttsErrorMessage);
   const clearTtsError = useStoriaStore((s) => s.clearTtsError);
 
@@ -300,26 +301,29 @@ export const TopBar: React.FC = () => {
             <span>{apiKeyBadgeText}</span>
           </button>
 
-          <button
-            type="button"
-            disabled={isBatchSynthesizing}
-            onClick={() => void synthesizeAllBlocks()}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-60 text-white shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            {isBatchSynthesizing ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                <span>{t('generatingAudio')}</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {t('genAllAudio')} ({formattedTokens} {t('tokensAbbrev')})
-                </span>
-              </>
-            )}
-          </button>
+          {isBatchSynthesizing ? (
+            <button
+              type="button"
+              data-testid="topbar-stop-synthesis-btn"
+              onClick={() => abortBatchSynthesis()}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-rose-600/95 hover:bg-rose-500 text-white shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0 animate-pulse"
+              title={t('stopGeneration')}
+            >
+              <Square className="w-3.5 h-3.5 fill-current shrink-0" />
+              <span>{t('stopGeneration')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void synthesizeAllBlocks()}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600/90 hover:bg-indigo-500 text-white shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                {t('genAllAudio')} ({formattedTokens} {t('tokensAbbrev')})
+              </span>
+            </button>
+          )}
 
           <button
             type="button"

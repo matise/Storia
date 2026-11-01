@@ -73,6 +73,9 @@ import { studioTransportEngine } from '../core/dsp/StudioTransportEngine';
  * "Play All", or Stop was triggered in the meantime) must abort without producing sound.
  */
 let auditionSessionToken = 0;
+let batchSynthesisAbortController: AbortController | null = null;
+const activeBlockSynthesisAbortControllers = new Map<string, AbortController>();
+let speakerPreviewAbortController: AbortController | null = null;
 
 const PROJECT_STORAGE_KEY = 'storia_active_project_v1';
 const PROJECTS_LIBRARY_STORAGE_KEY = 'storia_projects_library_v1';
@@ -317,6 +320,9 @@ export interface StoriaStoreState {
   rebuildAllWaveforms: () => Promise<void>;
   regenerateSpeakerAudio: (speakerId: string) => Promise<void>;
   deleteSpeakerAudio: (speakerId: string) => Promise<void>;
+  abortBatchSynthesis: () => void;
+  abortBlockSynthesis: (blockId: string) => void;
+  abortAllSynthesis: () => void;
   syncCacheStatuses: () => Promise<void>;
   purgeAudioCache: () => Promise<void>;
 
@@ -1070,6 +1076,10 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
 
     stopAudioPreview: () => {
       auditionSessionToken++;
+      if (speakerPreviewAbortController) {
+        speakerPreviewAbortController.abort();
+        speakerPreviewAbortController = null;
+      }
       stopAllAudioPlayback();
       set({ previewingSpeakerId: null, playingBlockId: null });
     },
@@ -1088,6 +1098,12 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
       const speaker =
         overrideSpeaker ?? project.speakers.find((s) => s.id === speakerId);
       if (!speaker) return;
+
+      if (speakerPreviewAbortController) {
+        speakerPreviewAbortController.abort();
+      }
+      const myAbortController = new AbortController();
+      speakerPreviewAbortController = myAbortController;
 
       stopAllAudioPlayback();
       const lang = project.defaultLanguage;
@@ -1123,7 +1139,10 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
             language: lang,
             provider: 'gemini_tts',
             ttsModel: get().project.aiSettings.ttsModel,
+            abortSignal: myAbortController.signal,
           });
+
+          if (myAbortController.signal.aborted) return;
 
           const played = await playAudioWithSpeakerDsp({
             audioBlob: result.audioBlob,
@@ -1140,6 +1159,9 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           }
           return;
         } catch (err) {
+          if (myAbortController.signal.aborted || (err as Error)?.name === 'AbortError') {
+            return;
+          }
           const msg = err instanceof Error ? err.message : 'Gemini TTS preview failed';
           set({ ttsErrorMessage: msg, previewingSpeakerId: null });
           return;
@@ -1345,6 +1367,14 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
       }
 
       // 2. Mark block as 'rendering'
+      const prevController = activeBlockSynthesisAbortControllers.get(blockId);
+      if (prevController) {
+        prevController.abort();
+        activeBlockSynthesisAbortControllers.delete(blockId);
+      }
+      const blockAbortController = new AbortController();
+      activeBlockSynthesisAbortControllers.set(blockId, blockAbortController);
+
       set({
         ttsErrorMessage: null,
         project: {
@@ -1373,6 +1403,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
             language,
             apiKey: effectiveProvider === 'gemini_tts' ? apiKey : null,
             useAiCompiler: effectiveProvider === 'gemini_tts' && hasValidApiKey(),
+            abortSignal: blockAbortController.signal,
           });
           result = {
             ...sfxResult,
@@ -1393,6 +1424,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
             provider: effectiveProvider,
             ttsModel: get().project.aiSettings.ttsModel,
             speakImmediatelyOnBrowserTts: effectiveProvider === 'browser_tts',
+            abortSignal: blockAbortController.signal,
           });
         }
 
@@ -1452,6 +1484,19 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         persistProject(finalProject);
         set({ project: finalProject });
       } catch (err) {
+        if (blockAbortController.signal.aborted || (err as Error)?.name === 'AbortError') {
+          set({
+            project: {
+              ...get().project,
+              blocks: get().project.blocks.map((b) =>
+                b.id === blockId
+                  ? { ...b, ttsStatus: b.generatedAudioUrl ? ('ok' as const) : ('stale' as const) }
+                  : b
+              ),
+            },
+          });
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'TTS Synthesis failed';
         set({
           ttsErrorMessage: msg,
@@ -1462,6 +1507,10 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
             ),
           },
         });
+      } finally {
+        if (activeBlockSynthesisAbortControllers.get(blockId) === blockAbortController) {
+          activeBlockSynthesisAbortControllers.delete(blockId);
+        }
       }
     },
 
@@ -1765,27 +1814,33 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
 
     synthesizeAllBlocks: async () => {
       if (get().isBatchSynthesizing) return;
+      batchSynthesisAbortController = new AbortController();
       set({ isBatchSynthesizing: true });
       try {
         const blocksToRender = get().project.blocks.filter((b) => b.ttsStatus !== 'ok');
         for (const blk of blocksToRender) {
+          if (batchSynthesisAbortController?.signal.aborted) break;
           await get().synthesizeBlock(blk.id);
         }
       } finally {
         set({ isBatchSynthesizing: false });
+        batchSynthesisAbortController = null;
       }
     },
 
     regenerateAllBlocksAudio: async () => {
       if (get().isBatchSynthesizing) return;
+      batchSynthesisAbortController = new AbortController();
       set({ isBatchSynthesizing: true });
       try {
         const allBlocks = [...get().project.blocks];
         for (const blk of allBlocks) {
+          if (batchSynthesisAbortController?.signal.aborted) break;
           await get().synthesizeBlock(blk.id, { forceRegenerate: true });
         }
       } finally {
         set({ isBatchSynthesizing: false });
+        batchSynthesisAbortController = null;
       }
     },
 
@@ -1798,17 +1853,65 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
 
     regenerateSpeakerAudio: async (speakerId: string) => {
       if (get().isBatchSynthesizing) return;
+      batchSynthesisAbortController = new AbortController();
       set({ isBatchSynthesizing: true });
       try {
         const speakerBlocks = get().project.blocks.filter(
           (b) => b.speakerId === speakerId
         );
         for (const blk of speakerBlocks) {
+          if (batchSynthesisAbortController?.signal.aborted) break;
           await get().synthesizeBlock(blk.id, { forceRegenerate: true });
         }
       } finally {
         set({ isBatchSynthesizing: false });
+        batchSynthesisAbortController = null;
       }
+    },
+
+    abortBatchSynthesis: () => {
+      if (batchSynthesisAbortController) {
+        batchSynthesisAbortController.abort();
+        batchSynthesisAbortController = null;
+      }
+      for (const ctrl of activeBlockSynthesisAbortControllers.values()) {
+        ctrl.abort();
+      }
+      activeBlockSynthesisAbortControllers.clear();
+
+      set({
+        isBatchSynthesizing: false,
+        project: {
+          ...get().project,
+          blocks: get().project.blocks.map((b) =>
+            b.ttsStatus === 'rendering'
+              ? { ...b, ttsStatus: b.generatedAudioUrl ? ('ok' as const) : ('stale' as const) }
+              : b
+          ),
+        },
+      });
+    },
+
+    abortBlockSynthesis: (blockId: string) => {
+      const ctrl = activeBlockSynthesisAbortControllers.get(blockId);
+      if (ctrl) {
+        ctrl.abort();
+        activeBlockSynthesisAbortControllers.delete(blockId);
+      }
+      set({
+        project: {
+          ...get().project,
+          blocks: get().project.blocks.map((b) =>
+            b.id === blockId && b.ttsStatus === 'rendering'
+              ? { ...b, ttsStatus: b.generatedAudioUrl ? ('ok' as const) : ('stale' as const) }
+              : b
+          ),
+        },
+      });
+    },
+
+    abortAllSynthesis: () => {
+      get().abortBatchSynthesis();
     },
 
     deleteSpeakerAudio: async (speakerId: string) => {

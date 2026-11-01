@@ -8,6 +8,7 @@ import {
   FileText,
   Layers,
   Loader2,
+  Square,
   Upload,
   Volume2,
   X,
@@ -55,43 +56,88 @@ export const ExportMasterModal: React.FC = () => {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const renderAbortControllerRef = React.useRef<AbortController | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (renderAbortControllerRef.current) {
+        renderAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const handleAbortRender = () => {
+    if (renderAbortControllerRef.current) {
+      renderAbortControllerRef.current.abort();
+      renderAbortControllerRef.current = null;
+    }
+    setIsRenderingMaster(false);
+    setIsRenderingStems(false);
+    setRenderProgress(0);
+  };
 
   if (!isOpen) return null;
 
   const audioConfig = project.audioConfig;
 
   const handleRenderMasterWav = async () => {
+    if (renderAbortControllerRef.current) {
+      renderAbortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    renderAbortControllerRef.current = ctrl;
+
     setIsRenderingMaster(true);
     setRenderProgress(0);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      const result = await renderMasterEpisodeMix(project, (pct) => {
-        setRenderProgress(pct);
-      });
+      const result = await renderMasterEpisodeMix(
+        project,
+        (pct) => {
+          setRenderProgress(pct);
+        },
+        ctrl.signal
+      );
+      if (ctrl.signal.aborted) return;
       setMasterResult(result);
       triggerBrowserFileDownload(result.wavBlob, result.filename, 'audio/wav');
       setSuccessMessage(t('exportMasterSuccessNotice'));
     } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
       setErrorMessage(
         err instanceof Error ? err.message : 'Master rendering failed.'
       );
     } finally {
-      setIsRenderingMaster(false);
+      if (renderAbortControllerRef.current === ctrl) {
+        renderAbortControllerRef.current = null;
+        setIsRenderingMaster(false);
+      }
     }
   };
 
   const handleRenderMasterMp3 = async () => {
+    if (renderAbortControllerRef.current) {
+      renderAbortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    renderAbortControllerRef.current = ctrl;
+
     setIsRenderingMaster(true);
     setRenderProgress(0);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      const result = await renderMasterEpisodeMix(project, (pct) => {
-        setRenderProgress(pct);
-      });
+      const result = await renderMasterEpisodeMix(
+        project,
+        (pct) => {
+          setRenderProgress(pct);
+        },
+        ctrl.signal
+      );
+      if (ctrl.signal.aborted) return;
       setMasterResult(result);
       triggerBrowserFileDownload(
         result.mp3Blob,
@@ -100,24 +146,39 @@ export const ExportMasterModal: React.FC = () => {
       );
       setSuccessMessage(t('exportMasterSuccessNoticeMp3'));
     } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
       setErrorMessage(
         err instanceof Error ? err.message : 'Master MP3 rendering failed.'
       );
     } finally {
-      setIsRenderingMaster(false);
+      if (renderAbortControllerRef.current === ctrl) {
+        renderAbortControllerRef.current = null;
+        setIsRenderingMaster(false);
+      }
     }
   };
 
   const handleRenderStems = async (format: 'wav' | 'mp3' = 'wav') => {
+    if (renderAbortControllerRef.current) {
+      renderAbortControllerRef.current.abort();
+    }
+    const ctrl = new AbortController();
+    renderAbortControllerRef.current = ctrl;
+
     setIsRenderingStems(true);
     setRenderProgress(0);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      const stems = await renderSpeakerStems(project, (pct) => {
-        setRenderProgress(pct);
-      });
+      const stems = await renderSpeakerStems(
+        project,
+        (pct) => {
+          setRenderProgress(pct);
+        },
+        ctrl.signal
+      );
+      if (ctrl.signal.aborted) return;
 
       // Download each stem sequentially with a slight delay
       for (let i = 0; i < stems.length; i++) {
@@ -144,11 +205,15 @@ export const ExportMasterModal: React.FC = () => {
           : `${t('exportStemsSuccessNotice')} (${stems.length} stems)`
       );
     } catch (err) {
+      if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') return;
       setErrorMessage(
         err instanceof Error ? err.message : 'Stem rendering failed.'
       );
     } finally {
-      setIsRenderingStems(false);
+      if (renderAbortControllerRef.current === ctrl) {
+        renderAbortControllerRef.current = null;
+        setIsRenderingStems(false);
+      }
     }
   };
 
@@ -388,7 +453,19 @@ export const ExportMasterModal: React.FC = () => {
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
                       <span>{t('exportRenderingNotice')}</span>
                     </span>
-                    <span>{renderProgress}%</span>
+                    <div className="flex items-center gap-3">
+                      <span>{renderProgress}%</span>
+                      <button
+                        type="button"
+                        data-testid="abort-export-btn"
+                        onClick={handleAbortRender}
+                        className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-600/90 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1"
+                        title={t('cancelOperation')}
+                      >
+                        <Square className="w-2.5 h-2.5 fill-current" />
+                        <span>{t('cancelOperation')}</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
                     <div

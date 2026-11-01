@@ -11,6 +11,7 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  Square,
   Trash2,
   Upload,
   Volume2,
@@ -64,6 +65,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
   const moveBlockRelative = useStoriaStore((s) => s.moveBlockRelative);
   const addBlock = useStoriaStore((s) => s.addBlock);
   const synthesizeBlock = useStoriaStore((s) => s.synthesizeBlock);
+  const abortBlockSynthesis = useStoriaStore((s) => s.abortBlockSynthesis);
   const importSfxAudioFile = useStoriaStore((s) => s.importSfxAudioFile);
   const regenerateBlockAudio = useStoriaStore((s) => s.regenerateBlockAudio);
   const rebuildBlockWaveform = useStoriaStore((s) => s.rebuildBlockWaveform);
@@ -593,8 +595,8 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
       </div>
 
       {/* Bottom Strip: DOD Canvas 2D SoA Waveform, Audition/Render, Regenerate/Waveform/Delete Audio Tools, Pause & Timing */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1.5 border-t border-slate-800/60 text-xs">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pt-1.5 border-t border-slate-800/60 text-xs">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <WaveformCanvas
             peaks={block.waveformPeaks}
             fallbackSeed={`${block.id}_${block.text}`}
@@ -644,12 +646,25 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             onScrubStateChange={onScrubStateChange}
           />
 
-          {/* Primary Generation / Synthesis Button (shown when unrendered or stale) */}
-          {block.ttsStatus !== 'ok' && (
+          {/* Primary Generation / Synthesis Button (shown when unrendered, stale, or rendering) */}
+          {block.ttsStatus === 'rendering' ? (
+            <button
+              type="button"
+              data-testid={`abort-block-btn-${block.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                abortBlockSynthesis(block.id);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[11px] shrink-0 bg-rose-950/90 hover:bg-rose-900 border border-rose-700/60 text-rose-200 transition-colors cursor-pointer animate-pulse"
+              title={t('stopGeneration')}
+            >
+              <Square className="w-3 h-3 fill-current text-rose-400" />
+              <span>{t('stopGeneration')}</span>
+            </button>
+          ) : block.ttsStatus !== 'ok' ? (
             <button
               type="button"
               data-testid={`generate-block-btn-${block.id}`}
-              disabled={block.ttsStatus === 'rendering'}
               onClick={(e) => {
                 e.stopPropagation();
                 void synthesizeBlock(block.id);
@@ -677,7 +692,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                 ({tokens} {t('tokensAbbrev')})
               </span>
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* Trailing Pause & Timeline Interval Metadata */}

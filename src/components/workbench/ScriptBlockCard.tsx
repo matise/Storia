@@ -32,6 +32,7 @@ import { restoreCroatianDiacritics } from '../../core/tts/croatianTextNormalizer
 import { transformToDubrovnikDialect } from '../../core/dubrovnik/dubrovnikPhonetics';
 import { WaveformCanvas } from './WaveformCanvas';
 import { UnifiedScriptEditor } from './UnifiedScriptEditor';
+import { generateBlockThemeStyle } from '../../core/theme/scriptBlockTheme';
 
 interface ScriptBlockCardProps {
   block: ScriptBlock;
@@ -162,19 +163,39 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
 
   const isCollapsed = Boolean(block.isCollapsed);
 
+  const accentColor =
+    block.type === 'sound_effect'
+      ? '#f59e0b'
+      : (activeSpeaker?.color ?? '#6366f1');
+
+  const [isHovered, setIsHovered] = React.useState(false);
+  const themeStyle = React.useMemo(() => {
+    return generateBlockThemeStyle(
+      accentColor,
+      isSelected,
+      isPlayingThisBlock || Boolean(isActivePlayheadBlock),
+      isHovered
+    );
+  }, [accentColor, isSelected, isPlayingThisBlock, isActivePlayheadBlock, isHovered]);
+
   return (
     <div
       id={`script-block-card-${block.id}`}
       data-testid={`script-block-card-${block.id}`}
       onClick={() => selectBlock(block.id)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        background: themeStyle.background,
+        borderTopColor: themeStyle.borderTopColor,
+        borderRightColor: themeStyle.borderRightColor,
+        borderBottomColor: themeStyle.borderBottomColor,
+        borderLeftColor: themeStyle.borderLeftColor,
+        borderLeftWidth: '3.5px',
+        boxShadow: themeStyle.boxShadow,
+      }}
       className={`rounded-md border transition-all ${
         isCollapsed ? 'px-2.5 py-1.5' : 'p-2.5'
-      } ${
-        isActivePlayheadBlock || isPlayingThisBlock
-          ? 'bg-slate-900/95 border-emerald-500/70 shadow-xs shadow-emerald-950/40'
-          : isSelected
-            ? 'bg-slate-900/95 border-indigo-500/70 shadow-xs shadow-indigo-950/50'
-            : 'bg-slate-900/50 hover:bg-slate-900/75 border-slate-800/80'
       }`}
     >
       {/* 1. Collapsed Mode: Single Clean Compact Summary Strip */}

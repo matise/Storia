@@ -7,7 +7,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-122%2F122%20Passing-emerald.svg)](https://vitest.dev/)
+[![Tests Passing](https://img.shields.io/badge/Tests-127%2F127%20Passing-emerald.svg)](https://vitest.dev/)
 
 ---
 
@@ -256,7 +256,7 @@ npm run preview
 
 ### Running the Test Suite
 
-Storia includes a comprehensive test suite of 34 test files and 122 unit/integration tests verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, the unified interactive word-token script transport, and the Dubrovnik dialect engine:
+Storia includes a comprehensive test suite of 35 test files and 127 unit/integration tests verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, adaptive speaker color blending, the unified interactive word-token script transport, and the Dubrovnik dialect engine:
 
 ```bash
 npm test

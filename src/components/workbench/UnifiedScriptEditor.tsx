@@ -2,6 +2,7 @@ import React from 'react';
 import {
   computeWordTimingTokens,
   getProgressForWord,
+  getWordIndexAtProgress,
   WordTimingToken,
 } from '../../core/pacing/wordTimingMapper';
 import { useTranslation } from '../../i18n/useTranslation';
@@ -53,19 +54,24 @@ export const UnifiedScriptEditor: React.FC<UnifiedScriptEditorProps> = ({
 
   // Determine active word index
   const activeIndex = React.useMemo(() => {
-    if (typeof explicitWordIndex === 'number' && explicitWordIndex >= 0) {
-      return explicitWordIndex;
-    }
     if (!isPlaying || wordTokens.length === 0) return -1;
 
-    const prog = Math.max(0, Math.min(1.0, playheadProgress));
-    for (let i = 0; i < wordTokens.length; i++) {
-      if (prog >= wordTokens[i].startProgress && prog <= wordTokens[i].endProgress) {
-        return i;
-      }
+    // 1. Prioritize playheadProgress (0.0 to 1.0) so that the karaoke highlight
+    // is always synchronized at 60 FPS in lockstep with the waveform needle and timecode readout.
+    if (typeof playheadProgress === 'number' && !isNaN(playheadProgress) && playheadProgress >= 0) {
+      return getWordIndexAtProgress(wordTokens, playheadProgress);
     }
-    if (prog < wordTokens[0].startProgress) return 0;
-    return wordTokens.length - 1;
+
+    // 2. Explicit word index fallback (e.g. from static test fixtures or external callers)
+    if (
+      typeof explicitWordIndex === 'number' &&
+      explicitWordIndex >= 0 &&
+      explicitWordIndex < wordTokens.length
+    ) {
+      return explicitWordIndex;
+    }
+
+    return -1;
   }, [explicitWordIndex, isPlaying, playheadProgress, wordTokens]);
 
   const handleWordClick = (token: WordTimingToken, e: React.MouseEvent) => {

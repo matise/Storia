@@ -14,13 +14,13 @@ export interface DubrovnikLexicalEntry {
   standard: string;
   dubrovnik: string;
   category:
-    | 'household_food'
-    | 'clothing_personal'
-    | 'society_people'
-    | 'verbs_expressions'
-    | 'adjectives'
-    | 'nature_topography'
-    | 'names_proper';
+  | 'household_food'
+  | 'clothing_personal'
+  | 'society_people'
+  | 'verbs_expressions'
+  | 'adjectives'
+  | 'nature_topography'
+  | 'names_proper';
   notes?: string;
 }
 
@@ -344,6 +344,7 @@ export const DUBROVNIK_DICTIONARY: DubrovnikLexicalEntry[] = [
   { standard: 'mišljenje', dubrovnik: 'parer', category: 'verbs_expressions', notes: 'tal. parere' },
   { standard: 'barem', dubrovnik: 'almanko', category: 'verbs_expressions', notes: 'tal. almanco' },
   { standard: 'iznenada', dubrovnik: "all' improvviso", category: 'verbs_expressions' },
+  { standard: 'dela', dubrovnik: "radi", category: 'verbs_expressions' },
 
   // =========================================================================
   // 5. ROMANCE ADJECTIVES & DESCRIPTIVE QUALIFIERS

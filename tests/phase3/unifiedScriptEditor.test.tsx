@@ -166,4 +166,45 @@ describe('UnifiedScriptEditor Component', () => {
     expect(handleStop).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('unified-editor-textarea-blk_unlock_2')).toBeDefined();
   });
+
+  it('accurately advances karaoke word highlight based on real-time playheadProgress', () => {
+    const maraDialogue =
+      'Arivala si, eNa naša! Fála svetom Vlahu! Reci ovomu tvomu meštru neka napokon otključa onaj pravi ritam i neka zatrese ove kamene skaline!';
+
+    // Render at 2.7s into 12.8s audio (prog ≈ 0.2109) with a stale explicitWordIndex=1 ('si,')
+    const { rerender } = render(
+      <UnifiedScriptEditor
+        blockId="blk_geo_6"
+        text={maraDialogue}
+        isPlaying={true}
+        playheadProgress={0.2109}
+        activeWordIndex={1} // Stale timepoint from idle playhead
+        durationSec={12.8}
+        onChangeText={vi.fn()}
+      />
+    );
+
+    // Active word should NOT be stuck on word 1 ('si,'); it should match progress ~0.21 ('svetom')
+    const word1 = screen.getByTestId('word-token-blk_geo_6-1'); // 'si,'
+    const word5 = screen.getByTestId('word-token-blk_geo_6-5'); // 'svetom'
+
+    expect(word1.className).not.toContain('text-emerald-300');
+    expect(word5.className).toContain('text-emerald-300');
+
+    // Advancing playheadProgress dynamically updates the active word highlight
+    rerender(
+      <UnifiedScriptEditor
+        blockId="blk_geo_6"
+        text={maraDialogue}
+        isPlaying={true}
+        playheadProgress={0.02} // ~Word 0 'Arivala'
+        activeWordIndex={1}
+        durationSec={12.8}
+        onChangeText={vi.fn()}
+      />
+    );
+    const word0 = screen.getByTestId('word-token-blk_geo_6-0');
+    expect(word0.className).toContain('text-emerald-300');
+    expect(word5.className).not.toContain('text-emerald-300');
+  });
 });

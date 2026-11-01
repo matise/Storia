@@ -856,7 +856,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
           placeholder={placeholder}
           isPlaying={isPlayingThisBlock || Boolean(isActivePlayheadBlock)}
           playheadProgress={effectiveProgress}
-          activeWordIndex={activeWordIndex}
+          activeWordIndex={isPlayingThisBlock || isLocalScrubbing ? undefined : activeWordIndex}
           durationSec={durationSec}
           onChangeText={(val) => updateBlock(block.id, { text: val })}
           onAddNextBlock={() => addBlock('dialogue', block.id)}
@@ -923,6 +923,9 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             onSeekProgress={(prog) => {
               setLocalScrubProgress(prog);
               onSeekWithinBlock?.(block, prog);
+              if (isPlayingThisBlock) {
+                void auditionBlock(block.id, prog * durationSec);
+              }
             }}
             onScrubStateChange={onScrubStateChange}
           />

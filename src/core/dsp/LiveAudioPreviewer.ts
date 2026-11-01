@@ -1,6 +1,7 @@
 import { Speaker, SupportedLanguage } from '../../types/storia';
 import { stripNonSpokenTokens } from '../pacing/pacingCalculator';
 import { studioTransportEngine } from './StudioTransportEngine';
+import { scheduleFadeEnvelope } from './VolumeEnvelope';
 import {
   containsCroatianCharacters,
   prepareTextForTts,
@@ -9,6 +10,8 @@ import {
 interface ActiveWebAudioSession {
   ctx: AudioContext;
   source: AudioBufferSourceNode;
+  clipFadeGain: GainNode;
+  volumeGainNode: GainNode;
   lowShelf: BiquadFilterNode;
   midPeak: BiquadFilterNode;
   highShelf: BiquadFilterNode;
@@ -16,9 +19,15 @@ interface ActiveWebAudioSession {
   dryGain: GainNode;
   wetCompGain: GainNode;
   speakerId: string;
+  blockId: string;
   startContextTime: number;
   startOffsetSec: number;
   durationSec: number;
+  fadeInMs: number;
+  fadeOutMs: number;
+  fadeInCurve: number;
+  fadeOutCurve: number;
+  volumeGainDb: number;
 }
 
 let activeWebAudioSession: ActiveWebAudioSession | null = null;
@@ -221,14 +230,82 @@ export function updateLiveDspIfPlaying(speaker: Speaker): void {
 }
 
 /**
+ * Updates volume curve and gain parameters in real-time while audio is playing.
+ */
+export function updateLiveBlockAudio(
+  blockId: string,
+  params: {
+    volumeGainDb?: number;
+    fadeInMs?: number;
+    fadeOutMs?: number;
+    fadeInCurve?: number;
+    fadeOutCurve?: number;
+  }
+): void {
+  if (activeWebAudioSession && activeWebAudioSession.blockId === blockId) {
+    const session = activeWebAudioSession;
+    const now = session.ctx.currentTime;
+
+    if (typeof params.volumeGainDb === 'number') {
+      const linGain =
+        !Number.isFinite(params.volumeGainDb) || params.volumeGainDb <= -48
+          ? 0.0
+          : Math.pow(10, params.volumeGainDb / 20);
+      try {
+        if (typeof session.volumeGainNode.gain.setTargetAtTime === 'function') {
+          session.volumeGainNode.gain.setTargetAtTime(linGain, now, 0.015);
+        } else {
+          session.volumeGainNode.gain.value = linGain;
+        }
+      } catch {
+        session.volumeGainNode.gain.value = linGain;
+      }
+      session.volumeGainDb = params.volumeGainDb;
+    }
+
+    if (
+      params.fadeInMs !== undefined ||
+      params.fadeOutMs !== undefined ||
+      params.fadeInCurve !== undefined ||
+      params.fadeOutCurve !== undefined
+    ) {
+      if (params.fadeInMs !== undefined) session.fadeInMs = params.fadeInMs;
+      if (params.fadeOutMs !== undefined) session.fadeOutMs = params.fadeOutMs;
+      if (params.fadeInCurve !== undefined) session.fadeInCurve = params.fadeInCurve;
+      if (params.fadeOutCurve !== undefined) session.fadeOutCurve = params.fadeOutCurve;
+
+      scheduleFadeEnvelope(
+        session.clipFadeGain,
+        session.ctx,
+        session.durationSec,
+        session.fadeInMs,
+        session.fadeInCurve,
+        session.fadeOutMs,
+        session.fadeOutCurve,
+        session.startOffsetSec,
+        session.startContextTime
+      );
+    }
+  }
+
+  // Also update master timeline transport if playing this block
+  studioTransportEngine.updateBlockFadesAndGain(blockId, params);
+}
+
+/**
  * Plays a synthesized WAV/PCM Audio Blob (or Object URL) through the Speaker's
- * 3-band Biquad EQ and Dynamics Compressor Web Audio graph.
+ * 3-band Biquad EQ, Dynamics Compressor, and Adobe Audition volume fade envelope.
  */
 export async function playAudioWithSpeakerDsp({
   audioUrl,
   audioBlob,
   speaker,
-  volumeGainDb,
+  volumeGainDb = 0,
+  blockId = 'preview_block',
+  fadeInMs = 0,
+  fadeOutMs = 0,
+  fadeInCurve = 0,
+  fadeOutCurve = 0,
   startOffsetSec = 0,
   onEnded,
   isCancelled,
@@ -237,6 +314,11 @@ export async function playAudioWithSpeakerDsp({
   audioBlob?: Blob;
   speaker?: Speaker;
   volumeGainDb?: number;
+  blockId?: string;
+  fadeInMs?: number;
+  fadeOutMs?: number;
+  fadeInCurve?: number;
+  fadeOutCurve?: number;
   startOffsetSec?: number;
   onEnded?: () => void;
   /** Optional caller-side cancellation check evaluated after every async step. */
@@ -267,6 +349,10 @@ export async function playAudioWithSpeakerDsp({
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
 
+    // 0. Clip Fade Envelope Gain Node (Adobe Audition power curve v(t) = t^p)
+    const clipFadeGain = ctx.createGain();
+    clipFadeGain.gain.value = 1.0;
+
     // 1. 120 Hz Low-Shelf Biquad Filter
     const lowShelf = ctx.createBiquadFilter();
     lowShelf.type = 'lowshelf';
@@ -290,16 +376,14 @@ export async function playAudioWithSpeakerDsp({
 
     // 5. Volume Gain Node (Supports -inf to +10 dB)
     const volumeGainNode = ctx.createGain();
-    if (typeof volumeGainDb === 'number') {
-      const linGain = !Number.isFinite(volumeGainDb) || volumeGainDb <= -48
+    const linGain =
+      !Number.isFinite(volumeGainDb) || volumeGainDb <= -48
         ? 0.0
         : Math.pow(10, volumeGainDb / 20);
-      volumeGainNode.gain.value = linGain;
-    } else {
-      volumeGainNode.gain.value = 1.0;
-    }
+    volumeGainNode.gain.value = linGain;
 
-    source.connect(lowShelf);
+    source.connect(clipFadeGain);
+    clipFadeGain.connect(lowShelf);
     lowShelf.connect(midPeak);
     midPeak.connect(highShelf);
 
@@ -319,6 +403,8 @@ export async function playAudioWithSpeakerDsp({
     const session: ActiveWebAudioSession = {
       ctx,
       source,
+      clipFadeGain,
+      volumeGainNode,
       lowShelf,
       midPeak,
       highShelf,
@@ -326,13 +412,32 @@ export async function playAudioWithSpeakerDsp({
       dryGain,
       wetCompGain,
       speakerId: speaker?.id ?? 'default',
+      blockId,
       startContextTime: ctx.currentTime,
       startOffsetSec: clampedOffset,
       durationSec: audioBuffer.duration,
+      fadeInMs,
+      fadeOutMs,
+      fadeInCurve,
+      fadeOutCurve,
+      volumeGainDb,
     };
 
     applySpeakerDspParamsToSession(session, speaker);
     activeWebAudioSession = session;
+
+    // Schedule real-time Adobe Audition fade curves starting from zero (-inf dB)
+    scheduleFadeEnvelope(
+      clipFadeGain,
+      ctx,
+      audioBuffer.duration,
+      fadeInMs,
+      fadeInCurve,
+      fadeOutMs,
+      fadeOutCurve,
+      clampedOffset,
+      ctx.currentTime
+    );
 
     source.onended = () => {
       if (activeWebAudioSession === session) {

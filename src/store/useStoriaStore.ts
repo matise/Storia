@@ -62,6 +62,7 @@ import {
   playAudioWithSpeakerDsp,
   speakWithBrowserTts,
   stopAllAudioPlayback,
+  updateLiveBlockAudio,
   updateLiveDspIfPlaying,
 } from '../core/dsp/LiveAudioPreviewer';
 import { studioTransportEngine } from '../core/dsp/StudioTransportEngine';
@@ -871,6 +872,21 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         undoCount: singletonHistory.getUndoCount(),
         redoCount: singletonHistory.getRedoCount(),
       });
+      if (
+        patch.volumeGainDb !== undefined ||
+        patch.fadeInMs !== undefined ||
+        patch.fadeOutMs !== undefined ||
+        patch.fadeInCurve !== undefined ||
+        patch.fadeOutCurve !== undefined
+      ) {
+        updateLiveBlockAudio(blockId, {
+          volumeGainDb: patch.volumeGainDb,
+          fadeInMs: patch.fadeInMs,
+          fadeOutMs: patch.fadeOutMs,
+          fadeInCurve: patch.fadeInCurve,
+          fadeOutCurve: patch.fadeOutCurve,
+        });
+      }
       void get().syncCacheStatuses();
     },
 
@@ -1210,7 +1226,12 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           audioUrl: block.generatedAudioUrl,
           audioBlob: sfxBlob,
           speaker,
+          blockId: block.id,
           volumeGainDb: block.volumeGainDb,
+          fadeInMs: block.fadeInMs,
+          fadeOutMs: block.fadeOutMs,
+          fadeInCurve: block.fadeInCurve,
+          fadeOutCurve: block.fadeOutCurve,
           startOffsetSec,
           onEnded: handleDone,
           isCancelled: isStale,
@@ -1237,7 +1258,12 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
           audioUrl: block.generatedAudioUrl,
           audioBlob: cachedEntry?.audioBlob,
           speaker,
+          blockId: block.id,
           volumeGainDb: block.volumeGainDb,
+          fadeInMs: block.fadeInMs,
+          fadeOutMs: block.fadeOutMs,
+          fadeInCurve: block.fadeInCurve,
+          fadeOutCurve: block.fadeOutCurve,
           startOffsetSec,
           onEnded: handleDone,
           isCancelled: isStale,

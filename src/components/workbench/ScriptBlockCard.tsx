@@ -607,6 +607,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             isRenderedAudio={hasGeneratedAudioOrPeaks}
             blockId={block.id}
             durationSec={durationSec}
+            height={44}
             isPlaying={isPlayingThisBlock || isActivePlayheadBlock}
             showTransportControls={true}
             playTooltip={t('blockWaveformPlayTooltip')}
@@ -614,6 +615,11 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             volumeGainDb={block.volumeGainDb ?? 0}
             onChangeGainDb={(gainDb) => updateBlock(block.id, { volumeGainDb: gainDb })}
             gainKnobLabel={t('gainKnobLabel')}
+            fadeInMs={block.fadeInMs ?? 0}
+            fadeOutMs={block.fadeOutMs ?? 0}
+            fadeInCurve={block.fadeInCurve ?? 0}
+            fadeOutCurve={block.fadeOutCurve ?? 0}
+            onUpdateFade={(fades) => updateBlock(block.id, fades)}
             onTogglePlay={() => {
               selectBlock(block.id);
               const startOffset =

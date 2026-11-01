@@ -46,6 +46,7 @@ export const ScriptWorkbench: React.FC = () => {
     (s) => s.setEpisodePropertiesModalOpen
   );
   const updateBlock = useStoriaStore((s) => s.updateBlock);
+  const reorderBlocks = useStoriaStore((s) => s.reorderBlocks);
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll to selected block when selectedBlockId changes
@@ -636,6 +637,7 @@ export const ScriptWorkbench: React.FC = () => {
             selectBlock(blockId);
             scrollToBlock(blockId);
           }}
+          onReorderBlocks={reorderBlocks}
         />
       )}
 

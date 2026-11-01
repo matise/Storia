@@ -1,6 +1,7 @@
 import { Project, Speaker } from '../types/storia';
 import { studioTransportEngine } from '../core/dsp/StudioTransportEngine';
 import { processSpeakerDspBuffer } from '../core/dsp/BiquadChain';
+import { applyVolumeEnvelope } from '../core/dsp/VolumeEnvelope';
 import { LoudnessMeter } from '../core/dsp/LoudnessMeter';
 import { encodeMasterWavBuffer, resampleFloat32Buffer } from '../core/dsp/TpdfDither';
 import { Mp3Encoder } from '@breezystack/lamejs';
@@ -187,6 +188,19 @@ export async function renderMasterEpisodeMix(
       } else {
         dspSamples = processed;
       }
+
+      // Apply volume gain and fade-in / fade-out curves
+      const gainDb = block.volumeGainDb ?? 0;
+      const gainLinear = !Number.isFinite(gainDb) || gainDb <= -48 ? 0 : Math.pow(10, gainDb / 20);
+      applyVolumeEnvelope(
+        dspSamples,
+        internalSampleRate,
+        gainLinear,
+        block.fadeInMs ?? 0,
+        block.fadeInCurve ?? 0,
+        block.fadeOutMs ?? 0,
+        block.fadeOutCurve ?? 0
+      );
     } else {
       dspSamples = new Float32Array(0);
     }
@@ -328,6 +342,19 @@ export async function renderSpeakerStems(
       } else {
         dspSamples = processed;
       }
+
+      // Apply volume gain and fade-in / fade-out curves
+      const gainDb = blk.volumeGainDb ?? 0;
+      const gainLinear = !Number.isFinite(gainDb) || gainDb <= -48 ? 0 : Math.pow(10, gainDb / 20);
+      applyVolumeEnvelope(
+        dspSamples,
+        internalSampleRate,
+        gainLinear,
+        blk.fadeInMs ?? 0,
+        blk.fadeInCurve ?? 0,
+        blk.fadeOutMs ?? 0,
+        blk.fadeOutCurve ?? 0
+      );
     } else {
       dspSamples = new Float32Array(0);
     }

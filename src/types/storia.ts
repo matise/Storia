@@ -132,6 +132,10 @@ export interface ScriptBlock {
   sfxDurationSec?: number; // Target duration in seconds for sound_effect synthesis
   sfxIntensity?: number; // Intensity / gain [0.1, 1.0] for sound_effect synthesis
   volumeGainDb?: number; // Volume gain knob in dB: -Infinity (-60dB floor) to +10dB, default 0dB
+  fadeInMs?: number; // Clip fade-in duration in milliseconds (default 0)
+  fadeOutMs?: number; // Clip fade-out duration in milliseconds (default 0)
+  fadeInCurve?: number; // Clip fade-in curvature: -1.0 (concave exponential) to 0 (linear) to +1.0 (convex logarithmic)
+  fadeOutCurve?: number; // Clip fade-out curvature: -1.0 to +1.0
   customAudioFileName?: string; // Original filename if imported from a local audio file
   isCollapsed?: boolean; // UI view state: collapsed/minimized segment card
   order: number;

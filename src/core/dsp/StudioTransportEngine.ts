@@ -4,6 +4,7 @@ import {
   processSpeakerDspBuffer,
 } from './BiquadChain';
 import { LoudnessMeasurement, LoudnessMeter } from './LoudnessMeter';
+import { scheduleFadeEnvelope } from './VolumeEnvelope';
 import { getLatestBlockAudioEntry } from '../storage/audioCache';
 import { synthesizeProceduralSpeechPcm } from '../../services/geminiTtsService';
 import { synthesizeSfxAudio } from '../../services/sfxGeneratorService';
@@ -95,6 +96,13 @@ export class StudioTransportEngine {
   private masterLimiter: DynamicsCompressorNode | null = null;
   private speakerChains = new Map<string, SpeakerDspChain>();
   private activeSource: AudioBufferSourceNode | null = null;
+  private activeBlockFadeGain: GainNode | null = null;
+  private activeBlockVolumeGain: GainNode | null = null;
+  private activeBlockDurationSec = 0;
+  private activeBlockFadeInMs = 0;
+  private activeBlockFadeOutMs = 0;
+  private activeBlockFadeInCurve = 0;
+  private activeBlockFadeOutCurve = 0;
   private activeBlockId: string | null = null;
   /** Bumped on every trigger/stop so stale async triggers never start audio. */
   private triggerGeneration = 0;
@@ -340,7 +348,29 @@ export class StudioTransportEngine {
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(chain.inputNode);
+
+      // Real-time clip fade envelope & volume gain nodes
+      const fadeGain = ctx.createGain();
+      fadeGain.gain.value = 1.0;
+
+      const volGain = ctx.createGain();
+      const linGain =
+        !Number.isFinite(block.volumeGainDb) || (block.volumeGainDb ?? 0) <= -48
+          ? 0.0
+          : Math.pow(10, (block.volumeGainDb ?? 0) / 20);
+      volGain.gain.value = linGain;
+
+      source.connect(fadeGain);
+      fadeGain.connect(volGain);
+      volGain.connect(chain.inputNode);
+
+      this.activeBlockFadeGain = fadeGain;
+      this.activeBlockVolumeGain = volGain;
+      this.activeBlockDurationSec = audioBuffer.duration;
+      this.activeBlockFadeInMs = block.fadeInMs ?? 0;
+      this.activeBlockFadeOutMs = block.fadeOutMs ?? 0;
+      this.activeBlockFadeInCurve = block.fadeInCurve ?? 0;
+      this.activeBlockFadeOutCurve = block.fadeOutCurve ?? 0;
 
       this.activeSource = source;
       const clampedOffset = Math.max(
@@ -349,9 +379,80 @@ export class StudioTransportEngine {
       );
       this.activeStartCtxTime = ctx.currentTime;
       this.activeStartOffsetSec = clampedOffset;
+
+      scheduleFadeEnvelope(
+        fadeGain,
+        ctx,
+        audioBuffer.duration,
+        block.fadeInMs ?? 0,
+        block.fadeInCurve ?? 0,
+        block.fadeOutMs ?? 0,
+        block.fadeOutCurve ?? 0,
+        clampedOffset,
+        ctx.currentTime
+      );
+
       source.start(0, clampedOffset);
     } catch {
       // Ignore Web Audio errors in headless environments
+    }
+  }
+
+  /**
+   * Real-time click-free update when a playing block's volume knob or fade handles are dragged.
+   */
+  public updateBlockFadesAndGain(
+    blockId: string,
+    params: {
+      volumeGainDb?: number;
+      fadeInMs?: number;
+      fadeOutMs?: number;
+      fadeInCurve?: number;
+      fadeOutCurve?: number;
+    }
+  ): void {
+    if (this.activeBlockId !== blockId || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    if (this.activeBlockVolumeGain && typeof params.volumeGainDb === 'number') {
+      const lin =
+        !Number.isFinite(params.volumeGainDb) || params.volumeGainDb <= -48
+          ? 0
+          : Math.pow(10, params.volumeGainDb / 20);
+      try {
+        if (typeof this.activeBlockVolumeGain.gain.setTargetAtTime === 'function') {
+          this.activeBlockVolumeGain.gain.setTargetAtTime(lin, now, 0.015);
+        } else {
+          this.activeBlockVolumeGain.gain.value = lin;
+        }
+      } catch {
+        this.activeBlockVolumeGain.gain.value = lin;
+      }
+    }
+
+    if (
+      this.activeBlockFadeGain &&
+      (params.fadeInMs !== undefined ||
+        params.fadeOutMs !== undefined ||
+        params.fadeInCurve !== undefined ||
+        params.fadeOutCurve !== undefined)
+    ) {
+      if (params.fadeInMs !== undefined) this.activeBlockFadeInMs = params.fadeInMs;
+      if (params.fadeOutMs !== undefined) this.activeBlockFadeOutMs = params.fadeOutMs;
+      if (params.fadeInCurve !== undefined) this.activeBlockFadeInCurve = params.fadeInCurve;
+      if (params.fadeOutCurve !== undefined) this.activeBlockFadeOutCurve = params.fadeOutCurve;
+
+      scheduleFadeEnvelope(
+        this.activeBlockFadeGain,
+        this.ctx,
+        this.activeBlockDurationSec,
+        this.activeBlockFadeInMs,
+        this.activeBlockFadeInCurve,
+        this.activeBlockFadeOutMs,
+        this.activeBlockFadeOutCurve,
+        this.activeStartOffsetSec,
+        this.activeStartCtxTime
+      );
     }
   }
 
@@ -404,6 +505,18 @@ export class StudioTransportEngine {
         // Ignore if already stopped
       }
       this.activeSource = null;
+    }
+    if (this.activeBlockFadeGain) {
+      try {
+        this.activeBlockFadeGain.disconnect();
+      } catch {}
+      this.activeBlockFadeGain = null;
+    }
+    if (this.activeBlockVolumeGain) {
+      try {
+        this.activeBlockVolumeGain.disconnect();
+      } catch {}
+      this.activeBlockVolumeGain = null;
     }
   }
 

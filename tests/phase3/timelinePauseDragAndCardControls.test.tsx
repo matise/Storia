@@ -190,4 +190,100 @@ describe('Timeline Pause Drag, Segment Scroll Linkage, Reorganized Header & Bloc
 
     expect(useStoriaStore.getState().selectedBlockId).toBe(secondBlock.id);
   });
+
+  it('zooms in, zooms out, resets zoom and scrolls horizontally on EpisodeWaveformTransport', () => {
+    const sample = createSampleProject();
+    render(
+      <EpisodeWaveformTransport
+        blocks={sample.blocks}
+        speakers={sample.speakers}
+        playheadSec={0}
+        totalDurationSec={30}
+        activeBlockIndex={0}
+        isPlaying={false}
+        isLooping={false}
+        playbackSpeed={1.0}
+        onTogglePlay={() => {}}
+        onStop={() => {}}
+        onToggleLoop={() => {}}
+        onSeekTimeSec={() => {}}
+        onJumpBlockIndex={() => {}}
+        onChangeSpeed={() => {}}
+      />
+    );
+
+    const zoomInBtn = screen.getByTestId('transport-zoom-in-btn');
+    const zoomOutBtn = screen.getByTestId('transport-zoom-out-btn');
+    const zoomResetBtn = screen.getByTestId('transport-zoom-reset-btn');
+
+    expect(zoomResetBtn.textContent).toBe('1x (Fit)');
+
+    // Zoom In
+    fireEvent.click(zoomInBtn);
+    expect(zoomResetBtn.textContent).toBe('1.5x');
+
+    // Zoom In again
+    fireEvent.click(zoomInBtn);
+    expect(zoomResetBtn.textContent).toBe('2.0x');
+
+    // Zoom Out
+    fireEvent.click(zoomOutBtn);
+    expect(zoomResetBtn.textContent).toBe('1.5x');
+
+    // Reset Zoom
+    fireEvent.click(zoomResetBtn);
+    expect(zoomResetBtn.textContent).toBe('1x (Fit)');
+
+    // Mouse wheel horizontal scroll
+    const scrollContainer = screen.getByTestId('master-waveform-scroll-container');
+    fireEvent.wheel(scrollContainer, { deltaY: 50 });
+  });
+
+  it('supports drag-and-drop to switch places on timeline block markers and canvas header', () => {
+    const sample = createSampleProject();
+    const onReorderBlocks = vi.fn();
+
+    render(
+      <EpisodeWaveformTransport
+        blocks={sample.blocks}
+        speakers={sample.speakers}
+        playheadSec={0}
+        totalDurationSec={30}
+        activeBlockIndex={0}
+        isPlaying={false}
+        isLooping={false}
+        playbackSpeed={1.0}
+        onTogglePlay={() => {}}
+        onStop={() => {}}
+        onToggleLoop={() => {}}
+        onSeekTimeSec={() => {}}
+        onJumpBlockIndex={() => {}}
+        onChangeSpeed={() => {}}
+        onReorderBlocks={onReorderBlocks}
+      />
+    );
+
+    // 1. Drag marker pill #1 to #2
+    const b0 = sample.blocks[0];
+    const b1 = sample.blocks[1];
+    const marker0 = screen.getByTestId(`timeline-block-marker-${b0.id}`);
+    const marker1 = screen.getByTestId(`timeline-block-marker-${b1.id}`);
+
+    fireEvent.dragStart(marker0, { dataTransfer: { setData: vi.fn() } });
+    fireEvent.dragOver(marker1, { dataTransfer: { dropEffect: 'move' } });
+    fireEvent.drop(marker1);
+
+    expect(onReorderBlocks).toHaveBeenCalledWith(0, 1);
+
+    // 2. Drag canvas header to reorder
+    const canvas = screen.getByTestId('master-episode-waveform-canvas');
+    // Start drag in top 15px of block 0
+    fireEvent.pointerDown(canvas, { clientX: 20, clientY: 8 });
+    // Move into block 1
+    fireEvent.pointerMove(canvas, { clientX: 300, clientY: 8 });
+    // Release
+    fireEvent.pointerUp(canvas, { clientX: 300, clientY: 8 });
+
+    expect(onReorderBlocks).toHaveBeenCalled();
+  });
 });

@@ -239,12 +239,18 @@ export interface TranslationDictionary {
   transportForward5s: string;
   transportNextBlock: string;
   transportSpeedLabel: string;
+  transportZoomIn: string;
+  transportZoomOut: string;
+  transportZoomReset: string;
+  transportDragReorderTooltip: string;
   blockWaveformPlayTooltip: string;
   blockWaveformRestartTooltip: string;
   gainKnobLabel: string;
   gainKnobTooltip: string;
   unrenderedWaveformNotice: string;
   pauseDragHandleTooltip: string;
+  fadeInTooltip: string;
+  fadeOutTooltip: string;
   collapseBlockTooltip: string;
   expandBlockTooltip: string;
 
@@ -539,12 +545,18 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     transportForward5s: 'Forward 5s',
     transportNextBlock: 'Next Block',
     transportSpeedLabel: 'Speed',
+    transportZoomIn: 'Zoom In (Ctrl+Wheel Up)',
+    transportZoomOut: 'Zoom Out (Ctrl+Wheel Down)',
+    transportZoomReset: 'Fit Episode (1x)',
+    transportDragReorderTooltip: 'Drag to switch places / reorder block',
     blockWaveformPlayTooltip: 'Play / Pause block from waveform',
     blockWaveformRestartTooltip: 'Restart block from 0:00',
     gainKnobLabel: 'Gain',
     gainKnobTooltip: 'Volume gain knob (-inf to +10 dB, double-click to reset 0 dB)',
     unrenderedWaveformNotice: 'No audio generated yet',
     pauseDragHandleTooltip: 'Drag pause duration between segments',
+    fadeInTooltip: 'Drag horizontally for Fade In, vertically for curve',
+    fadeOutTooltip: 'Drag horizontally for Fade Out, vertically for curve',
     collapseBlockTooltip: 'Collapse / Minimize segment card',
     expandBlockTooltip: 'Expand segment card',
 
@@ -832,12 +844,18 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     transportForward5s: 'Unaprijed 5s',
     transportNextBlock: 'Sljedeći blok',
     transportSpeedLabel: 'Brzina',
+    transportZoomIn: 'Povećaj (Ctrl+Kotačić gore)',
+    transportZoomOut: 'Smanji (Ctrl+Kotačić dolje)',
+    transportZoomReset: 'Puni prikaz (1x)',
+    transportDragReorderTooltip: 'Povuci za zamjenu mjesta / raspored',
     blockWaveformPlayTooltip: 'Reproduciraj / Pauziraj blok iz valnog oblika',
     blockWaveformRestartTooltip: 'Vrati blok na 0:00',
     gainKnobLabel: 'Pojačanje',
     gainKnobTooltip: 'Potenciometar glasnoće (-inf do +10 dB, dvoklik za 0 dB)',
     unrenderedWaveformNotice: 'Zvuk još nije generiran',
     pauseDragHandleTooltip: 'Podesi trajanje pauze između segmenata povlačenjem',
+    fadeInTooltip: 'Povuci vodoravno za Fade In, okomito za oblik krivulje',
+    fadeOutTooltip: 'Povuci vodoravno za Fade Out, okomito za oblik krivulje',
     collapseBlockTooltip: 'Sažmi / Minimiziraj karticu segmenta',
     expandBlockTooltip: 'Proširi karticu segmenta',
 

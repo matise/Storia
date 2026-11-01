@@ -7,8 +7,8 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-145%2F145%20Passing-emerald.svg)](https://vitest.dev/)
-[![Web Audio API](https://img.shields.io/badge/Web%20Audio-Hardware%20DSP-purple.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+[![Tests Passing](https://img.shields.io/badge/Tests-179%2F179%20Passing-emerald.svg)](https://vitest.dev/)
+[![Web Audio API](https://img.shields.io/badge/Web%20Audio-Modular%20DSP%20Rack-purple.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 [![Broadcast Compliant](https://img.shields.io/badge/Loudness-ITU--R%20BS.1770--4-amber.svg)](https://www.itu.int/rec/R-REC-BS.1770)
 
 ---
@@ -19,7 +19,9 @@
 
 Traditional text-to-speech tools treat voice generation as a static assembly line of disconnected MP3 clips on a sterile grid. **Storia** replaces that model with a unified theatrical soundstage:
 
-* 🎚️ **Hardware-Accelerated Web Audio DSP:** Per-speaker 3-band parametric Biquad EQs, studio dynamics compressors, and volume fade curves with $-\infty\text{ dB}$ corner attenuation.
+* 🎚️ **Modular Web Audio DSP Rack & Direct Audio Sync:** Series chaining of 3-band parametric Biquad EQs, studio dynamics compressors, state-variable filters (SVF), gain trims, and Jon Dattorro's 1997 Plate Reverberator with click-free ramps ($\tau = 15\text{ ms}$) and bit-transparent zero-latency bypass.
+* 🟢 **Aux Send Bus Architecture:** Per-block green circular rotary Aux Send knobs routing dry dialogue into a shared studio Aux Return Bus with live master return gain and dual stereo VU meters.
+* 📊 **Real-Time Telemetry Visualizers:** Canvas 2D FFT composite EQ transfer curves ($20\text{ Hz} - 20\text{ kHz}$), 60 FPS logarithmic compressor gain reduction meters, and exponential Reverb $T_{60}$ decay envelopes.
 * ⚡ **60 FPS Data-Oriented (DOD) Waveforms:** Contiguous `Float32Array` Structure-of-Arrays (SoA) peak pyramids that scrub, zoom, and pan smoothly without garbage-collection lag.
 * 🎙️ **Real-Time Karaoke Alignment & Click-to-Seek:** Character-weighted phonetic word pacing with punctuation pause modeling that keeps text highlights in exact lockstep with waveform needle lines and timecodes.
 * 🔄 **Continuous Auto-Advance Playback:** Uninterrupted sequence auditioning that automatically unfolds and advances block-to-block through the entire episode.
@@ -38,14 +40,15 @@ Traditional text-to-speech tools treat voice generation as a static assembly lin
 │     CAST & SPEAKERS      │                  EPISODE WAVEFORM TRANSPORT                 │       AI AGENT & RESEARCH     │
 │                          │  [Play All] [Auto] [Loop]  00:26.0 / 02:54.2  [Stereo VU]   │                               │
 │ • Speaker Personas (HR/EN)│  ───[#1 SFX]───[#2 Mara]───[#3 Foxy]───[#4 eNa]─────────────│ • Co-Writer (3 Workflows)     │
-│ • 3-Band Parametric EQ   ├─────────────────────────────────────────────────────────────┤ • Deep Multimodal Research    │
-│   - High Shelf (8 kHz)   │                     SCRIPT WORKBENCH                        │ • Google Search Grounding     │
-│   - Mid Peak (2.5 kHz)   │                                                             │ • Script Doctor & Cadence     │
-│   - Low Shelf (120 Hz)   │  [#1 SFX: Lazareti Surf]  [Mini Transport] 00:04.0          │ • Bilingual Cultural Adapter  │
-│ • Dynamics Compressor    │  [#2 Mara: Dialogue]      [Live Waveform + Fade Handles]    │ • Dubrovnik Dialect Injector  │
-│ • Timbre Warmth & Pitch  │  [#3 Foxy: Dialogue]      [Unified Karaoke Script Editor]   │ • Document Dropzone (PDF/IMG) │
-│ • Live Voice Audition    │  • 1D Temporal BVH ($O(\log N)$)  • Interactive Pause Drag  │ • Resizable Splitter Dock     │
-│ • Resizable Splitter     │  • Collapsed Mini Transport       • Click-Word-to-Seek      │                               │
+│ • Tabbed Speaker Editor  ├─────────────────────────────────────────────────────────────┤ • Deep Multimodal Research    │
+│   - Voice & TTS Profile  │                     SCRIPT WORKBENCH                        │ • Google Search Grounding     │
+│   - DSP Effect Stack [FX]│                                                             │ • Script Doctor & Cadence     │
+│   - Persona & Acting Note│  [#1 SFX: Lazareti Surf]  [Mini Transport] 00:04.0          │ • Bilingual Cultural Adapter  │
+│ • Modular DSP Chain:     │  [#2 Mara: Dialogue]      [Live Waveform + Fade Handles]    │ • Dubrovnik Dialect Injector  │
+│   - 3-Band Biquad EQ     │  [#3 Foxy: Dialogue]      [Gain Knob] [Aux Send] [Karaoke]  │ • Document Dropzone (PDF/IMG) │
+│   - Dynamics Compressor  │  • 1D Temporal BVH ($O(\log N)$)  • Interactive Pause Drag  │ • Resizable Splitter Dock     │
+│   - Dattorro 1997 Reverb │  • Collapsed Mini Transport       • Click-Word-to-Seek      │                               │
+│ • Quick-Access [FX] Pill │  • Green Aux Send Routing ──────► [Studio Aux FX Bus Rack]  │                               │
 └──────────────────────────┴─────────────────────────────────────────────────────────────┴───────────────────────────────┘
                                                            │
                                                            ▼
@@ -84,27 +87,47 @@ Traditional text-to-speech tools treat voice generation as a static assembly lin
 
 ### 3. 🎚️ Script Block Cards & Collapsed Mini Transports
 * **Dual Expanded / Collapsed Views:** Script blocks can be collapsed into sleek, single-line summaries to conserve screen space when managing large, multi-scene scripts.
-* **Collapsed Mini Transport Controls:** Even when collapsed, script blocks provide instant play/pause buttons, restart buttons, duration timecodes, and an interactive mini timeline scrubber with a real-time progress needle.
-* **Adobe Audition-Grade Volume Fade Handles:** Expanded blocks feature interactive fade-in and fade-out handles directly on the waveform canvas. Fades start strictly from absolute silence ($-\infty\text{ dB}$) using smooth power-law curves with zero clicks, pops, or latency.
-* **Precision Volume Gain Knob:** Draggable radial gain control providing per-block trim adjustment from $-48\text{ dB}$ to $+10\text{ dB}$.
+* **Collapsed Mini Transport Controls:** Even when collapsed, script blocks provide instant play/pause buttons, restart buttons, duration timecodes, and an interactive mini timeline scrubber with a real-time progress needle advancing dynamically at 60 FPS while playing.
+* **Adobe Audition-Grade Volume Fade Handles:** Expanded blocks feature interactive fade-in and fade-out handles directly on the waveform canvas. Fades start strictly from absolute silence ($-\infty\text{ dB}$) using smooth power-law curves ($v(t) = t^p$) with zero clicks, pops, or latency.
+* **Dual Rotary Controls (Volume Gain + Aux Send):**
+  * **Volume Gain Knob (Orange):** Precise radial gain adjustment from $-12\text{ dB}$ to $+12\text{ dB}$ multiplying inline volume fade envelopes.
+  * **Aux Send Knob (Green):** Dedicated rotary control routing dry dialogue into the studio Aux Return Bus with configurable send levels from $-\infty\text{ dB}$ to $+6\text{ dB}$.
+* **Header DSP Bypass Badges (`EQ:ON` / `Dyn:ON`):** Instant single-click toggles in each block header to bypass channel EQ or compression with smooth exponential anti-click crossfading ($\tau = 15\text{ ms}$).
 * **Clean Didaskalije (Stage Directions):** An unobtrusive, bracket-free director's notes field (`whispered`, `ironic`, `breathless`, `shouting`) integrated directly into the block header.
 
 ---
 
-### 4. 🎭 Cast & Acoustic Persona Studio
+### 4. 🎛️ Modular Audio DSP Rack, Plate Reverb & Aux Bus System
+Storia introduces a fully modular studio DSP architecture supporting insert chains, aux send/return busses, and live telemetry visualizers:
+* **Serial Signal Flow Ribbon:** Universal visualizer depicting signal flow (`In ➔ Module 1 ➔ Module 2 ➔ ... ➔ Module N ➔ Out`) with draggable card reordering and one-click bypass.
+* **Bit-Transparent Direct Audio Sync:** When bypassed, modules use constant-power crossfading to pass audio bit-transparently with zero latency and zero phase distortion.
+* **Included DSP Effect Modules:**
+  * 🎚️ **3-Band Parametric Biquad EQ:** Independent Low Shelf ($120\text{ Hz}$), Mid Peaking ($2.5\text{ kHz}$ with adjustable $Q$), and High Shelf ($8.0\text{ kHz}$) with $\pm12\text{ dB}$ gain.
+  * 🗜️ **Studio Dynamics Compressor:** Peak limiting and level control with adjustable Threshold ($-40\text{ dB}$ to $0\text{ dB}$), Ratio ($1:1$ to $20:1$), Attack ($1\text{ ms}$ to $50\text{ ms}$), Release ($20\text{ ms}$ to $500\text{ ms}$), and Knee ($0\text{ dB}$ to $12\text{ dB}$).
+  * 🌊 **Jon Dattorro's 1997 Plate Reverberator:** High-performance implementation of Dattorro's classic figure-eight feedback delay network (FDN) featuring 4 coprime series input diffusers, dual cross-coupled decay branches with high-frequency absorption damping, asynchronous dual sinusoidal LFO modal dispersion, decorrelated stereo multi-taps, and constant-power wet/dry pan law.
+  * 🎛️ **State-Variable Filter (SVF):** Multi-mode resonant filtering (Lowpass, Highpass, Bandpass, Notch) with cutoff frequency ($40\text{ Hz} - 16\text{ kHz}$) and resonance $Q$ ($0.5 - 10.0$).
+  * ⚖️ **Gain Trim & Polarity Inverter:** Pre/post gain trim with $180^\circ$ phase inversion switch.
+* **Real-Time Canvas 2D Visualizer Suite:**
+  * **2D FFT EQ Transfer Curve (`EqResponseCurve`):** Plots the composite magnitude frequency response curve across $20\text{ Hz} - 20\text{ kHz}$ on a logarithmic scale with $+6\text{ dB}$, $0\text{ dB}$, and $-6\text{ dB}$ grid guides.
+  * **Logarithmic Gain Reduction Meter (`GainReductionMeter`):** 60 FPS meter displaying live compressor attenuation ($0\text{ dB}$ to $-24\text{ dB}$) with an emerald $\to$ amber $\to$ rose color gradient.
+  * **Reverb Energy Decay Envelope (`ReverbDecayCurve`):** Plots the pre-delay silence interval, initial reflection density, and logarithmic $T_{60}$ exponential decay envelope with high-frequency damping slope.
+* **Studio Aux Bus Rack (`[FX Bus]`):** Dedicated master Aux Send Bus routing audio through serial effect chains (e.g. shared plate reverb) with live master return gain and real-time dual stereo VU meters.
+
+---
+
+### 5. 🎭 Cast & Acoustic Persona Studio
 * **Multi-Speaker Orchestration:** Create and manage limitless cast members, each with unique voice assignments, speaking tempos ($0.5\times$ to $2.0\times$), pitch shifts, color accents, and personalized backstory prompts.
-* **Studio Parametric Biquad EQ per Speaker:**
-  * **High Shelf:** Air and presence boost ($8.0\text{ kHz}$).
-  * **Mid Peak:** Vocal intelligibility and dialogue clarity ($2.5\text{ kHz}$).
-  * **Low Shelf:** Proximity effect and chest warmth ($120\text{ Hz}$).
-* **Studio Dynamics Compressor:** Peak limiting and level control with customizable threshold ($-48\text{ dB}$ to $0\text{ dB}$), compression ratio ($1:1$ to $20:1$), attack ($1\text{ ms}$ to $50\text{ ms}$), and release ($20\text{ ms}$ to $500\text{ ms}$).
-* **Acoustic Timbre & Centroid Control:** Spectral centroid tuning ($500\text{ Hz}$ to $5000\text{ Hz}$) for authentic voice coloration.
-* **Zero-Latency Voice Auditioning:** Instantaneous line rehearsal via the Web Audio API using either local neural voices or cloud synthesis.
+* **3-Tab Speaker Configuration Workspace:**
+  * **Tab 1 (Voice & TTS):** Base voice selection, gender, TTS engine (`Gemini 2.5 TTS` vs `Local Browser SpeechSynthesis`), pitch offset, and dramatic style prompts.
+  * **Tab 2 (DSP Effect Stack):** Full series DSP chain editor with module count badge, interactive parameter controls (knobs, sliders, toggles), and live visualizers.
+  * **Tab 3 (Persona & Notes):** Character persona background and acting notes used by the AI scene writer and script doctor.
+* **Quick-Access `[FX]` Pill:** Dedicated button on each character card in the Cast Sidebar jumping directly into that speaker's DSP Effect Stack.
+* **Global Real-Time Voice Audition Bar:** Positioned at the top of the speaker editor across all tabs, auditioning speech directly through the active DSP chain in real time.
 * **Speaker Quick-Assign Hotkeys:** Rapidly assign cast members to script blocks using `Alt+1` through `Alt+9`.
 
 ---
 
-### 5. 🔊 Hybrid Synthesis & Procedural Physical-Modeling SFX
+### 6. 🔊 Hybrid Synthesis & Procedural Physical-Modeling SFX
 * **Gemini 2.5 Expressive Voice Generation:** Emotionally nuanced multi-speaker speech synthesis honoring dramatic tension and theatrical stage directions.
 * **Offline Browser SpeechSynthesis Fallback:** Fully functional offline auditioning that works without network access or API tokens.
 * **Procedural Physical-Modeling SFX Synthesizer:** Pure mathematical synthesis of complex Foley and environmental audio directly within Web Audio:
@@ -119,7 +142,7 @@ Traditional text-to-speech tools treat voice generation as a static assembly lin
 
 ---
 
-### 6. 🤖 AI Dramatic Co-Writer & Research Dock (Powered by Gemini)
+### 7. 🤖 AI Dramatic Co-Writer & Research Dock (Powered by Gemini)
 * **Three Specialized Screenwriting Modes:**
   1. **Scene Co-Writer (3 Beats):** Analyzes preceding dialogue, character motivations, and director hints to generate 3 distinct dramatic beat choices with creative rationales.
   2. **Complete Episodic Story Mode:** Drafts extensive multi-act story arcs complete with speaker handoffs, sound effects, and dramatic peaks.
@@ -131,7 +154,7 @@ Traditional text-to-speech tools treat voice generation as a static assembly lin
 
 ---
 
-### 7. 🏰 Dubrovnik Vernacular & Phonetic Dialect Engine
+### 8. 🏰 Dubrovnik Vernacular & Phonetic Dialect Engine
 Storia features a dedicated, authentic dialect engine for the historic city vernacular of Dubrovnik (*dubrovačka gradska štokavština / Raguzejski idiom*):
 * **Sociolinguistic Authenticity:** Built strictly upon historical **jekavski štokavski** roots. Completely isolated from Chakavian or general Central Dalmatian Ikavian (strictly no *ča*, no *ćaća*, no non-jekavian Jat).
 * **Master Bidirectional Lexical Database (`dubrovnikDictionary.ts`):** Over 570 authenticated Ragusan vocabulary entries spanning 7 distinct semantic categories:
@@ -151,7 +174,7 @@ Storia features a dedicated, authentic dialect engine for the historic city vern
 
 ---
 
-### 8. 🎛️ Broadcast Mastering Suite & Multitrack Stems
+### 9. 🎛️ Broadcast Mastering Suite & Multitrack Stems
 * **ITU-R BS.1770-4 Loudness Normalization:** Integrated K-weighting pre-filter and $4\times$ polyphase sinc True Peak limiter enforcing $-16\text{ LUFS}$ integrated loudness for podcasts or EBU R128 compliance for broadcast radio.
 * **XorShift128+ TPDF Dither:** Clean multi-bit-depth quantization ($16\text{-bit}$, $24\text{-bit}$, and $32\text{-bit}$ float at $44.1\text{ kHz}$ or $48\text{ kHz}$).
 * **Pure Client-Side MP3 Encoding (320 kbps):** Zero-transcoding, zero-server MP3 rendering at maximum broadcast quality ($320\text{ kbps}$ CBR) powered by `@breezystack/lamejs`.
@@ -165,19 +188,30 @@ Storia features a dedicated, authentic dialect engine for the historic city vern
 | Component / Module | Path | Description & Architectural Responsibility |
 |---|---|---|
 | **ScriptWorkbench** | `src/components/layout/ScriptWorkbench.tsx` | Main orchestrator managing the 60 FPS playback loop (`DemandFrameLoop`, `ClockInterpolator`), 1D `TemporalBVH`, auto-advance loop, and multi-block virtualization. |
-| **EpisodeWaveformTransport** | `src/components/workbench/EpisodeWaveformTransport.tsx` | Master top-deck waveform transport with timeline zoom ($1.0\times$–$10.0\times$), horizontal panning, draggable pause gap handles, stereo VU/LUFS meter, and auto-advance toggle. |
-| **ScriptBlockCard** | `src/components/workbench/ScriptBlockCard.tsx` | Individual screenplay block card supporting expanded waveform editing, volume fade curves, gain knob, collapsed mini transport, and unified script editor. |
+| **EpisodeWaveformTransport** | `src/components/workbench/EpisodeWaveformTransport.tsx` | Master top-deck waveform transport with timeline zoom ($1.0\times$–$10.0\times$), horizontal panning, draggable pause gap handles, stereo VU/LUFS meter, auto-advance toggle, and `[FX Bus]` rack launcher. |
+| **ScriptBlockCard** | `src/components/workbench/ScriptBlockCard.tsx` | Individual screenplay block card supporting expanded waveform editing, volume fade curves, dual gain & aux send knobs, collapsed mini transport, and unified script editor. |
+| **AuxSendKnob** | `src/components/workbench/AuxSendKnob.tsx` | Circular rotary aux send level controller (green) routing block dry audio into the studio Aux Send Bus from $-\infty\text{ dB}$ to $+6\text{ dB}$. |
 | **UnifiedScriptEditor** | `src/components/workbench/UnifiedScriptEditor.tsx` | Zero-layout-shift script editor toggling between idle textarea and 60 FPS karaoke word-transport mode with character-weighted timing and click-to-seek. |
 | **WaveformCanvas** | `src/components/workbench/WaveformCanvas.tsx` | Hardware-accelerated Canvas 2D peak renderer with volume fade curves starting strictly at $-\infty\text{ dB}$, gain scaling, and live timecode readout. |
+| **EffectStackEditor** | `src/components/dsp/EffectStackEditor.tsx` | Universal studio DSP module stack editor with serial signal flow ribbon, move up/down, click-free bypass toggles, dynamic widgets, and live visualizers. |
+| **EqResponseCurve** | `src/components/dsp/visualizers/EqResponseCurve.tsx` | Canvas 2D plot of composite filter transfer function across $20\text{ Hz} - 20\text{ kHz}$ on logarithmic frequency scale. |
+| **GainReductionMeter** | `src/components/dsp/visualizers/GainReductionMeter.tsx` | 60 FPS logarithmic dynamics attenuation meter ($0\text{ dB}$ to $-24\text{ dB}$) with emerald-to-rose gradient. |
+| **ReverbDecayCurve** | `src/components/dsp/visualizers/ReverbDecayCurve.tsx` | Canvas 2D plot illustrating pre-delay silence interval, reflection density, and exponential $T_{60}$ energy decay envelope with damping slope. |
+| **AuxBusRackModal** | `src/components/modals/AuxBusRackModal.tsx` | Studio Aux Send Bus rack modal with master return gain, stereo VU meters, and series effect chain inspector. |
+| **SpeakerConfigModal** | `src/components/modals/SpeakerConfigModal.tsx` | 3-tab speaker workspace (Voice & TTS, DSP Effect Stack, Persona & Notes) with global real-time audition bar and two-way acoustic sync. |
 | **BroadcastVuMeter** | `src/components/workbench/BroadcastVuMeter.tsx` | Real-time stereo LED peak meter with K-weighted LUFS readout, true-peak warning indicators, and broadcast compliance status. |
-| **CastPanel & SpeakerCard** | `src/components/cast/CastPanel.tsx` | Speaker roster managing voice assignments, 3-band parametric Biquad EQ curves, dynamics compressor sliders, and zero-latency line auditions. |
+| **CastPanel & SpeakerCard** | `src/components/cast/CastPanel.tsx` | Speaker roster managing voice assignments, quick-access `[FX]` pills, and zero-latency line auditions. |
 | **CoWriterAgentDock** | `src/components/cowriter/CoWriterAgentDock.tsx` | Gemini-powered dramatic assistant supporting 3 writing modes (Scene, Story, Podcast), multimodal document upload, and Google Search Grounding. |
 | **ExportMasterModal** | `src/components/export/ExportMasterModal.tsx` | Studio mastering control panel for offline ITU-R BS.1770-4 loudness normalization, stem export, and 320 kbps MP3 rendering. |
+| **DattorroReverb** | `src/core/dsp/modular/DattorroReverb.ts` | High-performance implementation of Jon Dattorro's 1997 figure-eight plate reverberator with 4-stage diffusers, dual decay tanks, and asynchronous LFO modal dispersion. |
+| **AudioEffectModule** | `src/core/dsp/modular/AudioEffectModule.ts` | Modular DSP effect wrapper implementing `IAudioEffectModule` and `createAudioEffectModule` factory with Direct Audio Sync bypass. |
+| **AuxBusEngine** | `src/core/dsp/modular/AuxBusEngine.ts` | Web Audio API Aux Send Bus engine managing series module chaining, master return gain, and click-free bus bypass. |
+| **EffectDescriptorRegistry** | `src/core/dsp/modular/EffectDescriptorRegistry.ts` | Central parameter and visualizer registry for Biquad EQ, Compressor, SVF Filter, Gain Trim, and Dattorro Plate Reverb. |
 | **TemporalBVH** | `src/core/spatial/TemporalBVH.ts` | 1D interval tree spatial partition enabling $O(\log N)$ block and timepoint lookups during mouse hover, scrubbing, and playhead advancement. |
 | **ClockInterpolator** | `src/core/spatial/ClockInterpolator.ts` | High-precision time accumulator supporting demand-based 60 FPS requestAnimationFrame loops and smooth scrubbing. |
 | **WordTimingMapper** | `src/core/pacing/wordTimingMapper.ts` | Phonetic character-weight calculator and punctuation pause modeler for conversational speech alignment and click-to-seek progress mapping. |
-| **StudioTransportEngine** | `src/core/dsp/StudioTransportEngine.ts` | Web Audio API node graph orchestrating master timeline playback, multi-speaker DSP parameter updates, and gain staging. |
-| **LiveAudioPreviewer** | `src/core/dsp/LiveAudioPreviewer.ts` | Zero-latency single-block and speaker voice preview manager with dynamic elapsed time tracking. |
+| **StudioTransportEngine** | `src/core/dsp/StudioTransportEngine.ts` | Web Audio API node graph orchestrating master timeline playback, multi-speaker DSP parameter updates, aux send routing, and gain staging. |
+| **LiveAudioPreviewer** | `src/core/dsp/LiveAudioPreviewer.ts` | Zero-latency single-block and speaker voice preview manager with dynamic elapsed time tracking and live DSP updating. |
 | **BiquadChain** | `src/core/dsp/BiquadChain.ts` | Cascaded 3-band parametric biquad equalizer (high shelf, mid peak, low shelf) with bypass toggles and frequency response calculations. |
 | **MasteringChain** | `src/core/mastering/MasteringChain.ts` | Offline audio mastering pipeline combining K-weighting filters, $4\times$ oversampled True Peak limiting, and TPDF dithering. |
 | **LoudnessMeter** | `src/core/mastering/LoudnessMeter.ts` | ITU-R BS.1770-4 momentary, short-term, and integrated LUFS measurement algorithm. |
@@ -272,7 +306,7 @@ npm run preview
 
 ### Running the Test Suite
 
-Storia includes a comprehensive test suite of **39 test files and 145 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, and the Dubrovnik dialect engine:
+Storia includes a comprehensive test suite of **47 test files and 179 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, modular DSP effect chains, Jon Dattorro's 1997 Plate Reverb, and the Dubrovnik dialect engine:
 
 ```bash
 npm test
@@ -288,7 +322,8 @@ npm test
 | **Bundler & Tooling** | [Vite 6](https://vitejs.dev/) + [Vitest](https://vitest.dev/) | Sub-second HMR, optimized production tree-shaking, unit testing |
 | **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Modern CSS variables, hardware-accelerated layouts, dark studio theme |
 | **State & History** | [Zustand 5](https://github.com/pmndrs/zustand) | Command-pattern undo/redo stack, multi-project session library |
-| **Audio Core** | Web Audio API + OfflineAudioContext | Biquad EQ, dynamics compression, procedural Foley synthesis |
+| **Audio Core & DSP** | Web Audio API + OfflineAudioContext | Modular effect chains, Dattorro 1997 Plate Reverb, Biquad EQ, dynamics compression, procedural Foley |
+| **Real-Time Telemetry** | Canvas 2D Acceleration | 2D FFT EQ transfer curves, 60 FPS gain reduction meters, Reverb decay envelopes, peak pyramids |
 | **Loudness & Limiting** | ITU-R BS.1770-4 K-Weighting + True Peak | Broadcast-compliant -16 LUFS loudness and sinc true-peak limiting |
 | **Dither & Encoding** | TPDF Dither + [@breezystack/lamejs](https://github.com/shijinyu/lamejs) | High-resolution 24-bit WAV & client-side 320 kbps MP3 encoding |
 | **Local Persistence** | [idb-keyval](https://github.com/jakearchibald/idb-keyval) (IndexedDB) | Content-addressed SHA-256 audio caching for zero token waste |

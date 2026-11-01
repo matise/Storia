@@ -661,7 +661,7 @@ export const ScriptWorkbench: React.FC = () => {
       <div
         ref={scrollContainerRef}
         data-testid="script-blocks-scroll-container"
-        className="flex-1 overflow-y-auto p-4 space-y-3"
+        className="flex-1 overflow-y-auto p-3 space-y-1.5"
       >
         {project.blocks.map((block, index) => {
           const isCurrentPlayheadBlock = bvhHit.block?.id === block.id;

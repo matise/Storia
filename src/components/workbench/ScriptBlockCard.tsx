@@ -167,348 +167,429 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
       id={`script-block-card-${block.id}`}
       data-testid={`script-block-card-${block.id}`}
       onClick={() => selectBlock(block.id)}
-      className={`rounded-xl border transition-all p-3.5 ${
+      className={`rounded-md border transition-all ${
+        isCollapsed ? 'px-2.5 py-1.5' : 'p-2.5'
+      } ${
         isActivePlayheadBlock || isPlayingThisBlock
-          ? 'bg-slate-900/95 border-emerald-500/70 shadow-sm shadow-emerald-950/40'
+          ? 'bg-slate-900/95 border-emerald-500/70 shadow-xs shadow-emerald-950/40'
           : isSelected
-            ? 'bg-slate-900/95 border-indigo-500/70 shadow-sm shadow-indigo-950/50'
+            ? 'bg-slate-900/95 border-indigo-500/70 shadow-xs shadow-indigo-950/50'
             : 'bg-slate-900/50 hover:bg-slate-900/75 border-slate-800/80'
       }`}
     >
-      {/* Top Bar: Block Index + Collapse Toggle, Type, Speaker, Didaskalije, Status, Tools, Reorder & Delete */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        {/* Left Side: Collapse Button, Index, Type, Speaker, SFX Controls, Director Notes */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Collapse / Expand Toggle Button + Index Pill */}
-          <div className="flex items-center rounded-md bg-slate-950 border border-slate-800 p-0.5">
-            <button
-              type="button"
-              data-testid={`toggle-collapse-block-${block.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                updateBlock(block.id, { isCollapsed: !isCollapsed });
-              }}
-              title={isCollapsed ? t('expandBlockTooltip') : t('collapseBlockTooltip')}
-              className="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              {isCollapsed ? (
+      {/* 1. Collapsed Mode: Single Clean Compact Summary Strip */}
+      {isCollapsed ? (
+        <div className="flex items-center justify-between gap-2 text-xs">
+          {/* Left: Collapse Toggle + Index + Speaker Badge + Dialogue Text Snippet */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+            <div className="flex items-center rounded bg-slate-950 border border-slate-800 p-0.5 shrink-0">
+              <button
+                type="button"
+                data-testid={`toggle-collapse-block-${block.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateBlock(block.id, { isCollapsed: false });
+                }}
+                title={t('expandBlockTooltip')}
+                className="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
                 <ChevronRight className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
-              )}
-            </button>
-            <span className="px-1.5 py-0.5 font-mono text-xs font-bold text-slate-300">
-              #{index + 1}
-            </span>
-          </div>
+              </button>
+              <span className="px-1.5 py-0.5 font-mono text-[11px] font-bold text-slate-400">
+                #{index + 1}
+              </span>
+            </div>
 
-          {/* Block Type Selector */}
-          <select
-            aria-label="Block Type"
-            value={block.type}
-            onChange={(e) =>
-              updateBlock(block.id, { type: e.target.value as BlockType })
-            }
-            className="bg-slate-950 border border-slate-800 rounded-md px-2 py-1 text-xs font-medium text-slate-300 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="dialogue">{t('typeDialogue')}</option>
-            <option value="narration">{t('typeNarration')}</option>
-            <option value="sound_effect">{t('typeSfx')}</option>
-            <option value="direction">{t('typeDirection')}</option>
-          </select>
-
-          {/* Speaker Selector + Inline Speaker Preview & EQ/Dynamics Toggles */}
-          {(block.type === 'dialogue' || block.type === 'narration') && activeSpeaker && (
-            <div className="flex items-center gap-1.5">
+            {/* Speaker / SFX Badge */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
-                style={{ backgroundColor: activeSpeaker.color }}
-              />
-              <select
-                aria-label="Speaker"
-                value={block.speakerId ?? ''}
-                onChange={(e) =>
-                  updateBlock(block.id, { speakerId: e.target.value })
-                }
-                className="bg-slate-950 border border-slate-800 rounded-md px-2.5 py-1 text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500"
-              >
-                {speakers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-
-              {/* Inline Speaker Preview Audition Tool on Block Editor */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void previewSpeakerVoice(activeSpeaker.id, block.text);
-                }}
-                title={`${t('previewSpeakerVoice')}: ${activeSpeaker.name}`}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-1 transition-colors cursor-pointer ${
-                  isPreviewingThisSpeaker
-                    ? 'bg-emerald-600 border-emerald-500 text-white'
-                    : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300'
-                }`}
-              >
-                <Headphones className="w-3 h-3 text-indigo-400" />
-                <span>{activeSpeaker.voice.baseVoice}</span>
-              </button>
-
-              {/* Inline Speaker EQ Toggle */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleSpeakerEq(activeSpeaker.id);
-                }}
-                title="Toggle Speaker 3-Band Biquad EQ"
-                className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
-                  eqEnabled
-                    ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300'
-                    : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
-                }`}
-              >
-                {t('eqToggleLabel')}:{eqEnabled ? 'ON' : 'OFF'}
-              </button>
-
-              {/* Inline Speaker Dynamics Compressor Toggle */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleSpeakerDynamics(activeSpeaker.id);
-                }}
-                title="Toggle Speaker Dynamics Compressor"
-                className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
-                  dynEnabled
-                    ? 'bg-emerald-950/70 border-emerald-700/60 text-emerald-300'
-                    : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
-                }`}
-              >
-                {t('dynToggleLabel')}:{dynEnabled ? 'ON' : 'OFF'}
-              </button>
-            </div>
-          )}
-
-          {/* Inline SFX Studio Controls for sound_effect Blocks */}
-          {block.type === 'sound_effect' && (
-            <div className="flex flex-wrap items-center gap-1.5 bg-amber-950/30 border border-amber-700/40 rounded-md px-2 py-0.5">
-              <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <select
-                aria-label="SFX Category Preset"
-                data-testid={`sfx-category-select-${block.id}`}
-                value={block.sfxCategory ?? 'auto'}
-                onChange={(e) =>
-                  updateBlock(block.id, {
-                    sfxCategory: e.target.value as SfxCategoryPreset,
-                  })
-                }
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] font-medium text-amber-200 focus:outline-none focus:border-amber-500"
-              >
-                <option value="auto">{t('sfxPresetAuto')}</option>
-                <option value="tram_rail">{t('sfxPresetTramRail')}</option>
-                <option value="footsteps">{t('sfxPresetFootsteps')}</option>
-                <option value="weather_rain">{t('sfxPresetWeatherRain')}</option>
-                <option value="wind_storm">{t('sfxPresetWindStorm')}</option>
-                <option value="thunder">{t('sfxPresetThunder')}</option>
-                <option value="door_creak">{t('sfxPresetDoorCreak')}</option>
-                <option value="impact_knock">{t('sfxPresetImpactKnock')}</option>
-                <option value="cinematic_drone">{t('sfxPresetCinematicDrone')}</option>
-                <option value="radio_static">{t('sfxPresetRadioStatic')}</option>
-                {block.sfxCategory === 'custom_upload' && (
-                  <option value="custom_upload">
-                    {t('sfxPresetCustomUpload')}{' '}
-                    {block.customAudioFileName ? `(${block.customAudioFileName})` : ''}
-                  </option>
-                )}
-              </select>
-
-              <label className="flex items-center gap-1 text-[10px] font-mono text-amber-300/90">
-                <span>{t('sfxDurationLabel')}:</span>
-                <input
-                  type="number"
-                  data-testid={`sfx-duration-input-${block.id}`}
-                  min={1.0}
-                  max={15.0}
-                  step={0.5}
-                  value={block.sfxDurationSec ?? 3.5}
-                  onChange={(e) =>
-                    updateBlock(block.id, {
-                      sfxDurationSec: Math.min(
-                        15.0,
-                        Math.max(1.0, Number(e.target.value) || 3.5)
-                      ),
-                    })
-                  }
-                  className="w-12 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-amber-100 focus:outline-none focus:border-amber-500"
-                />
-              </label>
-
-              {/* Upload Custom Audio File (.wav, .mp3, .ogg) */}
-              <input
-                ref={sfxFileInputRef}
-                type="file"
-                accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a"
-                data-testid={`sfx-file-input-${block.id}`}
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    void importSfxAudioFile(block.id, file);
-                    e.target.value = '';
-                  }
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{
+                  backgroundColor:
+                    block.type === 'sound_effect'
+                      ? '#f59e0b'
+                      : (activeSpeaker?.color ?? '#6366f1'),
                 }}
               />
-              <button
-                type="button"
-                data-testid={`sfx-import-btn-${block.id}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  sfxFileInputRef.current?.click();
-                }}
-                title={t('importSfxTooltip')}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-amber-200 transition-colors cursor-pointer"
-              >
-                <Upload className="w-3 h-3 text-amber-400" />
-                <span>{t('importSfxBtn')}</span>
-              </button>
+              <span className="font-semibold text-slate-200 text-xs">
+                {block.type === 'sound_effect' ? 'SFX' : (activeSpeaker?.name ?? 'Narrator')}:
+              </span>
             </div>
-          )}
 
-          {/* Clean Director's Notes (Didaskalije) Input — square brackets removed from UI */}
-          <div className="flex items-center bg-slate-950/90 border border-slate-800/90 rounded-md px-2.5 py-0.5 text-xs text-indigo-300">
-            <input
-              type="text"
-              value={block.directorNotes ?? ''}
-              onChange={(e) =>
-                updateBlock(block.id, { directorNotes: e.target.value })
-              }
-              placeholder={t('directorNotesPlaceholder')}
-              className="bg-transparent text-xs text-indigo-200 placeholder:text-slate-600 focus:outline-none w-40 sm:w-56 font-mono"
-            />
-          </div>
-        </div>
-
-        {/* Right Side: Status Badge, Audio Tools, Order Buttons & Delete Block together at the top */}
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-          {statusBadge}
-
-          {/* Per-Block Audio & Waveform Regeneration / Deletion Toolbar in Top Bar */}
-          <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded-md p-0.5">
-            {/* Force Regenerate Audio & Waveform */}
-            <button
-              type="button"
-              data-testid={`regen-block-audio-${block.id}`}
-              disabled={block.ttsStatus === 'rendering'}
-              onClick={(e) => {
-                e.stopPropagation();
-                void regenerateBlockAudio(block.id);
-              }}
-              title={t('regenerateAudioTooltip')}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-indigo-300 hover:bg-indigo-950/80 hover:text-indigo-200 disabled:opacity-40 transition-colors cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span className="hidden sm:inline">{t('regenerateAudioBtn')}</span>
-            </button>
-
-            {/* Rebuild SoA Waveform Peaks */}
-            <button
-              type="button"
-              data-testid={`rebuild-block-waveform-${block.id}`}
-              disabled={block.ttsStatus === 'rendering'}
-              onClick={(e) => {
-                e.stopPropagation();
-                void rebuildBlockWaveform(block.id);
-              }}
-              title={t('rebuildWaveformTooltip')}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/80 hover:text-emerald-200 disabled:opacity-40 transition-colors cursor-pointer"
-            >
-              <Activity className="w-3 h-3" />
-              <span className="hidden sm:inline">{t('rebuildWaveformBtn')}</span>
-            </button>
-
-            {/* Delete / Clear Block Audio & Waveform Data */}
-            <button
-              type="button"
-              data-testid={`delete-block-audio-${block.id}`}
-              disabled={!hasGeneratedAudioOrPeaks || block.ttsStatus === 'rendering'}
-              onClick={(e) => {
-                e.stopPropagation();
-                void deleteBlockAudio(block.id);
-              }}
-              title={t('deleteAudioTooltip')}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-rose-300 hover:bg-rose-950/80 hover:text-rose-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-            >
-              <XCircle className="w-3 h-3" />
-              <span className="hidden sm:inline">{t('deleteAudioBtn')}</span>
-            </button>
-          </div>
-
-          {/* Reorder & Delete Block Controls */}
-          <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded-md p-0.5">
-            <button
-              type="button"
-              disabled={index === 0}
-              onClick={(e) => {
-                e.stopPropagation();
-                moveBlockRelative(block.id, 'up');
-              }}
-              title={t('moveUp')}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <ArrowUp className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              disabled={index === totalBlocks - 1}
-              onClick={(e) => {
-                e.stopPropagation();
-                moveBlockRelative(block.id, 'down');
-              }}
-              title={t('moveDown')}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <ArrowDown className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              disabled={totalBlocks <= 1}
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteBlock(block.id);
-              }}
-              title={t('deleteBlock')}
-              className="p-1 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Collapsed Compact Preview Bar */}
-      {isCollapsed && (
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800/40">
-          <div className="flex items-center gap-2 truncate mr-3">
-            <span className="font-semibold text-slate-300 shrink-0">
-              {block.type === 'sound_effect' ? 'SFX' : (activeSpeaker?.name ?? 'Narrator')}:
-            </span>
-            <span className="truncate text-slate-400 italic">
+            {/* Spoken text preview - flexes to fill available space */}
+            <span className="truncate text-slate-300 text-xs italic flex-1">
               {block.text || placeholder}
             </span>
-          </div>
-          <span className="font-mono text-[11px] text-slate-500 shrink-0">
-            {formatDurationReadout(durationSec, true)}
-          </span>
-        </div>
-      )}
 
-      {/* Expanded Block Body */}
-      {!isCollapsed && (
+            {/* Director Notes if present */}
+            {block.directorNotes && (
+              <span className="hidden md:inline-block px-1.5 py-0.2 rounded bg-indigo-950/60 border border-indigo-800/40 text-[10px] font-mono text-indigo-300 truncate max-w-[200px] shrink-0">
+                {block.directorNotes}
+              </span>
+            )}
+          </div>
+
+          {/* Right: Status badge, duration, minimal reorder & delete */}
+          <div className="flex items-center gap-2 shrink-0">
+            {statusBadge}
+
+            <span className="font-mono text-[11px] text-slate-400 tabular-nums">
+              {formatDurationReadout(durationSec, true)}
+            </span>
+
+            {/* Quick Reorder & Delete */}
+            <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded p-0.5">
+              <button
+                type="button"
+                disabled={index === 0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  moveBlockRelative(block.id, 'up');
+                }}
+                title={t('moveUp')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              >
+                <ArrowUp className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                disabled={index === totalBlocks - 1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  moveBlockRelative(block.id, 'down');
+                }}
+                title={t('moveDown')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              >
+                <ArrowDown className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                disabled={totalBlocks <= 1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteBlock(block.id);
+                }}
+                title={t('deleteBlock')}
+                className="p-0.5 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 2. Expanded Mode: Full Top Bar, Script Editor & Waveform Strip */
         <>
+          {/* Top Bar: Block Index + Collapse Toggle, Type, Speaker, Didaskalije, Status, Tools, Reorder & Delete */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
+            {/* Left Side: Collapse Button, Index, Type, Speaker, SFX Controls, Director Notes */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* Collapse / Expand Toggle Button + Index Pill */}
+              <div className="flex items-center rounded bg-slate-950 border border-slate-800 p-0.5">
+                <button
+                  type="button"
+                  data-testid={`toggle-collapse-block-${block.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateBlock(block.id, { isCollapsed: true });
+                  }}
+                  title={t('collapseBlockTooltip')}
+                  className="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+                <span className="px-1.5 py-0.5 font-mono text-[11px] font-bold text-slate-300">
+                  #{index + 1}
+                </span>
+              </div>
+
+              {/* Block Type Selector */}
+              <select
+                aria-label="Block Type"
+                value={block.type}
+                onChange={(e) =>
+                  updateBlock(block.id, { type: e.target.value as BlockType })
+                }
+                className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs font-medium text-slate-300 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="dialogue">{t('typeDialogue')}</option>
+                <option value="narration">{t('typeNarration')}</option>
+                <option value="sound_effect">{t('typeSfx')}</option>
+                <option value="direction">{t('typeDirection')}</option>
+              </select>
+
+              {/* Speaker Selector + Inline Speaker Preview & EQ/Dynamics Toggles */}
+              {(block.type === 'dialogue' || block.type === 'narration') && activeSpeaker && (
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: activeSpeaker.color }}
+                  />
+                  <select
+                    aria-label="Speaker"
+                    value={block.speakerId ?? ''}
+                    onChange={(e) =>
+                      updateBlock(block.id, { speakerId: e.target.value })
+                    }
+                    className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500"
+                  >
+                    {speakers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Inline Speaker Preview Audition Tool on Block Editor */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void previewSpeakerVoice(activeSpeaker.id, block.text);
+                    }}
+                    title={`${t('previewSpeakerVoice')}: ${activeSpeaker.name}`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-1 transition-colors cursor-pointer ${
+                      isPreviewingThisSpeaker
+                        ? 'bg-emerald-600 border-emerald-500 text-white'
+                        : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <Headphones className="w-3 h-3 text-indigo-400" />
+                    <span>{activeSpeaker.voice.baseVoice}</span>
+                  </button>
+
+                  {/* Inline Speaker EQ Toggle */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSpeakerEq(activeSpeaker.id);
+                    }}
+                    title="Toggle Speaker 3-Band Biquad EQ"
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
+                      eqEnabled
+                        ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
+                    }`}
+                  >
+                    {t('eqToggleLabel')}:{eqEnabled ? 'ON' : 'OFF'}
+                  </button>
+
+                  {/* Inline Speaker Dynamics Compressor Toggle */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSpeakerDynamics(activeSpeaker.id);
+                    }}
+                    title="Toggle Speaker Dynamics Compressor"
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
+                      dynEnabled
+                        ? 'bg-emerald-950/70 border-emerald-700/60 text-emerald-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
+                    }`}
+                  >
+                    {t('dynToggleLabel')}:{dynEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+              )}
+
+              {/* Inline SFX Studio Controls for sound_effect Blocks */}
+              {block.type === 'sound_effect' && (
+                <div className="flex flex-wrap items-center gap-1.5 bg-amber-950/30 border border-amber-700/40 rounded px-2 py-0.5">
+                  <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <select
+                    aria-label="SFX Category Preset"
+                    data-testid={`sfx-category-select-${block.id}`}
+                    value={block.sfxCategory ?? 'auto'}
+                    onChange={(e) =>
+                      updateBlock(block.id, {
+                        sfxCategory: e.target.value as SfxCategoryPreset,
+                      })
+                    }
+                    className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-200 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="auto">{t('sfxPresetAuto')}</option>
+                    <option value="tram_rail">{t('sfxPresetTramRail')}</option>
+                    <option value="footsteps">{t('sfxPresetFootsteps')}</option>
+                    <option value="weather_rain">{t('sfxPresetWeatherRain')}</option>
+                    <option value="wind_storm">{t('sfxPresetWindStorm')}</option>
+                    <option value="thunder">{t('sfxPresetThunder')}</option>
+                    <option value="door_creak">{t('sfxPresetDoorCreak')}</option>
+                    <option value="impact_knock">{t('sfxPresetImpactKnock')}</option>
+                    <option value="cinematic_drone">{t('sfxPresetCinematicDrone')}</option>
+                    <option value="radio_static">{t('sfxPresetRadioStatic')}</option>
+                    {block.sfxCategory === 'custom_upload' && (
+                      <option value="custom_upload">
+                        {t('sfxPresetCustomUpload')}{' '}
+                        {block.customAudioFileName ? `(${block.customAudioFileName})` : ''}
+                      </option>
+                    )}
+                  </select>
+
+                  <label className="flex items-center gap-1 text-[10px] font-mono text-amber-300/90">
+                    <span>{t('sfxDurationLabel')}:</span>
+                    <input
+                      type="number"
+                      data-testid={`sfx-duration-input-${block.id}`}
+                      min={1.0}
+                      max={15.0}
+                      step={0.5}
+                      value={block.sfxDurationSec ?? 3.5}
+                      onChange={(e) =>
+                        updateBlock(block.id, {
+                          sfxDurationSec: Math.min(
+                            15.0,
+                            Math.max(1.0, Number(e.target.value) || 3.5)
+                          ),
+                        })
+                      }
+                      className="w-12 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-amber-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </label>
+
+                  {/* Upload Custom Audio File (.wav, .mp3, .ogg) */}
+                  <input
+                    ref={sfxFileInputRef}
+                    type="file"
+                    accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a"
+                    data-testid={`sfx-file-input-${block.id}`}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        void importSfxAudioFile(block.id, file);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    data-testid={`sfx-import-btn-${block.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sfxFileInputRef.current?.click();
+                    }}
+                    title={t('importSfxTooltip')}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-amber-200 transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-3 h-3 text-amber-400" />
+                    <span>{t('importSfxBtn')}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Clean Director's Notes (Didaskalije) Input */}
+              <div className="flex items-center bg-slate-950/90 border border-slate-800/90 rounded px-2 py-0.5 text-xs text-indigo-300">
+                <input
+                  type="text"
+                  value={block.directorNotes ?? ''}
+                  onChange={(e) =>
+                    updateBlock(block.id, { directorNotes: e.target.value })
+                  }
+                  placeholder={t('directorNotesPlaceholder')}
+                  className="bg-transparent text-xs text-indigo-200 placeholder:text-slate-600 focus:outline-none w-36 sm:w-52 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Right Side: Status Badge, Audio Tools, Order Buttons & Delete Block together at the top */}
+            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+              {statusBadge}
+
+              {/* Per-Block Audio & Waveform Regeneration / Deletion Toolbar in Top Bar */}
+              <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded p-0.5">
+                {/* Force Regenerate Audio & Waveform */}
+                <button
+                  type="button"
+                  data-testid={`regen-block-audio-${block.id}`}
+                  disabled={block.ttsStatus === 'rendering'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void regenerateBlockAudio(block.id);
+                  }}
+                  title={t('regenerateAudioTooltip')}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-indigo-300 hover:bg-indigo-950/80 hover:text-indigo-200 disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span className="hidden sm:inline">{t('regenerateAudioBtn')}</span>
+                </button>
+
+                {/* Rebuild SoA Waveform Peaks */}
+                <button
+                  type="button"
+                  data-testid={`rebuild-block-waveform-${block.id}`}
+                  disabled={block.ttsStatus === 'rendering'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void rebuildBlockWaveform(block.id);
+                  }}
+                  title={t('rebuildWaveformTooltip')}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/80 hover:text-emerald-200 disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  <Activity className="w-3 h-3" />
+                  <span className="hidden sm:inline">{t('rebuildWaveformBtn')}</span>
+                </button>
+
+                {/* Delete / Clear Block Audio & Waveform Data */}
+                <button
+                  type="button"
+                  data-testid={`delete-block-audio-${block.id}`}
+                  disabled={!hasGeneratedAudioOrPeaks || block.ttsStatus === 'rendering'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void deleteBlockAudio(block.id);
+                  }}
+                  title={t('deleteAudioTooltip')}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-rose-300 hover:bg-rose-950/80 hover:text-rose-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                >
+                  <XCircle className="w-3 h-3" />
+                  <span className="hidden sm:inline">{t('deleteAudioBtn')}</span>
+                </button>
+              </div>
+
+              {/* Reorder & Delete Block Controls */}
+              <div className="flex items-center gap-0.5 bg-slate-950/90 border border-slate-800/90 rounded p-0.5">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveBlockRelative(block.id, 'up');
+                  }}
+                  title={t('moveUp')}
+                  className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={index === totalBlocks - 1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveBlockRelative(block.id, 'down');
+                  }}
+                  title={t('moveDown')}
+                  className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={totalBlocks <= 1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteBlock(block.id);
+                  }}
+                  title={t('deleteBlock')}
+                  className="p-0.5 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
 
       {/* Script Textarea + Live Karaoke Word Synchronizer Strip */}
       <div className="mb-2.5 space-y-1.5">

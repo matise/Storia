@@ -13,9 +13,12 @@ import {
 import { recalculateProjectTimeline } from '../../core/pacing/pacingCalculator';
 import { stopAllAudioPlayback } from '../../core/dsp/LiveAudioPreviewer';
 import {
+  createEmptyPlaceholderProject,
   hydrateProjectTimeline,
   persistProject,
   persistSettings,
+  PROJECTS_LIBRARY_STORAGE_KEY,
+  PROJECT_STORAGE_KEY,
 } from '../projectPersistence';
 import {
   ProjectPropertiesPatch,
@@ -35,6 +38,7 @@ export type ProjectLibrarySlice = Pick<
   | 'duplicateProject'
   | 'deleteProject'
   | 'deleteProjectsBulk'
+  | 'clearEntireLibrary'
   | 'undo'
   | 'redo'
   | 'resetToSampleProject'
@@ -389,6 +393,33 @@ export function createProjectLibrarySlice({
         project: nextActive,
         projects: finalLib,
         selectedBlockId: nextActive.blocks[0]?.id ?? null,
+      });
+    },
+
+    clearEntireLibrary: () => {
+      stopAllAudioPlayback();
+      singletonHistory.clear();
+
+      try {
+        localStorage.removeItem(PROJECT_STORAGE_KEY);
+        localStorage.setItem(PROJECTS_LIBRARY_STORAGE_KEY, JSON.stringify([]));
+      } catch {
+        // ignore
+      }
+
+      const emptyProject = createEmptyPlaceholderProject();
+
+      set({
+        project: emptyProject,
+        projects: [],
+        selectedBlockId: null,
+        editingSpeakerId: null,
+        previewingSpeakerId: null,
+        playingBlockId: null,
+        ttsErrorMessage: null,
+        undoCount: 0,
+        redoCount: 0,
+        isEpisodePropertiesModalOpen: true,
       });
     },
 

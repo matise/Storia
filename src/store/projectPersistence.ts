@@ -54,6 +54,42 @@ export function loadInitialProjectsLibrary(): Project[] {
   return createInitialProjectLibrary();
 }
 
+export function createEmptyPlaceholderProject(): Project {
+  return {
+    id: 'empty_library_placeholder',
+    title: 'No Episode Loaded',
+    description: '',
+    defaultLanguage: 'hr',
+    dialect: 'standard',
+    dubrovnikRegister: 'contemporary',
+    speakers: [],
+    blocks: [],
+    researchNotebook: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    metadata: {
+      author: '',
+      genre: '',
+      targetWpm: 140,
+    },
+    audioConfig: {
+      sampleRate: 48000,
+      bitDepth: 24,
+      dither: 'tpdf',
+      targetLufs: -16,
+      truePeakLimitDb: -1,
+    },
+    aiSettings: {
+      textModel: 'gemini-2.5-flash',
+      ttsModel: 'gemini-2.5-flash-preview-tts',
+      ttsProvider: 'gemini_tts',
+      temperature: 0.7,
+      audioOutputFormat: 'pcm_48khz',
+    },
+    auxBusses: [createDefaultMainAuxBus()],
+  };
+}
+
 export function loadInitialProject(library: Project[]): Project {
   try {
     const raw = localStorage.getItem(PROJECT_STORAGE_KEY);
@@ -66,7 +102,7 @@ export function loadInitialProject(library: Project[]): Project {
   } catch {
     // Fallback to first project in library
   }
-  return library[0] ?? createSampleProject();
+  return library[0] ?? createEmptyPlaceholderProject();
 }
 
 export function loadInitialSettings(defaultProjectId: string): AppSettings {

@@ -174,4 +174,56 @@ describe('Multi-Project (Episode) Studio Library & Episode Properties UI', () =>
     fireEvent.click(checkEp2);
     expect(exportSelectedBtn.textContent).toContain('2');
   });
+
+  it('completely clears the library, displays empty-state modal and studio hero, and restores or creates new episode', () => {
+    useStoriaStore.getState().resetToSampleProject();
+    render(<App />);
+
+    // 1. Open Episode Properties Modal and trigger Clear Entire Library
+    const openModalBtn = screen.getByTestId('open-episode-properties-btn');
+    fireEvent.click(openModalBtn);
+
+    const clearEntireBtn = screen.getByTestId('library-toolbar-clear-entire-btn');
+    fireEvent.click(clearEntireBtn);
+
+    // Confirmation banner should appear
+    const confirmClearBtn = screen.getByTestId('confirm-clear-entire-library-btn');
+    expect(confirmClearBtn).toBeDefined();
+    fireEvent.click(confirmClearBtn);
+
+    // Verify library is completely empty
+    expect(useStoriaStore.getState().projects.length).toBe(0);
+
+    // Verify modal empty card and disabled properties notice
+    expect(screen.getByTestId('library-empty-state-card')).toBeDefined();
+    expect(screen.getByTestId('no-active-episode-notice')).toBeDefined();
+
+    // 2. Close modal via close button -> App should render studio-empty-library-hero
+    const closeBtn = screen.getByTestId('close-episode-properties-btn');
+    fireEvent.click(closeBtn);
+    expect(screen.getByTestId('studio-empty-library-hero')).toBeDefined();
+
+    // 3. Click "Create Episode" button in empty studio hero
+    const heroCreateBtn = screen.getByTestId('hero-create-episode-btn');
+    fireEvent.click(heroCreateBtn);
+
+    // Now library has 1 project, studio is unlocked
+    expect(useStoriaStore.getState().projects.length).toBe(1);
+    expect(screen.queryByTestId('studio-empty-library-hero')).toBeNull();
+
+    // 4. Open modal, clear library again, close modal and test Restore Samples button in hero
+    const openModalAgainBtn = screen.getByTestId('open-episode-properties-btn');
+    fireEvent.click(openModalAgainBtn);
+    fireEvent.click(screen.getByTestId('library-toolbar-clear-entire-btn'));
+    fireEvent.click(screen.getByTestId('confirm-clear-entire-library-btn'));
+    expect(useStoriaStore.getState().projects.length).toBe(0);
+
+    fireEvent.click(screen.getByTestId('close-episode-properties-btn'));
+    const heroRestoreBtn = screen.getByTestId('hero-restore-samples-btn');
+    fireEvent.click(heroRestoreBtn);
+
+    // Samples restored
+    expect(useStoriaStore.getState().projects.length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByTestId('studio-empty-library-hero')).toBeNull();
+  });
 });

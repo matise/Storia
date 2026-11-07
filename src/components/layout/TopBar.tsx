@@ -85,20 +85,26 @@ export const TopBar: React.FC = () => {
             <select
               aria-label={t('episodeLabel')}
               data-testid="episode-switcher-select"
-              title={project.title}
+              title={project.title || 'No Episode'}
               value={project.id}
               onChange={(e) => switchProject(e.target.value)}
               className="w-44 bg-transparent text-xs text-slate-100 font-medium focus:outline-none truncate cursor-pointer py-0.5"
             >
-              {projects.map((ep) => (
-                <option
-                  key={ep.id}
-                  value={ep.id}
-                  className="bg-slate-900 text-slate-100"
-                >
-                  {ep.title}
+              {projects.length === 0 ? (
+                <option value="" className="bg-slate-900 text-slate-400">
+                  (No episode)
                 </option>
-              ))}
+              ) : (
+                projects.map((ep) => (
+                  <option
+                    key={ep.id}
+                    value={ep.id}
+                    className="bg-slate-900 text-slate-100"
+                  >
+                    {ep.title}
+                  </option>
+                ))
+              )}
             </select>
 
             <button

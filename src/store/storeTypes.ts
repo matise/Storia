@@ -144,6 +144,7 @@ export interface StoriaStoreState {
   duplicateProject: (projectId?: string) => Project;
   deleteProject: (projectId: string) => void;
   deleteProjectsBulk: (projectIds: string[]) => void;
+  clearEntireLibrary: () => void;
   importProjectsBundle: (projects: Project[], activateFirst?: boolean) => number;
 
   // Command-backed mutations

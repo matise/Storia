@@ -40,6 +40,7 @@ export const ProjectPropertiesModal: React.FC = () => {
   const duplicateProject = useStoriaStore((s) => s.duplicateProject);
   const deleteProject = useStoriaStore((s) => s.deleteProject);
   const deleteProjectsBulk = useStoriaStore((s) => s.deleteProjectsBulk);
+  const clearEntireLibrary = useStoriaStore((s) => s.clearEntireLibrary);
   const importProjectsBundle = useStoriaStore((s) => s.importProjectsBundle);
   const resetToSampleProject = useStoriaStore((s) => s.resetToSampleProject);
   const updateProjectProperties = useStoriaStore((s) => s.updateProjectProperties);
@@ -54,6 +55,7 @@ export const ProjectPropertiesModal: React.FC = () => {
   // Dialog & Notification state
   const [showConfirmReset, setShowConfirmReset] = React.useState<boolean>(false);
   const [showConfirmDeleteSelected, setShowConfirmDeleteSelected] = React.useState<boolean>(false);
+  const [showConfirmClearEntire, setShowConfirmClearEntire] = React.useState<boolean>(false);
   const [importNotification, setImportNotification] = React.useState<{
     type: 'success' | 'error';
     message: string;
@@ -398,6 +400,18 @@ export const ProjectPropertiesModal: React.FC = () => {
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
+
+                {projects.length > 0 && (
+                  <button
+                    type="button"
+                    data-testid="library-toolbar-clear-entire-btn"
+                    onClick={() => setShowConfirmClearEntire(true)}
+                    title={t('clearEntireLibraryBtn')}
+                    className="p-1.5 rounded-md hover:bg-rose-950/70 border border-transparent hover:border-rose-700/60 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -421,7 +435,7 @@ export const ProjectPropertiesModal: React.FC = () => {
               </div>
             )}
 
-            {/* Confirmation Banner: Reset Library */}
+            {/* Confirmation Banner: Reset Library to Samples */}
             {showConfirmReset && (
               <div className="p-3 rounded-lg bg-amber-950/70 border border-amber-600/70 text-amber-200 space-y-2">
                 <div className="flex items-center gap-1.5 font-semibold text-xs">
@@ -440,6 +454,37 @@ export const ProjectPropertiesModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowConfirmReset(false)}
+                    className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs cursor-pointer border border-slate-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation Banner: Clear Entire Library (Delete All) */}
+            {showConfirmClearEntire && (
+              <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-700 text-rose-200 space-y-2">
+                <div className="flex items-center gap-1.5 font-semibold text-xs">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{t('confirmClearEntireLibrary')}</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    data-testid="confirm-clear-entire-library-btn"
+                    onClick={() => {
+                      clearEntireLibrary();
+                      setSelectedEpisodeIds(new Set());
+                      setShowConfirmClearEntire(false);
+                    }}
+                    className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs cursor-pointer shadow-xs"
+                  >
+                    {t('clearEntireLibraryBtn')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmClearEntire(false)}
                     className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs cursor-pointer border border-slate-700"
                   >
                     Cancel

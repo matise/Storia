@@ -233,6 +233,12 @@ export interface TranslationDictionary {
   exportAllEpisodesBtn: string;
   exportSelectedEpisodesBtn: string;
   clearLibraryBtn: string;
+  clearEntireLibraryBtn: string;
+  confirmClearEntireLibrary: string;
+  emptyLibraryHeadline: string;
+  emptyLibraryLead: string;
+  createFirstEpisodeBtn: string;
+  restoreSamplesBtn: string;
   deleteSelectedBtn: string;
   searchEpisodesPlaceholder: string;
   selectAll: string;
@@ -593,6 +599,12 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     exportAllEpisodesBtn: 'Export All',
     exportSelectedEpisodesBtn: 'Export Selected',
     clearLibraryBtn: 'Reset Library',
+    clearEntireLibraryBtn: 'Clear Entire Library (Delete All)',
+    confirmClearEntireLibrary: 'Are you sure you want to delete ALL episodes? Your library will be completely empty until an episode is created or imported.',
+    emptyLibraryHeadline: 'Your Studio Library is Empty',
+    emptyLibraryLead: 'Create your first episode, import a project JSON bundle, or explore built-in starter templates.',
+    createFirstEpisodeBtn: '+ Create First Episode',
+    restoreSamplesBtn: 'Restore Built-In Samples',
     deleteSelectedBtn: 'Delete Selected',
     searchEpisodesPlaceholder: 'Search episodes by title, genre, author...',
     selectAll: 'Select All',
@@ -946,6 +958,12 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     exportAllEpisodesBtn: 'Izvezi sve',
     exportSelectedEpisodesBtn: 'Izvezi odabrano',
     clearLibraryBtn: 'Resetiraj knjižnicu',
+    clearEntireLibraryBtn: 'Isprazni cijelu knjižnicu (Obriši sve)',
+    confirmClearEntireLibrary: 'Jeste li sigurni da želite obrisati SVE epizode? Vaša knjižnica bit će potpuno prazna dok ne stvorite ili uvezete epizodu.',
+    emptyLibraryHeadline: 'Vaša studijska knjižnica je prazna',
+    emptyLibraryLead: 'Stvorite svoju prvu epizodu, uvezite JSON paket projekta ili istražite ugrađene početne predloške.',
+    createFirstEpisodeBtn: '+ Stvori prvu epizodu',
+    restoreSamplesBtn: 'Vrati ugrađene primjere',
     deleteSelectedBtn: 'Obriši odabrano',
     searchEpisodesPlaceholder: 'Traži epizode po naslovu, žanru, autoru...',
     selectAll: 'Odaberi sve',

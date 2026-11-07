@@ -8,6 +8,7 @@ import { ApiKeyModal } from './components/modals/ApiKeyModal';
 import { ProjectPropertiesModal } from './components/modals/ProjectPropertiesModal';
 import { ExportMasterModal } from './components/modals/ExportMasterModal';
 import { AuxBusRackModal } from './components/modals/AuxBusRackModal';
+import { FolderKanban, FolderPlus, Plus, RotateCcw } from 'lucide-react';
 import { useStoriaStore } from './store/useStoriaStore';
 import { useTranslation } from './i18n/useTranslation';
 
@@ -29,6 +30,11 @@ export const App: React.FC = () => {
   const assignSpeakerByHotkey = useStoriaStore((s) => s.assignSpeakerByHotkey);
   const moveBlockRelative = useStoriaStore((s) => s.moveBlockRelative);
   const syncCacheStatuses = useStoriaStore((s) => s.syncCacheStatuses);
+  const projects = useStoriaStore((s) => s.projects);
+  const isEpisodePropertiesModalOpen = useStoriaStore((s) => s.isEpisodePropertiesModalOpen);
+  const setEpisodePropertiesModalOpen = useStoriaStore((s) => s.setEpisodePropertiesModalOpen);
+  const createProject = useStoriaStore((s) => s.createProject);
+  const resetToSampleProject = useStoriaStore((s) => s.resetToSampleProject);
 
   // Scalable Panels Width State with LocalStorage Persistence
   const [leftWidth, setLeftWidth] = React.useState<number>(() => {
@@ -240,13 +246,15 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, selectedBlockId, assignSpeakerByHotkey, moveBlockRelative]);
 
+  const isLibraryEmpty = projects.length === 0;
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden relative">
       <TopBar />
       <div
-        className={`flex-1 flex min-h-0 overflow-hidden ${
+        className={`flex-1 flex min-h-0 overflow-hidden relative ${
           isDraggingLeft || isDraggingRight ? 'select-none cursor-col-resize' : ''
-        }`}
+        } ${isLibraryEmpty ? 'pointer-events-none opacity-20 filter blur-[1px] select-none' : ''}`}
       >
         <CastSidebar width={leftWidth} />
 
@@ -286,6 +294,53 @@ export const App: React.FC = () => {
 
         <AgentDock width={rightWidth} />
       </div>
+
+      {/* Empty Library Studio Hero Overlay */}
+      {isLibraryEmpty && !isEpisodePropertiesModalOpen && (
+        <div
+          data-testid="studio-empty-library-hero"
+          className="absolute inset-0 top-14 z-30 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md"
+        >
+          <div className="max-w-md w-full p-8 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl text-center space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 mx-auto flex items-center justify-center shadow-inner">
+              <FolderPlus className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-slate-100">{t('emptyLibraryHeadline')}</h2>
+              <p className="text-sm text-slate-400">{t('emptyLibraryLead')}</p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                data-testid="hero-create-episode-btn"
+                onClick={() => createProject()}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-950/40"
+              >
+                <Plus className="w-4 h-4" />
+                {t('createFirstEpisodeBtn')}
+              </button>
+              <button
+                type="button"
+                data-testid="hero-open-library-btn"
+                onClick={() => setEpisodePropertiesModalOpen(true)}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-medium text-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <FolderKanban className="w-4 h-4" />
+                {t('episodesLibraryTitle')}
+              </button>
+              <button
+                type="button"
+                data-testid="hero-restore-samples-btn"
+                onClick={() => resetToSampleProject()}
+                className="w-full py-2 px-4 rounded-xl bg-transparent hover:bg-slate-800/60 text-amber-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {t('restoreSamplesBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <SpeakerConfigModal />
       <ApiKeyModal />
       <ProjectPropertiesModal />

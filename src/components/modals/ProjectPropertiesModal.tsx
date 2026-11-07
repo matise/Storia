@@ -3,13 +3,17 @@ import {
   Copy,
   FolderKanban,
   Globe,
+  Loader2,
   Plus,
   Settings2,
+  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
 import { useStoriaStore } from '../../store/useStoriaStore';
 import { useTranslation } from '../../i18n/useTranslation';
+import { getApiKey } from '../../core/storage/keyVault';
+import { generateEpisodeBlueprintWithAi } from '../../services/geminiAgentService';
 
 export const ProjectPropertiesModal: React.FC = () => {
   const { t } = useTranslation();
@@ -23,7 +27,89 @@ export const ProjectPropertiesModal: React.FC = () => {
   const deleteProject = useStoriaStore((s) => s.deleteProject);
   const updateProjectProperties = useStoriaStore((s) => s.updateProjectProperties);
 
+  const [aiEpisodePrompt, setAiEpisodePrompt] = React.useState<string>('');
+  const [isAiGenerating, setIsAiGenerating] = React.useState<boolean>(false);
+  const [aiEpisodeRationale, setAiEpisodeRationale] = React.useState<string | null>(
+    null
+  );
+
   if (!isOpen) return null;
+
+  const handleGenerateFullAiEpisode = async (overridePrompt?: string) => {
+    if (isAiGenerating) return;
+    const effectivePrompt = (overridePrompt ?? aiEpisodePrompt).trim();
+    if (overridePrompt !== undefined) {
+      setAiEpisodePrompt(overridePrompt);
+    }
+
+    setIsAiGenerating(true);
+    try {
+      const blueprint = await generateEpisodeBlueprintWithAi({
+        prompt: effectivePrompt,
+        language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
+        episodeNumber: projects.length + 1,
+        apiKey: getApiKey(),
+        textModel: project.aiSettings.textModel,
+      });
+
+      createProject({
+        title: blueprint.title,
+        description: blueprint.description,
+        defaultLanguage: blueprint.defaultLanguage,
+        dialect: blueprint.dialect,
+        dubrovnikRegister: blueprint.dubrovnikRegister,
+        genre: blueprint.genre,
+        author: blueprint.author,
+        targetWpm: blueprint.targetWpm,
+        targetLufs: blueprint.targetLufs,
+        speakers: blueprint.speakers,
+        blocks: blueprint.blocks,
+      });
+      setAiEpisodeRationale(blueprint.rationale);
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const handleAiFillActiveProperties = async () => {
+    if (isAiGenerating) return;
+    const fallbackContext =
+      aiEpisodePrompt.trim() ||
+      project.blocks
+        .slice(0, 4)
+        .map((b) => b.text)
+        .join(' ');
+
+    setIsAiGenerating(true);
+    try {
+      const blueprint = await generateEpisodeBlueprintWithAi({
+        prompt: fallbackContext,
+        language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
+        episodeNumber: Math.max(
+          1,
+          projects.findIndex((p) => p.id === project.id) + 1
+        ),
+        apiKey: getApiKey(),
+        textModel: project.aiSettings.textModel,
+      });
+
+      updateProjectProperties({
+        title: blueprint.title,
+        description: blueprint.description,
+        genre: blueprint.genre,
+        author: blueprint.author,
+        targetWpm: blueprint.targetWpm,
+        targetLufs: blueprint.targetLufs,
+      });
+      setAiEpisodeRationale(blueprint.rationale);
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
@@ -131,6 +217,122 @@ export const ProjectPropertiesModal: React.FC = () => {
 
           {/* Right Column: Active Episode Properties Editor (7 cols) */}
           <div className="md:col-span-7 space-y-3.5">
+            {/* Gemini AI Episode Architect Card */}
+            <div
+              data-testid="ai-episode-architect-panel"
+              className="p-3 rounded-lg bg-gradient-to-b from-indigo-950/40 via-slate-950 to-slate-950 border border-indigo-500/40 space-y-2.5 shadow-sm"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>{t('aiEpisodeArchitectTitle')}</span>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                data-testid="ai-episode-prompt-input"
+                value={aiEpisodePrompt}
+                onChange={(e) => setAiEpisodePrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleGenerateFullAiEpisode();
+                  }
+                }}
+                placeholder={t('aiEpisodePromptPlaceholder')}
+                className="w-full bg-slate-900/95 border border-slate-700/80 rounded px-2.5 py-1.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+
+              {/* Quick Episode Concept Chips */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  data-testid="ai-episode-template-podcast-btn"
+                  onClick={() =>
+                    setAiEpisodePrompt(
+                      project.defaultLanguage === 'hr'
+                        ? 'Analitički podcast o protudronskoj obrani i skrivenoj arhitekturi sustava'
+                        : 'Investigative podcast debating autonomous drone defense and analog-digital architectures'
+                    )
+                  }
+                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                >
+                  🎙️ {t('aiTemplatePodcast')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="ai-episode-template-dubrovnik-btn"
+                  onClick={() =>
+                    setAiEpisodePrompt(
+                      project.defaultLanguage === 'hr'
+                        ? 'Noćna tajna u kamenim svodovima starog Dubrovnika za vrijeme bure'
+                        : 'Midnight mystery in the stone quarantine vaults of old Dubrovnik during a coastal storm'
+                    )
+                  }
+                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                >
+                  🏰 {t('aiTemplateDubrovnikDrama')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="ai-episode-template-scifi-btn"
+                  onClick={() =>
+                    setAiEpisodePrompt(
+                      project.defaultLanguage === 'hr'
+                        ? 'Sci-Fi triler o dekodiranju nepoznatog signala na izoliranoj postaji'
+                        : 'Sci-Fi thriller decoding an anomalous deep-spectrum carrier signal at an isolated station'
+                    )
+                  }
+                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                >
+                  🛰️ {t('aiTemplateSciFiThriller')}
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                <button
+                  type="button"
+                  data-testid="ai-create-full-episode-btn"
+                  disabled={isAiGenerating}
+                  onClick={() => void handleGenerateFullAiEpisode()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 disabled:opacity-50 text-white font-semibold transition-all cursor-pointer shadow-xs"
+                >
+                  {isAiGenerating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>{t('aiEpisodeGeneratingBtn')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{t('aiCreateFullEpisodeBtn')}</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="ai-fill-episode-props-btn"
+                  disabled={isAiGenerating}
+                  onClick={() => void handleAiFillActiveProperties()}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-indigo-500/50 text-indigo-200 font-medium transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className="w-3 h-3 text-indigo-400" />
+                  <span>{t('aiFillActiveEpisodeBtn')}</span>
+                </button>
+              </div>
+
+              {aiEpisodeRationale && (
+                <div
+                  data-testid="ai-episode-rationale-banner"
+                  className="px-2.5 py-1.5 rounded bg-emerald-950/50 border border-emerald-700/50 text-[11px] text-emerald-200 leading-relaxed"
+                >
+                  {aiEpisodeRationale}
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-300">
               <Settings2 className="w-3.5 h-3.5" />
               <span>{t('episodePropertiesBtn')}</span>

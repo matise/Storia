@@ -1,5 +1,6 @@
 import {
   GeminiTtsModelId,
+  normalizeGeminiVoiceName,
   ScriptBlock,
   ScriptTimepoint,
   Speaker,
@@ -520,7 +521,10 @@ export async function synthesizeGeminiAudioWithPeaks({
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
-                voiceName: speaker?.voice.baseVoice || 'Kore',
+                voiceName: normalizeGeminiVoiceName(
+                  speaker?.voice.baseVoice,
+                  speaker?.gender
+                ),
               },
             },
           },

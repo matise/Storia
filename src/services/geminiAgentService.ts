@@ -33,3 +33,16 @@ export {
   buildFallbackBilingualAdaptation,
   adaptBlockBilingually,
 } from './agent/bilingualAdapterAgent';
+
+export {
+  type SpeakerArchetypePresetId,
+  buildSpeakerDspSystemPrompt,
+  buildFallbackSpeakerDspDesign,
+  designSpeakerProfileWithAi,
+} from './agent/speakerDspArchitectAgent';
+
+export {
+  buildEpisodeArchitectSystemPrompt,
+  buildFallbackEpisodeBlueprint,
+  generateEpisodeBlueprintWithAi,
+} from './agent/episodeArchitectAgent';

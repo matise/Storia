@@ -1,8 +1,20 @@
 import React from 'react';
-import { Headphones, Play, Sliders, Square, Trash2, X, Mic, FileText } from 'lucide-react';
 import {
-  GEMINI_BASE_VOICES,
+  Headphones,
+  Play,
+  Sliders,
+  Square,
+  Trash2,
+  X,
+  Mic,
+  FileText,
+  Sparkles,
+  Loader2,
+} from 'lucide-react';
+import {
+  GEMINI_VOICE_CATALOG,
   Gender,
+  normalizeGeminiVoiceName,
   Speaker,
   AudioEffectConfig,
   BiquadEqEffectConfig,
@@ -14,6 +26,8 @@ import {
   getAvailableBrowserVoices,
   updateLiveDspIfPlaying,
 } from '../../core/dsp/LiveAudioPreviewer';
+import { getApiKey } from '../../core/storage/keyVault';
+import { designSpeakerProfileWithAi } from '../../services/geminiAgentService';
 import { EffectStackEditor } from '../dsp/EffectStackEditor';
 
 export const SpeakerConfigModal: React.FC = () => {
@@ -32,6 +46,10 @@ export const SpeakerConfigModal: React.FC = () => {
   const [samplePhrase, setSamplePhrase] = React.useState<string>('');
   const [browserVoices, setBrowserVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   const [activeTab, setActiveTab] = React.useState<'voice' | 'dsp' | 'persona'>('voice');
+  const [aiPrompt, setAiPrompt] = React.useState<string>('');
+  const [aiScope, setAiScope] = React.useState<'all' | 'dsp' | 'voice_persona'>('all');
+  const [isAiDesigning, setIsAiDesigning] = React.useState<boolean>(false);
+  const [aiRationale, setAiRationale] = React.useState<string | null>(null);
   const currentLoadedSpeakerIdRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
@@ -61,6 +79,8 @@ export const SpeakerConfigModal: React.FC = () => {
                 : `Hello, I am ${speaker.name}. Testing vocal timbre and Biquad EQ in the studio.`)
           );
           setActiveTab(editingSpeakerInitialTab ?? 'voice');
+          setAiPrompt('');
+          setAiRationale(null);
         } else {
           setDraft(null);
         }
@@ -68,6 +88,8 @@ export const SpeakerConfigModal: React.FC = () => {
     } else {
       currentLoadedSpeakerIdRef.current = null;
       setDraft(null);
+      setAiPrompt('');
+      setAiRationale(null);
     }
   }, [editingSpeakerId, editingSpeakerInitialTab, project.speakers, project.blocks, project.defaultLanguage]);
 
@@ -171,6 +193,89 @@ export const SpeakerConfigModal: React.FC = () => {
       m.id === moduleId ? ({ ...m, ...updates } as AudioEffectConfig) : m
     );
     handleUpdateEffectStack(nextStack);
+  };
+
+  const handleRunAiSpeakerArchitect = async (overridePrompt?: string) => {
+    if (!draft || isAiDesigning) return;
+    const effectivePrompt = (overridePrompt ?? aiPrompt).trim();
+    if (overridePrompt !== undefined) {
+      setAiPrompt(overridePrompt);
+    }
+
+    setIsAiDesigning(true);
+    try {
+      const design = await designSpeakerProfileWithAi({
+        prompt: effectivePrompt,
+        speaker: draft,
+        language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
+        apiKey: getApiKey(),
+        textModel: project.aiSettings.textModel,
+      });
+
+      const applyVoicePersona = aiScope === 'all' || aiScope === 'voice_persona';
+      const applyDsp = aiScope === 'all' || aiScope === 'dsp';
+
+      const eqMod = design.effectStack.find(
+        (m) => m.type === 'biquad_eq'
+      ) as BiquadEqEffectConfig | undefined;
+      const dynMod = design.effectStack.find(
+        (m) => m.type === 'dynamics_compressor'
+      ) as DynamicsEffectConfig | undefined;
+
+      const nextAcoustics = applyDsp
+        ? {
+            ...draft.voice.acoustics,
+            effectStack: design.effectStack,
+            biquadEq: eqMod
+              ? {
+                  enabled: eqMod.enabled,
+                  lowShelfGainDb: eqMod.lowShelfGainDb,
+                  midPeakGainDb: eqMod.midPeakGainDb,
+                  highShelfGainDb: eqMod.highShelfGainDb,
+                }
+              : draft.voice.acoustics.biquadEq,
+            compression: dynMod
+              ? {
+                  enabled: dynMod.enabled,
+                  thresholdDb: dynMod.thresholdDb,
+                  ratio: dynMod.ratio,
+                  attackMs: dynMod.attackMs,
+                  releaseMs: dynMod.releaseMs,
+                }
+              : draft.voice.acoustics.compression,
+          }
+        : draft.voice.acoustics;
+
+      const nextDraft: Speaker = {
+        ...draft,
+        gender: applyVoicePersona ? design.gender : draft.gender,
+        age: applyVoicePersona ? design.age : draft.age,
+        personaPrompt: applyVoicePersona ? design.personaPrompt : draft.personaPrompt,
+        actingNotes: applyVoicePersona ? design.actingNotes : draft.actingNotes,
+        voice: {
+          ...draft.voice,
+          baseVoice: applyVoicePersona ? design.baseVoice : draft.voice.baseVoice,
+          speakingRate: applyVoicePersona
+            ? design.speakingRate
+            : draft.voice.speakingRate,
+          pitchAdjustment: applyVoicePersona
+            ? design.pitchAdjustment
+            : draft.voice.pitchAdjustment,
+          stylePrompt: applyVoicePersona ? design.stylePrompt : draft.voice.stylePrompt,
+          acoustics: nextAcoustics,
+        },
+      };
+
+      updateDraft(nextDraft);
+      if (applyVoicePersona && design.samplePhrase) {
+        setSamplePhrase(design.samplePhrase);
+      }
+      setAiRationale(design.acousticRationale);
+    } finally {
+      setIsAiDesigning(false);
+    }
   };
 
   const handleSave = (e?: React.FormEvent) => {
@@ -302,6 +407,133 @@ export const SpeakerConfigModal: React.FC = () => {
             />
           </div>
 
+          {/* Gemini AI Voice, Persona & DSP Architect Panel */}
+          <div
+            data-testid="ai-speaker-architect-panel"
+            className="p-3 rounded-lg bg-gradient-to-b from-indigo-950/35 via-slate-950 to-slate-950 border border-indigo-500/40 space-y-2.5 shadow-sm"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{t('aiSpeakerArchitectTitle')}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <select
+                  aria-label="AI Speaker Scope"
+                  data-testid="ai-speaker-scope-select"
+                  value={aiScope}
+                  onChange={(e) =>
+                    setAiScope(e.target.value as 'all' | 'dsp' | 'voice_persona')
+                  }
+                  className="bg-slate-900 border border-slate-700/80 rounded px-2 py-1 text-[11px] text-indigo-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="all">{t('aiSpeakerScopeAll')}</option>
+                  <option value="dsp">{t('aiSpeakerScopeDspOnly')}</option>
+                  <option value="voice_persona">
+                    {t('aiSpeakerScopeVoicePersona')}
+                  </option>
+                </select>
+
+                <button
+                  type="button"
+                  data-testid="ai-speaker-architect-btn"
+                  disabled={isAiDesigning}
+                  onClick={() => void handleRunAiSpeakerArchitect()}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 disabled:opacity-50 text-white font-semibold transition-all cursor-pointer shadow-xs"
+                >
+                  {isAiDesigning ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>{t('aiSpeakerGeneratingBtn')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3" />
+                      <span>{t('aiSpeakerGenerateBtn')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <input
+              type="text"
+              data-testid="ai-speaker-prompt-input"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleRunAiSpeakerArchitect();
+                }
+              }}
+              placeholder={t('aiSpeakerPromptPlaceholder')}
+              className="w-full bg-slate-900/95 border border-slate-700/80 rounded px-2.5 py-1.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+
+            {/* Quick Acoustic & Character Archetype Presets */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                data-testid="ai-preset-broadcast-btn"
+                onClick={() =>
+                  void handleRunAiSpeakerArchitect(
+                    'Warm articulate studio broadcast podcast host with clear midrange presence'
+                  )
+                }
+                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+              >
+                🎙️ {t('aiPresetBroadcastHost')}
+              </button>
+              <button
+                type="button"
+                data-testid="ai-preset-radio-btn"
+                onClick={() =>
+                  void handleRunAiSpeakerArchitect(
+                    'Urgent voice over vintage narrowband telephone and radio static line'
+                  )
+                }
+                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+              >
+                📻 {t('aiPresetVintageRadio')}
+              </button>
+              <button
+                type="button"
+                data-testid="ai-preset-vault-btn"
+                onClick={() =>
+                  void handleRunAiSpeakerArchitect(
+                    'Resonant theatrical voice inside ancient stone vaults and cathedral echo'
+                  )
+                }
+                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+              >
+                🏛️ {t('aiPresetStoneVault')}
+              </button>
+              <button
+                type="button"
+                data-testid="ai-preset-noir-btn"
+                onClick={() =>
+                  void handleRunAiSpeakerArchitect(
+                    'Intimate close-mic noir detective whisper in the shadows'
+                  )
+                }
+                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-indigo-950/80 border border-slate-700/80 hover:border-indigo-500/60 text-[11px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer"
+              >
+                🕵️ {t('aiPresetNoirDetective')}
+              </button>
+            </div>
+
+            {aiRationale && (
+              <div
+                data-testid="ai-speaker-rationale-banner"
+                className="px-2.5 py-1.5 rounded bg-emerald-950/50 border border-emerald-700/50 text-[11px] text-emerald-200 leading-relaxed"
+              >
+                {aiRationale}
+              </div>
+            )}
+          </div>
+
           {/* TAB 1: Voice & TTS Profile */}
           {activeTab === 'voice' && (
             <div data-testid="speaker-voice-tab-content" className="space-y-4">
@@ -351,18 +583,25 @@ export const SpeakerConfigModal: React.FC = () => {
                 <div className="space-y-1">
                   <label className="text-slate-400 font-medium">{t('baseVoice')}</label>
                   <select
-                    value={draft.voice.baseVoice}
+                    data-testid="speaker-base-voice-select"
+                    value={normalizeGeminiVoiceName(draft.voice.baseVoice, draft.gender)}
                     onChange={(e) =>
                       updateDraft({
                         ...draft,
-                        voice: { ...draft.voice, baseVoice: e.target.value },
+                        voice: {
+                          ...draft.voice,
+                          baseVoice: normalizeGeminiVoiceName(
+                            e.target.value,
+                            draft.gender
+                          ),
+                        },
                       })
                     }
                     className="w-full bg-slate-950 border border-slate-800 rounded-md px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-indigo-500"
                   >
-                    {GEMINI_BASE_VOICES.map((v) => (
-                      <option key={v} value={v}>
-                        {v}
+                    {GEMINI_VOICE_CATALOG.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.id} — {project.defaultLanguage === 'hr' ? v.descriptionHr : v.descriptionEn}
                       </option>
                     ))}
                   </select>

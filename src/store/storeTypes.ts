@@ -132,9 +132,14 @@ export interface StoriaStoreState {
     title?: string;
     description?: string;
     defaultLanguage?: SupportedLanguage;
+    dialect?: CroatianDialect;
+    dubrovnikRegister?: DubrovnikRegister;
     genre?: string;
     author?: string;
     targetWpm?: number;
+    targetLufs?: number;
+    speakers?: Speaker[];
+    blocks?: ScriptBlock[];
   }) => Project;
   duplicateProject: (projectId?: string) => Project;
   deleteProject: (projectId: string) => void;

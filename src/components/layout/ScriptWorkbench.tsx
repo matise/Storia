@@ -375,7 +375,7 @@ export const ScriptWorkbench: React.FC = () => {
   return (
     <main className="flex-1 flex flex-col bg-slate-950 min-w-0 overflow-hidden">
       {/* Studio Header: Unified Compact Action Bar */}
-      <div className="min-h-11 py-1.5 border-b border-slate-800/90 bg-slate-900/40 px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
+      <div className="min-h-11 py-1.5 border-b border-slate-700/80 bg-slate-900/95 shadow-xs px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
         {/* Left: Unified Panel Deck Toggles & Block Insertion */}
         <div className="flex items-center gap-2">
           {/* Group 1: Unified Panel Deck Toggles (Waveform Transport & Episode Settings) */}
@@ -496,16 +496,16 @@ export const ScriptWorkbench: React.FC = () => {
         </div>
       </div>
 
-      {/* Inline Episode Properties Strip */}
+      {/* Inline Episode Properties Strip — Framed High-Contrast Studio Group */}
       {showEpisodeBanner && (
         <section
           data-testid="workbench-episode-properties-strip"
-          className="border-b border-slate-800/80 bg-slate-900/35 px-4 py-2.5 shrink-0"
+          className="mx-3 mt-2.5 mb-1 rounded-xl border border-indigo-500/45 bg-gradient-to-b from-indigo-950/50 via-slate-900/95 to-slate-900 px-4 py-3 shrink-0 shadow-lg shadow-black/45 ring-1 ring-inset ring-indigo-400/20"
         >
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
             {/* Episode Title */}
             <div className="md:col-span-4 flex flex-col gap-0.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/90">
                 {t('episodeTitleLabel')}
               </label>
               <input
@@ -513,14 +513,14 @@ export const ScriptWorkbench: React.FC = () => {
                 data-testid="workbench-episode-title-input"
                 value={project.title}
                 onChange={(e) => updateProjectProperties({ title: e.target.value })}
-                className="w-full px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full px-2.5 py-1 rounded-md bg-slate-950 border border-slate-700/90 text-xs font-semibold text-slate-100 shadow-inner focus:outline-none focus:border-indigo-400"
               />
             </div>
 
             {/* Episode Primary Language */}
             {/* Language & Regional Dialect */}
             <div className="md:col-span-2 flex flex-col gap-0.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/90 flex items-center gap-1">
                 <Globe className="w-3 h-3 text-indigo-400" />
                 <span>{t('episodeLanguageLabel')}</span>
               </label>
@@ -552,7 +552,7 @@ export const ScriptWorkbench: React.FC = () => {
                     });
                   }
                 }}
-                className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-xs font-medium text-indigo-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full px-2 py-1 rounded-md bg-slate-950 border border-slate-700/90 text-xs font-medium text-indigo-200 shadow-inner focus:outline-none focus:border-indigo-400 cursor-pointer"
               >
                 <option value="hr">Hrvatski (Standardni HR)</option>
                 <option value="hr-dubrovnik">Hrvatski — Dubrovački govor (Ragusa)</option>
@@ -563,7 +563,7 @@ export const ScriptWorkbench: React.FC = () => {
             {/* Dubrovnik Register Selector (when Dubrovnik dialect is active) */}
             {project.defaultLanguage === 'hr' && project.dialect === 'dubrovnik' && (
               <div className="md:col-span-2 flex flex-col gap-0.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
                   <span>{t('dubrovnikRegisterLabel')}</span>
                 </label>
                 <select
@@ -574,7 +574,7 @@ export const ScriptWorkbench: React.FC = () => {
                       dubrovnikRegister: e.target.value as 'classical' | 'traditional' | 'contemporary',
                     })
                   }
-                  className="w-full px-2 py-1 rounded bg-slate-950 border border-amber-800/80 text-xs font-medium text-amber-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="w-full px-2 py-1 rounded-md bg-slate-950 border border-amber-700/90 text-xs font-medium text-amber-200 shadow-inner focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
                   <option value="contemporary">Suvremeni razgovorni</option>
                   <option value="traditional">Tradicionalni pučki govor Grada (19./20. st.)</option>
@@ -585,7 +585,7 @@ export const ScriptWorkbench: React.FC = () => {
 
             {/* Genre / Format */}
             <div className="md:col-span-2 flex flex-col gap-0.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/90">
                 {t('episodeGenreLabel')}
               </label>
               <input
@@ -593,13 +593,13 @@ export const ScriptWorkbench: React.FC = () => {
                 data-testid="workbench-episode-genre-input"
                 value={project.metadata?.genre ?? ''}
                 onChange={(e) => updateProjectProperties({ genre: e.target.value })}
-                className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full px-2 py-1 rounded-md bg-slate-950 border border-slate-700/90 text-xs text-slate-100 shadow-inner focus:outline-none focus:border-indigo-400"
               />
             </div>
 
             {/* Author / Showrunner */}
             <div className="md:col-span-2 flex flex-col gap-0.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/90">
                 {t('episodeAuthorLabel')}
               </label>
               <input
@@ -607,14 +607,14 @@ export const ScriptWorkbench: React.FC = () => {
                 data-testid="workbench-episode-author-input"
                 value={project.metadata?.author ?? ''}
                 onChange={(e) => updateProjectProperties({ author: e.target.value })}
-                className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full px-2 py-1 rounded-md bg-slate-950 border border-slate-700/90 text-xs text-slate-100 shadow-inner focus:outline-none focus:border-indigo-400"
               />
             </div>
 
             {/* Target WPM + Open Full Properties Modal */}
             <div className="md:col-span-2 flex items-end gap-1.5">
               <div className="flex-1 flex flex-col gap-0.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/90">
                   {t('episodeTargetWpmLabel')}
                 </label>
                 <input
@@ -628,7 +628,7 @@ export const ScriptWorkbench: React.FC = () => {
                       targetWpm: Number(e.target.value) || 140,
                     })
                   }
-                  className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-300 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-2 py-1 rounded-md bg-slate-950 border border-slate-700/90 text-xs font-mono text-emerald-300 shadow-inner focus:outline-none focus:border-indigo-400"
                 />
               </div>
               <button
@@ -636,7 +636,7 @@ export const ScriptWorkbench: React.FC = () => {
                 data-testid="workbench-open-episode-modal-btn"
                 onClick={() => setEpisodePropertiesModalOpen(true)}
                 title={t('episodePropertiesModalTitle')}
-                className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-indigo-300 transition-colors cursor-pointer"
+                className="px-2.5 py-1 rounded-md bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/60 text-xs text-indigo-200 font-semibold transition-colors cursor-pointer shadow-xs"
               >
                 ⚙
               </button>
@@ -644,8 +644,8 @@ export const ScriptWorkbench: React.FC = () => {
           </div>
 
           {/* Episode Synopsis / Description */}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 shrink-0">
+          <div className="mt-2.5 pt-2 border-t border-slate-800/90 flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/80 shrink-0">
               {t('episodeDescriptionLabel')}:
             </span>
             <input
@@ -653,9 +653,9 @@ export const ScriptWorkbench: React.FC = () => {
               data-testid="workbench-episode-desc-input"
               value={project.description ?? ''}
               onChange={(e) => updateProjectProperties({ description: e.target.value })}
-              className="flex-1 px-2.5 py-1 rounded bg-slate-950/70 border border-slate-800/80 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+              className="flex-1 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-700/90 text-xs text-slate-200 shadow-inner focus:outline-none focus:border-indigo-400"
             />
-            <span className="hidden lg:inline-block text-[10px] font-mono text-slate-500 shrink-0">
+            <span className="hidden lg:inline-block px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-300/90 shrink-0">
               {project.audioConfig.sampleRate}Hz / {project.audioConfig.bitDepth}-bit /{' '}
               {project.audioConfig.targetLufs} LUFS
             </span>
@@ -704,7 +704,7 @@ export const ScriptWorkbench: React.FC = () => {
       <div
         ref={scrollContainerRef}
         data-testid="script-blocks-scroll-container"
-        className="flex-1 overflow-y-auto p-3 space-y-1.5"
+        className="flex-1 overflow-y-auto border-t border-slate-800/90 bg-slate-950 p-3 space-y-2"
       >
         {project.blocks.map((block, index) => {
           const isCurrentPlayheadBlock = bvhHit.block?.id === block.id;

@@ -2,6 +2,7 @@ import {
   AppSettings,
   Project,
   createDefaultMainAuxBus,
+  normalizeGeminiVoiceName,
 } from '../types/storia';
 import {
   createInitialProjectLibrary,
@@ -14,16 +15,26 @@ export const PROJECTS_LIBRARY_STORAGE_KEY = 'storia_projects_library_v1';
 export const SETTINGS_STORAGE_KEY = 'storia_app_settings_v1';
 
 export function hydrateProjectTimeline(parsed: Project): Project {
+  const sanitizedSpeakers = Array.isArray(parsed.speakers)
+    ? parsed.speakers.map((s) => ({
+        ...s,
+        voice: {
+          ...s.voice,
+          baseVoice: normalizeGeminiVoiceName(s.voice?.baseVoice, s.gender),
+        },
+      }))
+    : [];
+
   const { blocks } = recalculateProjectTimeline(
     parsed.blocks,
-    parsed.speakers,
+    sanitizedSpeakers,
     parsed.metadata?.targetWpm ?? 140
   );
   const auxBusses =
     parsed.auxBusses && parsed.auxBusses.length > 0
       ? parsed.auxBusses
       : [createDefaultMainAuxBus()];
-  return { ...parsed, blocks, auxBusses };
+  return { ...parsed, speakers: sanitizedSpeakers, blocks, auxBusses };
 }
 
 export function loadInitialProjectsLibrary(): Project[] {

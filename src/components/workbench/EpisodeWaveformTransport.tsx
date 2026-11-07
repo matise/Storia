@@ -692,7 +692,7 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   return (
     <section
       data-testid="episode-waveform-transport-deck"
-      className="border-b border-slate-800/90 bg-slate-900/50 px-4 py-2.5 shrink-0 select-none space-y-2.5"
+      className="mx-3 mt-2 mb-2 rounded-xl border border-emerald-500/45 bg-gradient-to-b from-slate-800/90 via-slate-900/95 to-slate-950 px-4 py-3 shrink-0 select-none space-y-2.5 shadow-xl shadow-black/50 ring-1 ring-inset ring-emerald-400/20"
     >
       {/* Top Row: Transport Buttons, Zoom Controls, Timecode Readout & Speed Control */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -959,7 +959,7 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
         ref={scrollContainerRef}
         data-testid="master-waveform-scroll-container"
         onWheel={handleWheel}
-        className="relative overflow-x-auto overflow-y-hidden rounded-lg bg-slate-950 border border-slate-800/90 hover:border-indigo-500/60 transition-colors scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-950 select-none"
+        className="relative overflow-x-auto overflow-y-hidden rounded-lg bg-slate-950 border-2 border-slate-700/85 hover:border-emerald-500/60 shadow-inner transition-colors scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-950 select-none"
         style={{ maxWidth: '100%' }}
       >
         <div

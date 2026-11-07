@@ -206,27 +206,33 @@ export function createProjectLibrarySlice({
       const now = Date.now();
       const baseSample = createSampleProject();
 
-      const starterSpeakers: Speaker[] = baseSample.speakers.map((s, idx) => ({
-        ...s,
-        id: `spk_${now}_${idx}`,
-      }));
+      const starterSpeakers: Speaker[] =
+        options?.speakers && options.speakers.length > 0
+          ? options.speakers
+          : baseSample.speakers.map((s, idx) => ({
+              ...s,
+              id: `spk_${now}_${idx}`,
+            }));
 
       const starterBlockId = `blk_${now}_1`;
-      const rawBlocks: ScriptBlock[] = [
-        {
-          id: starterBlockId,
-          type: 'dialogue',
-          speakerId: starterSpeakers[0].id,
-          text:
-            lang === 'hr'
-              ? 'Nova scena počinje ovdje. Unesite dijalog ili naraciju...'
-              : 'New scene begins here. Enter dialogue or narration...',
-          directorNotes: lang === 'hr' ? 'prirodno / natural' : 'natural',
-          pauseAfterMs: 450,
-          ttsStatus: 'unrendered',
-          order: 0,
-        },
-      ];
+      const rawBlocks: ScriptBlock[] =
+        options?.blocks && options.blocks.length > 0
+          ? options.blocks
+          : [
+              {
+                id: starterBlockId,
+                type: 'dialogue',
+                speakerId: starterSpeakers[0].id,
+                text:
+                  lang === 'hr'
+                    ? 'Nova scena počinje ovdje. Unesite dijalog ili naraciju...'
+                    : 'New scene begins here. Enter dialogue or narration...',
+                directorNotes: lang === 'hr' ? 'prirodno / natural' : 'natural',
+                pauseAfterMs: 450,
+                ttsStatus: 'unrendered',
+                order: 0,
+              },
+            ];
 
       const targetWpm = options?.targetWpm ?? 140;
       const { blocks } = recalculateProjectTimeline(
@@ -234,6 +240,14 @@ export function createProjectLibrarySlice({
         starterSpeakers,
         targetWpm
       );
+
+      const nextDialect =
+        options?.dialect ??
+        (lang === 'hr' ? (get().project.dialect ?? 'standard') : 'standard');
+      const nextDubrovnikRegister =
+        options?.dubrovnikRegister ??
+        get().project.dubrovnikRegister ??
+        'contemporary';
 
       const newProject: Project = {
         id: `proj_${now}_${Math.random().toString(36).slice(2, 6)}`,
@@ -248,6 +262,8 @@ export function createProjectLibrarySlice({
             ? 'Opis nove epizode radio-drame ili podcasta.'
             : 'Synopsis for the new audio drama or podcast episode.'),
         defaultLanguage: lang,
+        dialect: nextDialect,
+        dubrovnikRegister: nextDubrovnikRegister,
         speakers: starterSpeakers,
         blocks,
         researchNotebook: [],
@@ -262,8 +278,16 @@ export function createProjectLibrarySlice({
               : 'Audio Drama / Podcast'),
           targetWpm,
         },
-        audioConfig: { ...get().project.audioConfig },
-        aiSettings: { ...get().project.aiSettings },
+        audioConfig: {
+          ...get().project.audioConfig,
+          targetLufs:
+            options?.targetLufs ?? get().project.audioConfig.targetLufs,
+        },
+        aiSettings: {
+          ...get().project.aiSettings,
+          dialect: nextDialect,
+          dubrovnikRegister: nextDubrovnikRegister,
+        },
       };
 
       const nextProjects = persistProject(newProject, [

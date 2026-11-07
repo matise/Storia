@@ -5,31 +5,112 @@ export type Gender = 'female' | 'male' | 'non-binary' | 'neutral' | 'other';
 export type TtsEngineProvider = 'gemini_tts' | 'browser_tts';
 
 /**
- * Base voice profiles supported by the Gemini TTS engine
+ * Official 30 base voice profiles supported by the Gemini 2.5 TTS engine:
+ * achernar, achird, algenib, algieba, alnilam, aoede, autonoe, callirrhoe, charon,
+ * despina, enceladus, erinome, fenrir, gacrux, iapetus, kore, laomedeia, leda, orus,
+ * puck, pulcherrima, rasalgethi, sadachbia, sadaltager, schedar, sulafat, umbriel,
+ * vindemiatrix, zephyr, zubenelgenubi
  */
 export type GeminiBaseVoice =
-  | 'Puck'
-  | 'Charon'
-  | 'Kore'
-  | 'Fenrir'
+  | 'Achernar'
+  | 'Achird'
+  | 'Algenib'
+  | 'Algieba'
+  | 'Alnilam'
   | 'Aoede'
-  | 'Zephyr'
-  | 'Helios'
+  | 'Autonoe'
+  | 'Callirrhoe'
+  | 'Charon'
+  | 'Despina'
+  | 'Enceladus'
+  | 'Erinome'
+  | 'Fenrir'
+  | 'Gacrux'
+  | 'Iapetus'
+  | 'Kore'
+  | 'Laomedeia'
   | 'Leda'
-  | 'Orpheus'
+  | 'Orus'
+  | 'Puck'
+  | 'Pulcherrima'
+  | 'Rasalgethi'
+  | 'Sadachbia'
+  | 'Sadaltager'
+  | 'Schedar'
+  | 'Sulafat'
+  | 'Umbriel'
+  | 'Vindemiatrix'
+  | 'Zephyr'
+  | 'Zubenelgenubi'
   | string;
 
-export const GEMINI_BASE_VOICES: GeminiBaseVoice[] = [
-  'Puck',
-  'Charon',
-  'Kore',
-  'Fenrir',
-  'Aoede',
-  'Zephyr',
-  'Helios',
-  'Leda',
-  'Orpheus',
+export interface GeminiVoiceCatalogEntry {
+  id: GeminiBaseVoice;
+  apiName: string;
+  register: 'female' | 'male' | 'neutral';
+  descriptionEn: string;
+  descriptionHr: string;
+}
+
+export const GEMINI_VOICE_CATALOG: readonly GeminiVoiceCatalogEntry[] = [
+  { id: 'Achernar', apiName: 'achernar', register: 'female', descriptionEn: 'Soft, clear, composed', descriptionHr: 'Mekan, čist, smiren' },
+  { id: 'Achird', apiName: 'achird', register: 'male', descriptionEn: 'Friendly, warm, approachable', descriptionHr: 'Prijateljski, topao, pristupačan' },
+  { id: 'Algenib', apiName: 'algenib', register: 'male', descriptionEn: 'Gravelly, textured baritone', descriptionHr: 'Hrapav, teksturiran bariton' },
+  { id: 'Algieba', apiName: 'algieba', register: 'male', descriptionEn: 'Smooth, resonant, steady', descriptionHr: 'Gladak, rezonantan, postojan' },
+  { id: 'Alnilam', apiName: 'alnilam', register: 'male', descriptionEn: 'Firm, authoritative, grounded', descriptionHr: 'Čvrst, autoritativan, uzemljen' },
+  { id: 'Aoede', apiName: 'aoede', register: 'female', descriptionEn: 'Breezy, expressive, lyric', descriptionHr: 'Prozračan, izražajan, lirski' },
+  { id: 'Autonoe', apiName: 'autonoe', register: 'female', descriptionEn: 'Bright, articulate, crisp', descriptionHr: 'Svijetao, artikuliran, jasan' },
+  { id: 'Callirrhoe', apiName: 'callirrhoe', register: 'female', descriptionEn: 'Easy-going, natural, flowing', descriptionHr: 'Opušten, prirodan, tečan' },
+  { id: 'Charon', apiName: 'charon', register: 'male', descriptionEn: 'Informative, deep, weathered baritone', descriptionHr: 'Informativan, dubok, iskusan bariton' },
+  { id: 'Despina', apiName: 'despina', register: 'female', descriptionEn: 'Smooth, warm, inviting', descriptionHr: 'Gladak, topao, ugodan' },
+  { id: 'Enceladus', apiName: 'enceladus', register: 'male', descriptionEn: 'Breathy, intimate, atmospheric', descriptionHr: ' Prozračan šapat, intiman, atmosferičan' },
+  { id: 'Erinome', apiName: 'erinome', register: 'female', descriptionEn: 'Clear, precise, analytical', descriptionHr: 'Čist, precizan, analitičan' },
+  { id: 'Fenrir', apiName: 'fenrir', register: 'male', descriptionEn: 'Excitable, deep resonant baritone', descriptionHr: 'Dinamičan, duboki rezonantni bariton' },
+  { id: 'Gacrux', apiName: 'gacrux', register: 'neutral', descriptionEn: 'Mature, seasoned, composed', descriptionHr: 'Zreo, iskusan, odmjeren' },
+  { id: 'Iapetus', apiName: 'iapetus', register: 'male', descriptionEn: 'Clear, direct, broadcast-ready', descriptionHr: 'Jasan, izravan, studijski voditelj' },
+  { id: 'Kore', apiName: 'kore', register: 'female', descriptionEn: 'Firm, clear, confident', descriptionHr: 'Čvrst, jasan, samopouzdan' },
+  { id: 'Laomedeia', apiName: 'laomedeia', register: 'female', descriptionEn: 'Upbeat, lively, expressive', descriptionHr: 'Poletan, živahan, izražajan' },
+  { id: 'Leda', apiName: 'leda', register: 'female', descriptionEn: 'Youthful, smooth, intimate', descriptionHr: 'Mladenački, gladak, intiman' },
+  { id: 'Orus', apiName: 'orus', register: 'male', descriptionEn: 'Firm, poetic, deep dramatic', descriptionHr: 'Čvrst, poetičan, duboki dramski' },
+  { id: 'Puck', apiName: 'puck', register: 'male', descriptionEn: 'Upbeat, agile, conversational', descriptionHr: 'Živahan, okretan, razgovorni' },
+  { id: 'Pulcherrima', apiName: 'pulcherrima', register: 'female', descriptionEn: 'Forward, theatrical, projecting', descriptionHr: 'Kazališni, prodoran, ekspresivan' },
+  { id: 'Rasalgethi', apiName: 'rasalgethi', register: 'male', descriptionEn: 'Informative, measured, documentary', descriptionHr: 'Informativan, odmjeren, dokumentarni' },
+  { id: 'Sadachbia', apiName: 'sadachbia', register: 'male', descriptionEn: 'Lively, dynamic, animated', descriptionHr: 'Živahan, dinamičan, energičan' },
+  { id: 'Sadaltager', apiName: 'sadaltager', register: 'male', descriptionEn: 'Knowledgeable, calm, authoritative', descriptionHr: ' Stručan, smiren, autoritativan' },
+  { id: 'Schedar', apiName: 'schedar', register: 'male', descriptionEn: 'Even, balanced, studio narrator', descriptionHr: 'Ujednačen, uravnotežen, pripovjedač' },
+  { id: 'Sulafat', apiName: 'sulafat', register: 'female', descriptionEn: 'Warm, empathetic, storytelling', descriptionHr: 'Topao, empatičan, pripovjedački' },
+  { id: 'Umbriel', apiName: 'umbriel', register: 'male', descriptionEn: 'Easy-going, relaxed, dusky', descriptionHr: 'Opušten, smiren, taman' },
+  { id: 'Vindemiatrix', apiName: 'vindemiatrix', register: 'female', descriptionEn: 'Gentle, soft-spoken, reflective', descriptionHr: 'Blag, tih, misaon' },
+  { id: 'Zephyr', apiName: 'zephyr', register: 'female', descriptionEn: 'Bright, energetic, spirited', descriptionHr: 'Svijetao, energičan, vatren' },
+  { id: 'Zubenelgenubi', apiName: 'zubenelgenubi', register: 'male', descriptionEn: 'Casual, deep, resonant', descriptionHr: 'Ležeran, dubok, rezonantan' },
 ];
+
+export const GEMINI_BASE_VOICES: GeminiBaseVoice[] = GEMINI_VOICE_CATALOG.map(
+  (v) => v.id
+);
+
+/**
+ * Sanitizes and normalizes any voice name to one of the 30 official Gemini 2.5 TTS voices.
+ * Automatically migrates legacy unsupported names ('Orpheus' -> 'Orus', 'Helios' -> 'Sadaltager').
+ */
+export function normalizeGeminiVoiceName(
+  voiceName?: string | null,
+  gender?: Gender
+): GeminiBaseVoice {
+  const cleaned = (voiceName ?? '').trim().toLowerCase();
+  if (cleaned === 'orpheus') return 'Orus';
+  if (cleaned === 'helios') return 'Sadaltager';
+
+  const matched = GEMINI_VOICE_CATALOG.find(
+    (entry) =>
+      entry.apiName === cleaned || entry.id.toLowerCase() === cleaned
+  );
+  if (matched) {
+    return matched.id;
+  }
+
+  return gender === 'female' ? 'Aoede' : gender === 'male' ? 'Fenrir' : 'Kore';
+}
 
 /**
  * Acoustic & DSP parameters applied to a speaker's audio monitor chain
@@ -380,6 +461,36 @@ export type AudioEffectConfig =
   | StateVariableFilterEffectConfig
   | DattorroReverbEffectConfig
   | PassthroughEffectConfig;
+
+export interface SpeakerAiDesignResult {
+  name?: string;
+  gender: Gender;
+  age: string;
+  baseVoice: GeminiBaseVoice;
+  speakingRate: number;
+  pitchAdjustment: number;
+  stylePrompt: string;
+  personaPrompt: string;
+  actingNotes: string;
+  samplePhrase: string;
+  effectStack: AudioEffectConfig[];
+  acousticRationale: string;
+}
+
+export interface EpisodeAiBlueprint {
+  title: string;
+  description: string;
+  defaultLanguage: SupportedLanguage;
+  dialect: CroatianDialect;
+  dubrovnikRegister?: DubrovnikRegister;
+  genre: string;
+  author?: string;
+  targetWpm: number;
+  targetLufs: number;
+  speakers: Speaker[];
+  blocks: ScriptBlock[];
+  rationale: string;
+}
 
 export interface AuxBusConfig {
   id: string;

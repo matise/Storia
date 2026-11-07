@@ -328,6 +328,27 @@ export interface TranslationDictionary {
   frameloopIdle: string;
   timeRangePrefix: string;
   keyboardShortcutsHelp: string;
+
+  // AI Speaker & DSP Architect + AI Episode Architect
+  aiSpeakerArchitectTitle: string;
+  aiSpeakerPromptPlaceholder: string;
+  aiSpeakerScopeAll: string;
+  aiSpeakerScopeDspOnly: string;
+  aiSpeakerScopeVoicePersona: string;
+  aiSpeakerGenerateBtn: string;
+  aiSpeakerGeneratingBtn: string;
+  aiPresetBroadcastHost: string;
+  aiPresetVintageRadio: string;
+  aiPresetStoneVault: string;
+  aiPresetNoirDetective: string;
+  aiEpisodeArchitectTitle: string;
+  aiEpisodePromptPlaceholder: string;
+  aiCreateFullEpisodeBtn: string;
+  aiFillActiveEpisodeBtn: string;
+  aiEpisodeGeneratingBtn: string;
+  aiTemplatePodcast: string;
+  aiTemplateDubrovnikDrama: string;
+  aiTemplateSciFiThriller: string;
 }
 
 export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
@@ -647,6 +668,28 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     frameloopIdle: 'Idle',
     timeRangePrefix: 'Time:',
     keyboardShortcutsHelp: 'Ctrl+Z / Ctrl+Y • Alt+1..9 Speaker • Alt+↑/↓ Reorder',
+
+    aiSpeakerArchitectTitle: 'Gemini AI Voice, Persona & DSP Architect',
+    aiSpeakerPromptPlaceholder:
+      'Describe character, voice timbre, or acoustics (e.g. "Warm podcast host", "1930s detective over phone", "Stone vault echo")...',
+    aiSpeakerScopeAll: 'All (Voice + DSP + Persona)',
+    aiSpeakerScopeDspOnly: 'DSP Stack Only',
+    aiSpeakerScopeVoicePersona: 'Voice & Persona Only',
+    aiSpeakerGenerateBtn: 'AI Design Speaker',
+    aiSpeakerGeneratingBtn: 'Designing...',
+    aiPresetBroadcastHost: 'Broadcast Host',
+    aiPresetVintageRadio: 'Phone / Radio',
+    aiPresetStoneVault: 'Stone Vault Reverb',
+    aiPresetNoirDetective: 'Noir Close-Mic',
+    aiEpisodeArchitectTitle: 'Gemini AI Episode Architect',
+    aiEpisodePromptPlaceholder:
+      'Describe episode premise, topic, or genre (e.g. "Cybersecurity podcast on analog drones", "Midnight mystery in Dubrovnik")...',
+    aiCreateFullEpisodeBtn: 'Create AI Episode (Cast + Scene)',
+    aiFillActiveEpisodeBtn: 'AI Fill Active Properties',
+    aiEpisodeGeneratingBtn: 'Generating...',
+    aiTemplatePodcast: 'Investigative Podcast',
+    aiTemplateDubrovnikDrama: 'Dubrovnik Drama',
+    aiTemplateSciFiThriller: 'Sci-Fi Thriller',
   },
   hr: {
     appTitle: 'Storia',
@@ -964,5 +1007,27 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     frameloopIdle: 'Mirovanje',
     timeRangePrefix: 'Vrijeme:',
     keyboardShortcutsHelp: 'Ctrl+Z / Ctrl+Y • Alt+1..9 Uloga • Alt+↑/↓ Raspored',
+
+    aiSpeakerArchitectTitle: 'Gemini AI Arhitekt Glasa, Persone i DSP-a',
+    aiSpeakerPromptPlaceholder:
+      'Opišite lik, boju glasa ili akustiku prostora (npr. "Topli voditelj podcasta", "Telefonski glas", "Jeka u kamenom svodu")...',
+    aiSpeakerScopeAll: 'Sve (Glas + DSP + Persona)',
+    aiSpeakerScopeDspOnly: 'Samo DSP stog',
+    aiSpeakerScopeVoicePersona: 'Samo glas i persona',
+    aiSpeakerGenerateBtn: 'AI Dizajniraj Ulogu',
+    aiSpeakerGeneratingBtn: 'Dizajniranje...',
+    aiPresetBroadcastHost: 'Voditelj / Studio',
+    aiPresetVintageRadio: 'Telefon / Radio',
+    aiPresetStoneVault: 'Kameni Svod (Reverb)',
+    aiPresetNoirDetective: 'Noir Blizu Mikrofona',
+    aiEpisodeArchitectTitle: 'Gemini AI Arhitekt Epizode',
+    aiEpisodePromptPlaceholder:
+      'Opišite temu, premisu ili žanr epizode (npr. "Analitički podcast o protudronskoj obrani", "Noćni triler u Dubrovniku")...',
+    aiCreateFullEpisodeBtn: 'Kreiraj AI Epizodu (Uloge + Scena)',
+    aiFillActiveEpisodeBtn: 'AI Popuni Aktivna Svojstva',
+    aiEpisodeGeneratingBtn: 'Generiranje...',
+    aiTemplatePodcast: 'Analitički Podcast',
+    aiTemplateDubrovnikDrama: 'Dubrovačka Drama',
+    aiTemplateSciFiThriller: 'Sci-Fi Triler',
   },
 };

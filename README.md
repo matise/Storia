@@ -7,7 +7,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-183%2F183%20Passing-emerald.svg)](https://vitest.dev/)
+[![Tests Passing](https://img.shields.io/badge/Tests-186%2F186%20Passing-emerald.svg)](https://vitest.dev/)
 [![Web Audio API](https://img.shields.io/badge/Web%20Audio-Modular%20DSP%20Rack-purple.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 [![Broadcast Compliant](https://img.shields.io/badge/Loudness-ITU--R%20BS.1770--4-amber.svg)](https://www.itu.int/rec/R-REC-BS.1770)
 
@@ -117,6 +117,7 @@ Storia introduces a fully modular studio DSP architecture supporting insert chai
 
 ### 5. 🎭 Cast & Acoustic Persona Studio
 * **Multi-Speaker Orchestration:** Create and manage limitless cast members, each with unique voice assignments, speaking tempos ($0.5\times$ to $2.0\times$), pitch shifts, color accents, and personalized backstory prompts.
+* **Gemini AI Voice, Persona & DSP Architect:** Describe a character or acoustic space in natural language (or click quick archetypes: *Broadcast Host*, *Phone / Radio*, *Stone Vault Reverb*, *Noir Close-Mic*) to automatically configure the speaker's Gemini Base Voice, speaking rate/pitch, persona & acting notes, and modular DSP Effect Stack (Biquad EQ, Dynamics Compressor, State-Variable Filter, and Dattorro 1997 Plate Reverb) with live audio preview sync.
 * **3-Tab Speaker Configuration Workspace:**
   * **Tab 1 (Voice & TTS):** Base voice selection, gender, TTS engine (`Gemini 2.5 TTS` vs `Local Browser SpeechSynthesis`), pitch offset, and dramatic style prompts.
   * **Tab 2 (DSP Effect Stack):** Full series DSP chain editor with module count badge, interactive parameter controls (knobs, sliders, toggles), and live visualizers.
@@ -219,7 +220,7 @@ Storia features a dedicated, authentic dialect engine for the historic city vern
 | **EpisodeStemRenderer** | `src/core/mastering/EpisodeStemRenderer.ts` | Non-blocking offline episode master and time-aligned speaker stem renderer supporting format-specific WAV and chunked 320 kbps LAME MP3 encoding. |
 | **DubrovnikDictionary** | `src/core/dubrovnik/dubrovnikDictionary.ts` | Master bidirectional lexical database with 570+ authenticated Ragusan vocabulary entries across 7 semantic categories. |
 | **DubrovnikPhonetics** | `src/core/dubrovnik/dubrovnikPhonetics.ts` | Phonological rule engine handling masculine a-declension, infinitive truncation, diphthong contraction, and TTS breath pause injection. |
-| **GeminiAgentService** | `src/services/geminiAgentService.ts` & `src/services/agent/*` | Modular AI agent suite: `dubrovnikAgentInstructions.ts`, `personaResearchAgent.ts`, `podcastTranscriptParser.ts`, `coWriterAgent.ts`, `scriptDoctorAgent.ts`, and `bilingualAdapterAgent.ts`. |
+| **GeminiAgentService** | `src/services/geminiAgentService.ts` & `src/services/agent/*` | Modular AI agent suite: `dubrovnikAgentInstructions.ts`, `personaResearchAgent.ts`, `podcastTranscriptParser.ts`, `coWriterAgent.ts`, `scriptDoctorAgent.ts`, `bilingualAdapterAgent.ts`, `speakerDspArchitectAgent.ts`, and `episodeArchitectAgent.ts`. |
 | **UseStoriaStore** | `src/store/useStoriaStore.ts` & `src/store/slices/*` | Modular Zustand store composer backed by `storeTypes.ts`, `projectPersistence.ts`, and 5 domain slices (`uiAndSettingsSlice`, `projectLibrarySlice`, `scriptAndCastSlice`, `dspAndAuditionSlice`, `ttsSynthesisSlice`). |
 
 ---
@@ -309,7 +310,7 @@ npm run preview
 
 ### Running the Test Suite
 
-Storia includes a comprehensive test suite of **47 test files and 183 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, non-blocking multi-segment mastering, lamejs MP3 encoding, podcast transcript parsing, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, modular DSP effect chains, Jon Dattorro's 1997 Plate Reverb, and the Dubrovnik dialect engine:
+Storia includes a comprehensive test suite of **48 test files and 186 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, non-blocking multi-segment mastering, lamejs MP3 encoding, podcast transcript parsing, AI speaker DSP & episode blueprint architects, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, modular DSP effect chains, Jon Dattorro's 1997 Plate Reverb, and the Dubrovnik dialect engine:
 
 ```bash
 npm test

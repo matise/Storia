@@ -93,12 +93,14 @@ export const ExportMasterModal: React.FC = () => {
     setSuccessMessage(null);
 
     try {
+      const latestProject = useStoriaStore.getState().project;
       const result = await renderMasterEpisodeMix(
-        project,
+        latestProject,
         (pct) => {
           setRenderProgress(pct);
         },
-        ctrl.signal
+        ctrl.signal,
+        { format: 'wav' }
       );
       if (ctrl.signal.aborted) return;
       setMasterResult(result);
@@ -130,12 +132,14 @@ export const ExportMasterModal: React.FC = () => {
     setSuccessMessage(null);
 
     try {
+      const latestProject = useStoriaStore.getState().project;
       const result = await renderMasterEpisodeMix(
-        project,
+        latestProject,
         (pct) => {
           setRenderProgress(pct);
         },
-        ctrl.signal
+        ctrl.signal,
+        { format: 'mp3' }
       );
       if (ctrl.signal.aborted) return;
       setMasterResult(result);
@@ -171,12 +175,14 @@ export const ExportMasterModal: React.FC = () => {
     setSuccessMessage(null);
 
     try {
+      const latestProject = useStoriaStore.getState().project;
       const stems = await renderSpeakerStems(
-        project,
+        latestProject,
         (pct) => {
           setRenderProgress(pct);
         },
-        ctrl.signal
+        ctrl.signal,
+        { format }
       );
       if (ctrl.signal.aborted) return;
 

@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from '../../src/App';
 import { AgentDock } from '../../src/components/layout/AgentDock';
-import { generateNextSceneBeats } from '../../src/services/geminiAgentService';
+import {
+  generateNextSceneBeats,
+  parsePodcastTranscriptDocument,
+} from '../../src/services/geminiAgentService';
 import { useStoriaStore } from '../../src/store/useStoriaStore';
 
 describe('Co-Writer Mode Selection (Scene, Complete Story, Podcast) & Scalable Panel Splitters', () => {
@@ -188,5 +191,157 @@ describe('Co-Writer Mode Selection (Scene, Complete Story, Podcast) & Scalable P
 
     expect(agentAside.style.width).toBe('280px');
     expect(localStorage.getItem('storia_layout_right_width')).toBe('280');
+  });
+
+  it('parses structured podcast transcript documents (Format, Sugovornici, Tema, [00:00:00] sections, Voditelj 1/2) when Co-Writer is set to podcast_episode', async () => {
+    const { project } = useStoriaStore.getState();
+
+    const sampleTranscriptDoc = `
+Dubinska analiza: Analogni presretač i arhitektura Mate
+Foxa
+
+Format: Transkript audio podcasta
+Sugovornici: Voditelj 1 i Voditelj 2
+Tema: Ekonomija protudronske obrane (C-UAS), rotacijski stabiliziran let pri visokim RPM-ovima i
+mješovito analogno-digitalno vođenje
+________________________________________________________
+
+[00:00:00] 1. dio: Zamka eskalacije i ekonomija ratovanja dronovima
+Voditelj 1: Znaš, kad inače razgovaramo o najnaprednijoj vojnoj tehnologiji, uvijek postoji to prešutno
+očekivanje... pa, očekivanje *nečeg većeg*, zar ne?
+
+Voditelj 2: Da. Više procesorske snage, veći podatkovni centri, brža digitalna superračunala. Nekako
+smo prihvatili ideju da je stvarnost samo iznimno složen engine za renderiranje.
+
+Voditelj 1: Upravo to. I ako želiš poraziti tehnološki naprednu prijetnju, jednostavno izgradiš veći, brži
+digitalni mozak koji će je matematički nadmudriti.
+
+Voditelj 2: Da, mislim, to je standardni obrazac eskalacije na koji se oslanjamo već desetljećima.
+`.trim();
+
+    const parsed = parsePodcastTranscriptDocument({
+      text: sampleTranscriptDoc,
+      speakers: project.speakers,
+      language: 'hr',
+      sourceFileName: 'mate_fox_podcast.txt',
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.title).toBe(
+      'Dubinska analiza: Analogni presretač i arhitektura Mate Foxa'
+    );
+    expect(parsed!.format).toBe('Transkript audio podcasta');
+    expect(parsed!.topic).toBe(
+      'Ekonomija protudronske obrane (C-UAS), rotacijski stabiliziran let pri visokim RPM-ovima i mješovito analogno-digitalno vođenje'
+    );
+    expect(parsed!.declaredSpeakers).toEqual(['Voditelj 1', 'Voditelj 2']);
+    expect(parsed!.speakerMappingSummary).toHaveLength(2);
+
+    const direct = parsed!.directCandidate;
+    expect(direct.isParsedTranscript).toBe(true);
+    expect(direct.blocks).toHaveLength(5); // 1 section header + 4 dialogue turns
+
+    // Block 0: Section header [00:00:00] 1. dio: ...
+    expect(direct.blocks[0].type).toBe('narration');
+    expect(direct.blocks[0].text).toBe(
+      '1. dio: Zamka eskalacije i ekonomija ratovanja dronovima'
+    );
+    expect(direct.blocks[0].directorNotes).toContain('00:00:00');
+
+    // Blocks 1..4: Alternating Voditelj 1 (speakers[0]) and Voditelj 2 (speakers[1])
+    expect(direct.blocks[1].type).toBe('dialogue');
+    expect(direct.blocks[1].speakerId).toBe(project.speakers[0].id);
+    expect(direct.blocks[1].text).toContain('očekivanje nečeg većeg, zar ne?');
+
+    expect(direct.blocks[2].type).toBe('dialogue');
+    expect(direct.blocks[2].speakerId).toBe(project.speakers[1].id);
+    expect(direct.blocks[2].text).toContain('iznimno složen engine za renderiranje.');
+
+    expect(direct.blocks[3].speakerId).toBe(project.speakers[0].id);
+    expect(direct.blocks[4].speakerId).toBe(project.speakers[1].id);
+
+    // Also test via generateNextSceneBeats in podcast_episode mode with attachment
+    const candidates = await generateNextSceneBeats({
+      precedingBlocks: project.blocks,
+      speakers: project.speakers,
+      language: 'hr',
+      apiKey: null,
+      mode: 'podcast_episode',
+      attachments: [
+        {
+          id: 'att_podcast_1',
+          name: 'mate_fox_podcast.txt',
+          mimeType: 'text/plain',
+          sizeBytes: sampleTranscriptDoc.length,
+          textContent: sampleTranscriptDoc,
+          isImage: false,
+        },
+      ],
+    });
+
+    expect(candidates.length).toBeGreaterThanOrEqual(2);
+    expect(candidates[0].title).toBe(
+      'Dubinska analiza: Analogni presretač i arhitektura Mate Foxa'
+    );
+    expect(candidates[0].isParsedTranscript).toBe(true);
+    expect(candidates[0].blocks).toHaveLength(5);
+  });
+
+  it('loads parsed podcast transcript as full episode from AgentDock UI', async () => {
+    render(<AgentDock width={380} />);
+
+    fireEvent.click(screen.getByTestId('tab-cowriter'));
+    fireEvent.click(screen.getByTestId('cowriter-mode-podcast_episode'));
+
+    const transcriptText = [
+      'Dubinska analiza: Analogni presretač i arhitektura Mate Foxa',
+      'Format: Transkript audio podcasta',
+      'Sugovornici: Voditelj 1 i Voditelj 2',
+      'Tema: Ekonomija protudronske obrane (C-UAS)',
+      '---',
+      '[00:00:00] 1. dio: Zamka eskalacije',
+      'Voditelj 1: Prva replika prvog voditelja o tehnologiji.',
+      'Voditelj 2: Druga replika drugog voditelja o arhitekturi.',
+    ].join('\n');
+
+    const dropzone = screen.getByTestId('cowriter-dropzone');
+    const mockFile = new File([transcriptText], 'podcast_transkript.txt', {
+      type: 'text/plain',
+    });
+
+    fireEvent.drop(dropzone, {
+      dataTransfer: { files: [mockFile] },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('podcast_transkript.txt')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId('generate-beats-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cowriter-transcript-badge-0')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('cowriter-speaker-mapping-0')).toBeDefined();
+
+    const loadFullEpisodeBtn = screen.getByTestId('load-podcast-episode-btn-0');
+    fireEvent.click(loadFullEpisodeBtn);
+
+    const updatedProject = useStoriaStore.getState().project;
+    expect(updatedProject.title).toBe(
+      'Dubinska analiza: Analogni presretač i arhitektura Mate Foxa'
+    );
+    expect(updatedProject.description).toBe(
+      'Ekonomija protudronske obrane (C-UAS)'
+    );
+    expect(updatedProject.blocks).toHaveLength(3);
+    expect(updatedProject.blocks[0].type).toBe('narration');
+    expect(updatedProject.blocks[1].text).toBe(
+      'Prva replika prvog voditelja o tehnologiji.'
+    );
+    expect(updatedProject.blocks[2].text).toBe(
+      'Druga replika drugog voditelja o arhitekturi.'
+    );
   });
 });

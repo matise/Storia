@@ -3,6 +3,7 @@ import {
   AppSettings,
   BlockType,
   CoWriterBeatBlockDraft,
+  CoWriterBeatCandidate,
   CroatianDialect,
   DubrovnikRegister,
   GeminiTextModelId,
@@ -275,6 +276,7 @@ export interface StoriaStoreState {
     drafts: CoWriterBeatBlockDraft[],
     afterBlockId?: string
   ) => string[];
+  loadCoWriterBeatAsEpisode: (beat: CoWriterBeatCandidate) => string[];
   saveApiConfiguration: (
     apiKey: string,
     browserFallbackOrProvider: boolean | TtsEngineProvider,
@@ -568,6 +570,48 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         cursorBlockId = createdId;
       }
       return insertedIds;
+    },
+
+    loadCoWriterBeatAsEpisode: (beat: CoWriterBeatCandidate) => {
+      stopAllAudioPlayback();
+      const current = get().project;
+      const now = Date.now();
+      const newBlocks: ScriptBlock[] = beat.blocks.map((draft, idx) => ({
+        id: `blk_${now}_${idx + 1}_${Math.random().toString(36).slice(2, 6)}`,
+        type: draft.type,
+        speakerId: draft.speakerId,
+        text: draft.text,
+        directorNotes: draft.directorNotes ?? 'prirodno / natural',
+        pauseAfterMs: draft.pauseAfterMs ?? 450,
+        ttsStatus: 'unrendered',
+        order: idx,
+      }));
+
+      const targetWpm = current.metadata?.targetWpm ?? 140;
+      const { blocks: hydratedBlocks } = recalculateProjectTimeline(
+        newBlocks,
+        current.speakers,
+        targetWpm
+      );
+
+      const nextProject: Project = {
+        ...current,
+        title: beat.parsedEpisodeTitle?.trim() || current.title,
+        description: beat.parsedEpisodeTopic?.trim() || current.description,
+        blocks: hydratedBlocks,
+        updatedAt: now,
+      };
+
+      const nextProjects = persistProject(nextProject, get().projects);
+      set({
+        project: nextProject,
+        projects: nextProjects,
+        selectedBlockId: hydratedBlocks[0]?.id ?? null,
+        playingBlockId: null,
+        previewingSpeakerId: null,
+      });
+
+      return hydratedBlocks.map((b) => b.id);
     },
 
     saveApiConfiguration: (
@@ -1397,20 +1441,18 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
       // SFX blocks always play their rendered or synthesized WAV audio (never speech synthesis)
       if (block.type === 'sound_effect') {
         let sfxBlob: Blob | undefined;
-        if (!block.generatedAudioUrl) {
-          const cached = await getLatestBlockAudioEntry(block.id);
+        const cached = await getLatestBlockAudioEntry(block.id, block.cacheKey);
+        if (isStale()) return;
+        if (cached?.audioBlob) {
+          sfxBlob = cached.audioBlob;
+        } else if (!block.generatedAudioUrl) {
+          const synth = await synthesizeSfxAudio({
+            block,
+            language: project.defaultLanguage,
+            useAiCompiler: false,
+          });
           if (isStale()) return;
-          if (cached?.audioBlob) {
-            sfxBlob = cached.audioBlob;
-          } else {
-            const synth = await synthesizeSfxAudio({
-              block,
-              language: project.defaultLanguage,
-              useAiCompiler: false,
-            });
-            if (isStale()) return;
-            sfxBlob = synth.audioBlob;
-          }
+          sfxBlob = synth.audioBlob;
         }
 
         const played = await playAudioWithSpeakerDsp({
@@ -1442,12 +1484,10 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         return;
       }
 
-      const cachedEntry = !block.generatedAudioUrl
-        ? await getLatestBlockAudioEntry(block.id)
-        : null;
+      const cachedEntry = await getLatestBlockAudioEntry(block.id, block.cacheKey);
       if (isStale()) return;
 
-      if (block.generatedAudioUrl || cachedEntry?.audioBlob) {
+      if (cachedEntry?.audioBlob || block.generatedAudioUrl) {
         const played = await playAudioWithSpeakerDsp({
           audioUrl: block.generatedAudioUrl,
           audioBlob: cachedEntry?.audioBlob,
@@ -1511,8 +1551,12 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
         }
       }
 
-      // 1. Check content-addressed IndexedDB / L1 cache first (unless forceRegenerate is true)
-      if (!forceRegen) {
+      // 1. Check content-addressed IndexedDB / L1 cache first (only when not forcing regen, not stale, and same provider)
+      if (
+        !forceRegen &&
+        block.ttsStatus !== 'stale' &&
+        (!block.renderedWithProvider || block.renderedWithProvider === effectiveProvider)
+      ) {
         const cacheCheck = await evaluateBlockCacheStatus(block, speaker, language);
         if (cacheCheck.status === 'ok' && cacheCheck.cachedEntry) {
           const entry = cacheCheck.cachedEntry;

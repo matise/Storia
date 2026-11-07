@@ -35,6 +35,7 @@ import { getApiKey } from '../../core/storage/keyVault';
 import {
   adaptBlockBilingually,
   doctorDialogueBlock,
+  extractTextFromDocxArrayBuffer,
   generateNextSceneBeats,
   runPersonaResearch,
 } from '../../services/geminiAgentService';
@@ -54,6 +55,7 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   const setEnableSearchGrounding = useStoriaStore((s) => s.setEnableSearchGrounding);
   const addResearchRecord = useStoriaStore((s) => s.addResearchRecord);
   const insertSceneBeatBlocks = useStoriaStore((s) => s.insertSceneBeatBlocks);
+  const loadCoWriterBeatAsEpisode = useStoriaStore((s) => s.loadCoWriterBeatAsEpisode);
 
   const [activeMode, setActiveMode] = React.useState<AIAgentMode>('persona_research');
   const [isLoading, setIsLoading] = React.useState(false);
@@ -178,6 +180,10 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
       const file = fileList[i];
       const isImage = file.type.startsWith('image/');
       const isPdf = file.type === 'application/pdf';
+      const isDocx =
+        file.name.toLowerCase().endsWith('.docx') ||
+        file.type ===
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
       if (isImage || isPdf) {
         const dataUrl = await new Promise<string>((resolve) => {
@@ -192,6 +198,28 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
           sizeBytes: file.size,
           dataUrl,
           isImage,
+        });
+      } else if (isDocx) {
+        const buffer = await new Promise<ArrayBuffer>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            resolve(
+              reader.result instanceof ArrayBuffer
+                ? reader.result
+                : new ArrayBuffer(0)
+            );
+          reader.readAsArrayBuffer(file);
+        });
+        const textContent = await extractTextFromDocxArrayBuffer(buffer);
+        newAttachments.push({
+          id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          name: file.name,
+          mimeType:
+            file.type ||
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          sizeBytes: file.size,
+          textContent,
+          isImage: false,
         });
       } else {
         const textContent = await new Promise<string>((resolve) => {
@@ -770,7 +798,7 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
                 type="file"
                 multiple
                 data-testid="cowriter-file-input"
-                accept="image/*,.pdf,.txt,.md,.fountain,.json"
+                accept="image/*,.pdf,.docx,.txt,.md,.fountain,.json"
                 onChange={(e) => void handleFilesAdded(e.target.files)}
                 className="hidden"
               />
@@ -783,7 +811,7 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
                 </span>
               </div>
               <span className="text-[10px] text-slate-500 font-mono">
-                PNG, JPG, WebP, PDF, TXT, MD, Fountain, JSON
+                PNG, JPG, WebP, PDF, DOCX, TXT, MD, Fountain, JSON
               </span>
             </div>
 
@@ -917,11 +945,23 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
                     <div className="font-semibold text-indigo-300 text-xs">
                       {beat.title}
                     </div>
-                    {beat.deepResearchUsed && (
-                      <span className="px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-700/60 text-[9px] font-mono text-cyan-300 uppercase shrink-0">
-                        Deep Research
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {beat.isParsedTranscript && (
+                        <span
+                          data-testid={`cowriter-transcript-badge-${bIdx}`}
+                          className="px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-700/60 text-[9px] font-mono text-emerald-300 uppercase shrink-0"
+                        >
+                          {project.defaultLanguage === 'hr'
+                            ? 'Transkript podcasta'
+                            : 'Podcast Transcript'}
+                        </span>
+                      )}
+                      {beat.deepResearchUsed && (
+                        <span className="px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-700/60 text-[9px] font-mono text-cyan-300 uppercase shrink-0">
+                          Deep Research
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {beat.analyzedFiles && beat.analyzedFiles.length > 0 && (
@@ -934,10 +974,26 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
                     </div>
                   )}
 
+                  {beat.speakerMappingSummary && beat.speakerMappingSummary.length > 0 && (
+                    <div
+                      data-testid={`cowriter-speaker-mapping-${bIdx}`}
+                      className="flex flex-wrap gap-1"
+                    >
+                      {beat.speakerMappingSummary.map((mapItem, mIdx) => (
+                        <span
+                          key={mIdx}
+                          className="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-indigo-200"
+                        >
+                          {mapItem}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <p className="text-[11px] text-slate-400 leading-snug">
                     {beat.rationale}
                   </p>
-                  <div className="space-y-1 bg-slate-950/80 rounded p-2 border border-slate-800/80">
+                  <div className="space-y-1 bg-slate-950/80 rounded p-2 border border-slate-800/80 max-h-60 overflow-y-auto">
                     {beat.blocks.map((blk, i) => {
                       const spk = project.speakers.find((s) => s.id === blk.speakerId);
                       return (
@@ -950,15 +1006,32 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
                       );
                     })}
                   </div>
-                  <button
-                    type="button"
-                    data-testid={`insert-beat-btn-${bIdx}`}
-                    onClick={() => insertSceneBeatBlocks(beat.blocks)}
-                    className="w-full py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <MessageSquarePlus className="w-3 h-3 text-emerald-400" />
-                    <span>{t('insertBeatBtn')} ({beat.blocks.length})</span>
-                  </button>
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      data-testid={`insert-beat-btn-${bIdx}`}
+                      onClick={() => insertSceneBeatBlocks(beat.blocks)}
+                      className="w-full py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <MessageSquarePlus className="w-3 h-3 text-emerald-400" />
+                      <span>{t('insertBeatBtn')} ({beat.blocks.length})</span>
+                    </button>
+                    {beat.isParsedTranscript && (
+                      <button
+                        type="button"
+                        data-testid={`load-podcast-episode-btn-${bIdx}`}
+                        onClick={() => loadCoWriterBeatAsEpisode(beat)}
+                        className="w-full py-1 px-2 rounded bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-700/60 text-emerald-200 text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>
+                          {project.defaultLanguage === 'hr'
+                            ? `Postavi kao cijelu epizodu (${beat.blocks.length})`
+                            : `Load as Full Podcast Episode (${beat.blocks.length})`}
+                        </span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

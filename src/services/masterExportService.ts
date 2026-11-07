@@ -29,6 +29,14 @@ export interface RenderedSpeakerStem {
   mp3Filename: string;
 }
 
+export interface MasterExportOptions {
+  format?: 'wav' | 'mp3' | 'both';
+}
+
+function yieldToMainThread(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 /**
  * Encodes a mono Float32Array buffer into raw MP3 chunk arrays at 320 kbps CBR
  * using the pure JavaScript lamejs MP3 encoder.
@@ -63,6 +71,55 @@ export function encodeMasterMp3Chunks(
   }
 
   return mp3Chunks;
+}
+
+/**
+ * Non-blocking async MP3 encoder that yields periodically to the main thread
+ * and respects AbortSignal so long multi-segment episodes never freeze the UI.
+ */
+export async function encodeMasterMp3BufferAsync(
+  samples: Float32Array,
+  sampleRate: number,
+  kbps = 320,
+  abortSignal?: AbortSignal,
+  onProgressFraction?: (fraction: number) => void
+): Promise<Blob> {
+  const encoder = new Mp3Encoder(1, sampleRate, kbps);
+
+  const int16Samples = new Int16Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    int16Samples[i] = s < 0 ? Math.round(s * 0x8000) : Math.round(s * 0x7fff);
+  }
+
+  const mp3Chunks: Uint8Array[] = [];
+  const blockSize = 1152;
+  // Yield every ~350 frames (~403,200 samples ≈ 8.4s of 48kHz audio)
+  const yieldStride = blockSize * 350;
+  let nextYieldAt = yieldStride;
+
+  for (let i = 0; i < int16Samples.length; i += blockSize) {
+    if (abortSignal?.aborted) {
+      throw new DOMException('MP3 encoding was aborted', 'AbortError');
+    }
+    const chunk = int16Samples.subarray(i, i + blockSize);
+    const mp3Buf = encoder.encodeBuffer(chunk);
+    if (mp3Buf && mp3Buf.length > 0) {
+      mp3Chunks.push(new Uint8Array(mp3Buf));
+    }
+    if (i >= nextYieldAt) {
+      nextYieldAt += yieldStride;
+      onProgressFraction?.(Math.min(1, i / Math.max(1, int16Samples.length)));
+      await yieldToMainThread();
+    }
+  }
+
+  const finalChunk = encoder.flush();
+  if (finalChunk && finalChunk.length > 0) {
+    mp3Chunks.push(new Uint8Array(finalChunk));
+  }
+
+  return new Blob(mp3Chunks, { type: 'audio/mp3' });
 }
 
 /**
@@ -117,14 +174,26 @@ export function normalizeBufferToLufs(
 
   const gainLin = Math.pow(10, gainDeltaDb / 20);
   const normalized = new Float32Array(buffer.length);
+  let clampedSamples = 0;
 
   // Apply gain with soft-knee brickwall limiter ceiling
   for (let i = 0; i < buffer.length; i++) {
     let s = buffer[i] * gainLin;
     if (Math.abs(s) > ceilingLin) {
       s = Math.sign(s) * (ceilingLin - 0.0001);
+      clampedSamples++;
     }
     normalized[i] = s;
+  }
+
+  // If no samples were non-linearly clamped on long episodes (>10s), linear gain scaling holds
+  if (clampedSamples === 0 && buffer.length > sampleRate * 10) {
+    return {
+      normalized,
+      measuredLufs: initial.integratedLufs + gainDeltaDb,
+      truePeakDbfs: initial.truePeakDbfs + gainDeltaDb,
+      appliedGainDb: gainDeltaDb,
+    };
   }
 
   // Re-measure post-gain
@@ -146,11 +215,16 @@ export function normalizeBufferToLufs(
 export async function renderMasterEpisodeMix(
   project: Project,
   onProgress?: (progressPct: number) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  options?: MasterExportOptions
 ): Promise<RenderedMasterEpisode> {
   const internalSampleRate = 48000;
   const blocks = project.blocks;
   const totalBlocks = Math.max(1, blocks.length);
+  const exportFormat = options?.format ?? 'both';
+
+  // Ensure transport PCM cache is invalidated so newly regenerated segments are always resolved fresh
+  studioTransportEngine.invalidateBlockCache();
 
   const speakerMap = new Map<string, Speaker>();
   for (const s of project.speakers) {
@@ -222,6 +296,15 @@ export async function renderMasterEpisodeMix(
     }
 
     onProgress?.(Math.round(((idx + 1) / totalBlocks) * 50));
+
+    // Yield periodically to keep UI responsive when processing many segments
+    if ((idx + 1) % 4 === 0) {
+      await yieldToMainThread();
+    }
+  }
+
+  if (abortSignal?.aborted) {
+    throw new DOMException('Master rendering was aborted', 'AbortError');
   }
 
   // 2. Concatenate into continuous master Float32Array buffer
@@ -233,6 +316,10 @@ export async function renderMasterEpisodeMix(
   }
 
   onProgress?.(65);
+  await yieldToMainThread();
+  if (abortSignal?.aborted) {
+    throw new DOMException('Master rendering was aborted', 'AbortError');
+  }
 
   // 3. Normalize integrated loudness to project target LUFS (default -16.0 LUFS) with -1.0 dBFS ceiling
   const targetLufs = project.audioConfig.targetLufs ?? -16.0;
@@ -245,30 +332,51 @@ export async function renderMasterEpisodeMix(
     truePeakCeilingDb
   );
 
+  onProgress?.(80);
+  await yieldToMainThread();
+  if (abortSignal?.aborted) {
+    throw new DOMException('Master rendering was aborted', 'AbortError');
+  }
+
+  // 4. Encode to broadcast-standard multi-bit-depth WAV with TPDF dither (when requested)
+  let wavBlob: Blob;
+  if (exportFormat === 'wav' || exportFormat === 'both') {
+    const wavArrayBuffer = encodeMasterWavBuffer(
+      normalizedResult.normalized,
+      project.audioConfig,
+      internalSampleRate
+    );
+    wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
+  } else {
+    wavBlob = new Blob([], { type: 'audio/wav' });
+  }
+
   onProgress?.(85);
 
-  // 4. Encode to broadcast-standard multi-bit-depth WAV with TPDF dither
-  const wavArrayBuffer = encodeMasterWavBuffer(
-    normalizedResult.normalized,
-    project.audioConfig,
-    internalSampleRate
-  );
+  // 5. Encode to high-quality 320 kbps MP3 using lamejs (when requested)
+  let mp3Blob: Blob;
+  if (exportFormat === 'mp3' || exportFormat === 'both') {
+    const exportMp3Samples =
+      internalSampleRate !== project.audioConfig.sampleRate
+        ? resampleFloat32Buffer(
+            normalizedResult.normalized,
+            internalSampleRate,
+            project.audioConfig.sampleRate
+          )
+        : normalizedResult.normalized;
 
-  // 5. Encode to high-quality 320 kbps MP3 using lamejs
-  const exportMp3Samples =
-    internalSampleRate !== project.audioConfig.sampleRate
-      ? resampleFloat32Buffer(
-          normalizedResult.normalized,
-          internalSampleRate,
-          project.audioConfig.sampleRate
-        )
-      : normalizedResult.normalized;
-
-  const mp3Blob = encodeMasterMp3Buffer(
-    exportMp3Samples,
-    project.audioConfig.sampleRate,
-    320
-  );
+    mp3Blob = await encodeMasterMp3BufferAsync(
+      exportMp3Samples,
+      project.audioConfig.sampleRate,
+      320,
+      abortSignal,
+      (frac) => {
+        onProgress?.(Math.min(99, 85 + Math.round(frac * 14)));
+      }
+    );
+  } else {
+    mp3Blob = new Blob([], { type: 'audio/mp3' });
+  }
 
   onProgress?.(100);
 
@@ -279,8 +387,6 @@ export async function renderMasterEpisodeMix(
     .replace(/^_+|_+$/g, '') || 'storia_master';
   const filename = `${safeTitle}_master_${project.audioConfig.sampleRate}hz_${project.audioConfig.bitDepth}bit.wav`;
   const mp3Filename = `${safeTitle}_master_${project.audioConfig.sampleRate}hz_320kbps.mp3`;
-
-  const wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
 
   return {
     wavBlob,
@@ -304,15 +410,20 @@ export async function renderMasterEpisodeMix(
 export async function renderSpeakerStems(
   project: Project,
   onProgress?: (progressPct: number) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  options?: MasterExportOptions
 ): Promise<RenderedSpeakerStem[]> {
   const internalSampleRate = 48000;
   const blocks = project.blocks;
   const speakers = project.speakers;
+  const exportFormat = options?.format ?? 'both';
 
   if (speakers.length === 0 || blocks.length === 0) {
     return [];
   }
+
+  // Ensure transport PCM cache is invalidated so newly regenerated segments are always resolved fresh
+  studioTransportEngine.invalidateBlockCache();
 
   // Pre-calculate block durations and pause sample offsets
   interface BlockSegment {
@@ -380,6 +491,11 @@ export async function renderSpeakerStems(
     });
 
     totalEpisodeSamples += dspSamples.length + pauseSamplesCount;
+
+    onProgress?.(Math.round(((idx + 1) / Math.max(1, blocks.length)) * 40));
+    if ((idx + 1) % 4 === 0) {
+      await yieldToMainThread();
+    }
   }
 
   const stems: RenderedSpeakerStem[] = [];
@@ -391,6 +507,9 @@ export async function renderSpeakerStems(
 
   // Render a time-aligned stem for each speaker
   for (let sIdx = 0; sIdx < speakers.length; sIdx++) {
+    if (abortSignal?.aborted) {
+      throw new DOMException('Stem rendering was aborted', 'AbortError');
+    }
     const speaker = speakers[sIdx];
     const stemBuffer = new Float32Array(totalEpisodeSamples);
     let offset = 0;
@@ -403,26 +522,38 @@ export async function renderSpeakerStems(
       offset += seg.samples.length + seg.pauseSamplesCount;
     }
 
-    const wavArrayBuffer = encodeMasterWavBuffer(
-      stemBuffer,
-      project.audioConfig,
-      internalSampleRate
-    );
+    let wavBlob: Blob;
+    if (exportFormat === 'wav' || exportFormat === 'both') {
+      const wavArrayBuffer = encodeMasterWavBuffer(
+        stemBuffer,
+        project.audioConfig,
+        internalSampleRate
+      );
+      wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
+    } else {
+      wavBlob = new Blob([], { type: 'audio/wav' });
+    }
 
-    const stemMp3Samples =
-      internalSampleRate !== project.audioConfig.sampleRate
-        ? resampleFloat32Buffer(
-            stemBuffer,
-            internalSampleRate,
-            project.audioConfig.sampleRate
-          )
-        : stemBuffer;
+    let mp3Blob: Blob;
+    if (exportFormat === 'mp3' || exportFormat === 'both') {
+      const stemMp3Samples =
+        internalSampleRate !== project.audioConfig.sampleRate
+          ? resampleFloat32Buffer(
+              stemBuffer,
+              internalSampleRate,
+              project.audioConfig.sampleRate
+            )
+          : stemBuffer;
 
-    const mp3Blob = encodeMasterMp3Buffer(
-      stemMp3Samples,
-      project.audioConfig.sampleRate,
-      320
-    );
+      mp3Blob = await encodeMasterMp3BufferAsync(
+        stemMp3Samples,
+        project.audioConfig.sampleRate,
+        320,
+        abortSignal
+      );
+    } else {
+      mp3Blob = new Blob([], { type: 'audio/mp3' });
+    }
 
     const safeSpeakerName = speaker.name
       .toLowerCase()
@@ -430,7 +561,6 @@ export async function renderSpeakerStems(
       .replace(/^_+|_+$/g, '');
     const filename = `${safeProjectTitle}_stem_${safeSpeakerName}.wav`;
     const mp3Filename = `${safeProjectTitle}_stem_${safeSpeakerName}_320kbps.mp3`;
-    const wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
 
     stems.push({
       speakerId: speaker.id,
@@ -442,7 +572,8 @@ export async function renderSpeakerStems(
       mp3Filename,
     });
 
-    onProgress?.(Math.round(((sIdx + 1) / speakers.length) * 100));
+    onProgress?.(40 + Math.round(((sIdx + 1) / speakers.length) * 60));
+    await yieldToMainThread();
   }
 
   return stems;

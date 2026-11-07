@@ -263,6 +263,10 @@ export interface CoWriterBeatCandidate {
   deepResearchUsed?: boolean;
   analyzedFiles?: string[];
   mode?: CoWriterWorkflowMode;
+  isParsedTranscript?: boolean;
+  parsedEpisodeTitle?: string;
+  parsedEpisodeTopic?: string;
+  speakerMappingSummary?: string[];
 }
 
 export interface ScriptDoctorOption {

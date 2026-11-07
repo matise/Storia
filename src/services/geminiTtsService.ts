@@ -283,7 +283,18 @@ export function encodePcm16ToWavBlob(
   numChannels: number = 1
 ): Blob {
   const wavBytes = encodePcm16ToWavBytes(pcmBytes, sampleRate, numChannels);
-  return new Blob([wavBytes.buffer as ArrayBuffer], { type: 'audio/wav' });
+  const ab = wavBytes.buffer.slice(
+    wavBytes.byteOffset,
+    wavBytes.byteOffset + wavBytes.byteLength
+  ) as ArrayBuffer;
+  const blob = new Blob([ab], { type: 'audio/wav' });
+  if (typeof blob.arrayBuffer !== 'function') {
+    Object.defineProperty(blob, 'arrayBuffer', {
+      value: () => Promise.resolve(ab.slice(0)),
+      configurable: true,
+    });
+  }
+  return blob;
 }
 
 /**

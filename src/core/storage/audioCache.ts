@@ -45,6 +45,35 @@ export interface HydratedCachedAudioEntry {
 // In-memory fast L1 cache (also acts as fallback in test environments without IndexedDB)
 const memoryCache = new Map<string, CachedBlockAudioEntry>();
 const blockLatestEntryMap = new Map<string, CachedBlockAudioEntry>();
+var cacheInvalidationListeners: Set<(blockId?: string) => void> | undefined;
+
+function getInvalidationListeners(): Set<(blockId?: string) => void> {
+  if (!cacheInvalidationListeners) {
+    cacheInvalidationListeners = new Set<(blockId?: string) => void>();
+  }
+  return cacheInvalidationListeners;
+}
+
+export function subscribeAudioCacheInvalidation(
+  listener: (blockId?: string) => void
+): () => void {
+  const listeners = getInvalidationListeners();
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function notifyCacheInvalidation(blockId?: string): void {
+  const listeners = getInvalidationListeners();
+  for (const listener of listeners) {
+    try {
+      listener(blockId);
+    } catch {
+      // Ignore listener errors
+    }
+  }
+}
 
 /**
  * Computes a deterministic SHA-256 hex digest using Web Crypto API (with pure JS fallback).
@@ -188,6 +217,7 @@ export async function saveBlockAudioToCache({
 
   memoryCache.set(cacheKey, serialized);
   blockLatestEntryMap.set(blockId, serialized);
+  notifyCacheInvalidation(blockId);
 
   try {
     await set(cacheKey, serialized);
@@ -232,12 +262,16 @@ export async function getLatestBlockAudioEntry(
   blockId: string,
   cacheKey?: string
 ): Promise<HydratedCachedAudioEntry | null> {
+  const latestMem = blockLatestEntryMap.get(blockId);
+  if (latestMem && (!cacheKey || latestMem.cacheKey === cacheKey)) {
+    return hydrateEntry(latestMem);
+  }
+
   if (cacheKey) {
     const exact = await getBlockAudioFromCache(cacheKey);
     if (exact) return exact;
   }
 
-  const latestMem = blockLatestEntryMap.get(blockId);
   if (latestMem) {
     return hydrateEntry(latestMem);
   }
@@ -254,6 +288,40 @@ export async function getLatestBlockAudioEntry(
   return null;
 }
 
+export async function readBlobArrayBuffer(blob: Blob): Promise<ArrayBuffer | null> {
+  if (typeof blob.arrayBuffer === 'function') {
+    try {
+      const ab = await blob.arrayBuffer();
+      if (ab && ab.byteLength > 0) return ab;
+    } catch {
+      // Fall through
+    }
+  }
+  if (typeof FileReader !== 'undefined') {
+    try {
+      const ab = await new Promise<ArrayBuffer | null>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          resolve(reader.result instanceof ArrayBuffer ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsArrayBuffer(blob);
+      });
+      if (ab && ab.byteLength > 0) return ab;
+    } catch {
+      // Fall through
+    }
+  }
+  if (typeof Response !== 'undefined') {
+    try {
+      const ab = await new Response(blob).arrayBuffer();
+      if (ab && ab.byteLength > 44) return ab;
+    } catch {
+      // Ignore
+    }
+  }
+  return null;
+}
+
 /**
  * Re-extracts Structure-of-Arrays (SoA) WaveformPeakData directly from a 16-bit WAV Blob.
  */
@@ -262,12 +330,7 @@ export async function extractWaveformPeaksFromWavBlob(
   peaksPerSecond: number = DEFAULT_PEAKS_PER_SECOND
 ): Promise<WaveformPeakData | null> {
   try {
-    let arrayBuffer: ArrayBuffer | null = null;
-    if (typeof wavBlob.arrayBuffer === 'function') {
-      arrayBuffer = await wavBlob.arrayBuffer();
-    } else if (typeof Response !== 'undefined') {
-      arrayBuffer = await new Response(wavBlob).arrayBuffer();
-    }
+    const arrayBuffer = await readBlobArrayBuffer(wavBlob);
     if (!arrayBuffer || arrayBuffer.byteLength <= 44) return null;
 
     const view = new DataView(arrayBuffer);
@@ -365,15 +428,21 @@ export async function deleteBlockAudioFromCache(
   } catch {
     // Ignore
   }
+  notifyCacheInvalidation(blockId);
 }
 
 export async function removeBlockAudioFromCache(cacheKey: string): Promise<void> {
+  const existing = memoryCache.get(cacheKey);
   memoryCache.delete(cacheKey);
+  if (existing && blockLatestEntryMap.get(existing.blockId)?.cacheKey === cacheKey) {
+    blockLatestEntryMap.delete(existing.blockId);
+  }
   try {
     await del(cacheKey);
   } catch {
     // Ignore
   }
+  notifyCacheInvalidation(existing?.blockId);
 }
 
 export async function clearAllAudioCache(): Promise<void> {
@@ -384,4 +453,5 @@ export async function clearAllAudioCache(): Promise<void> {
   } catch {
     // Ignore
   }
+  notifyCacheInvalidation();
 }

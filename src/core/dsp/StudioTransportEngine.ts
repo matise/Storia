@@ -14,7 +14,11 @@ import {
 import { AuxBusEngine } from './modular/AuxBusEngine';
 import { LoudnessMeasurement, LoudnessMeter } from './LoudnessMeter';
 import { scheduleFadeEnvelope } from './VolumeEnvelope';
-import { getLatestBlockAudioEntry } from '../storage/audioCache';
+import {
+  getLatestBlockAudioEntry,
+  readBlobArrayBuffer,
+  subscribeAudioCacheInvalidation,
+} from '../storage/audioCache';
 import { synthesizeProceduralSpeechPcm } from '../../services/geminiTtsService';
 import { synthesizeSfxAudio } from '../../services/sfxGeneratorService';
 
@@ -141,7 +145,7 @@ export class StudioTransportEngine {
   private activeStartOffsetSec = 0;
   private activeRawPcmCache = new Map<
     string,
-    { samples: Float32Array; sampleRate: number }
+    { fingerprint: string; samples: Float32Array; sampleRate: number }
   >();
   private subscribers = new Set<MeterSubscriber>();
   private latestSnapshot: LiveMeterSnapshot = {
@@ -153,6 +157,12 @@ export class StudioTransportEngine {
     activeSpeakerId: null,
     activeBlockId: null,
   };
+
+  constructor() {
+    subscribeAudioCacheInvalidation((blockId) => {
+      this.invalidateBlockCache(blockId);
+    });
+  }
 
   private ensureAudioContext(): AudioContext | null {
     if (this.ctx) return this.ctx;
@@ -366,18 +376,48 @@ export class StudioTransportEngine {
     speaker?: Speaker
   ): Promise<{ samples: Float32Array; sampleRate: number }> {
     const cachedMem = this.activeRawPcmCache.get(block.id);
-    if (cachedMem && cachedMem.samples.length > 0) {
-      return cachedMem;
+
+    // 1. Check IndexedDB / L1 audio cache first (always contains the latest regenerated audioBlob + createdAt)
+    try {
+      const entry = await getLatestBlockAudioEntry(block.id, block.cacheKey);
+      if (entry?.audioBlob) {
+        const fingerprint = `${block.id}::cached::${entry.createdAt}::${entry.cacheKey}`;
+        if (cachedMem && cachedMem.fingerprint === fingerprint && cachedMem.samples.length > 0) {
+          return { samples: cachedMem.samples, sampleRate: cachedMem.sampleRate };
+        }
+        const ab = await readBlobArrayBuffer(entry.audioBlob);
+        if (ab) {
+          const decoded = decodeWavBufferToFloat32(ab);
+          if (decoded.samples.length > 0) {
+            this.activeRawPcmCache.set(block.id, {
+              fingerprint,
+              samples: decoded.samples,
+              sampleRate: decoded.sampleRate,
+            });
+            return decoded;
+          }
+        }
+      }
+    } catch {
+      // Fall through to URL or procedural synthesis
     }
 
-    // 0. Try block.generatedAudioUrl if present (e.g. object URL or external URL)
+    // 2. Try block.generatedAudioUrl if present (e.g. external URL or object URL not in IDB)
     if (block.generatedAudioUrl) {
+      const fingerprint = `${block.id}::url::${block.generatedAudioUrl}::${block.cacheKey ?? ''}`;
+      if (cachedMem && cachedMem.fingerprint === fingerprint && cachedMem.samples.length > 0) {
+        return { samples: cachedMem.samples, sampleRate: cachedMem.sampleRate };
+      }
       try {
         const resp = await fetch(block.generatedAudioUrl);
         const ab = await resp.arrayBuffer();
         const decoded = decodeWavBufferToFloat32(ab);
         if (decoded.samples.length > 0) {
-          this.activeRawPcmCache.set(block.id, decoded);
+          this.activeRawPcmCache.set(block.id, {
+            fingerprint,
+            samples: decoded.samples,
+            sampleRate: decoded.sampleRate,
+          });
           return decoded;
         }
       } catch {
@@ -385,22 +425,12 @@ export class StudioTransportEngine {
       }
     }
 
-    // 1. Try IndexedDB audio cache
-    try {
-      const entry = await getLatestBlockAudioEntry(block.id);
-      if (entry?.audioBlob && typeof entry.audioBlob.arrayBuffer === 'function') {
-        const ab = await entry.audioBlob.arrayBuffer();
-        const decoded = decodeWavBufferToFloat32(ab);
-        if (decoded.samples.length > 0) {
-          this.activeRawPcmCache.set(block.id, decoded);
-          return decoded;
-        }
-      }
-    } catch {
-      // Fall through to procedural synthesis
+    // 3. Fallback to fast procedural speech / SFX buffer for immediate transport auditioning
+    const fallbackFingerprint = `${block.id}::fallback::${block.type}::${block.text}::${speaker?.id ?? ''}::${block.sfxCategory ?? ''}::${block.sfxDurationSec ?? 0}`;
+    if (cachedMem && cachedMem.fingerprint === fallbackFingerprint && cachedMem.samples.length > 0) {
+      return { samples: cachedMem.samples, sampleRate: cachedMem.sampleRate };
     }
 
-    // 2. Fallback to fast procedural speech / SFX buffer for immediate transport auditioning
     if (block.type === 'sound_effect') {
       const sfx = await synthesizeSfxAudio({
         block,
@@ -408,16 +438,15 @@ export class StudioTransportEngine {
         useAiCompiler: false,
       });
 
-      let ab: ArrayBuffer | null = null;
-      if (sfx.audioBlob && typeof sfx.audioBlob.arrayBuffer === 'function') {
-        ab = await sfx.audioBlob.arrayBuffer();
-      } else if (typeof Response !== 'undefined') {
-        ab = await new Response(sfx.audioBlob).arrayBuffer();
-      }
+      const ab = sfx.audioBlob ? await readBlobArrayBuffer(sfx.audioBlob) : null;
 
       if (ab) {
         const decoded = decodeWavBufferToFloat32(ab);
-        this.activeRawPcmCache.set(block.id, decoded);
+        this.activeRawPcmCache.set(block.id, {
+          fingerprint: fallbackFingerprint,
+          samples: decoded.samples,
+          sampleRate: decoded.sampleRate,
+        });
         return decoded;
       }
     }
@@ -432,7 +461,11 @@ export class StudioTransportEngine {
       floatSamples[i] = proc.pcmInt16[i] / 32768.0;
     }
     const result = { samples: floatSamples, sampleRate: 24000 };
-    this.activeRawPcmCache.set(block.id, result);
+    this.activeRawPcmCache.set(block.id, {
+      fingerprint: fallbackFingerprint,
+      samples: result.samples,
+      sampleRate: result.sampleRate,
+    });
 
     // Apply per-block volume gain if set
     let blockGainLin = 1.0;

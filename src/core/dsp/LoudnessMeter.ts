@@ -127,6 +127,15 @@ export function measureTruePeak(samples: Float32Array): {
     if (absS > maxSamplePeak) maxSamplePeak = absS;
     if (absS > maxTruePeak) maxTruePeak = absS;
 
+    // Fast-path threshold guard: 12-tap Hann-windowed sinc L1 norm is < 1.62,
+    // so sub-sample peaks between i and i+1 can only exceed maxTruePeak when
+    // adjacent sample magnitudes are within ~50% of the current maxTruePeak.
+    const nextAbs = i + 1 < n ? Math.abs(samples[i + 1]) : 0;
+    const localMax = absS > nextAbs ? absS : nextAbs;
+    if (localMax <= 1e-5 || localMax < maxTruePeak * 0.5) {
+      continue;
+    }
+
     // Evaluate 3 sub-sample polyphase phases between sample i and i+1
     for (let p = 0; p < 3; p++) {
       const kernel = POLYPHASE_PHASES[p];
@@ -229,6 +238,24 @@ export class LoudnessMeter {
         sumSq += v * v;
       }
       blockEnergies.push(sumSq / Math.max(1, kWeighted.length));
+    } else if (windowSamples === stepSamples * 4) {
+      // Fast O(N) non-redundant 100ms step accumulation for 400ms (4x100ms) overlapping windows
+      const numSteps = Math.floor(kWeighted.length / stepSamples);
+      const stepSums = new Float64Array(numSteps);
+      for (let s = 0; s < numSteps; s++) {
+        const base = s * stepSamples;
+        let sumSq = 0;
+        for (let i = base; i < base + stepSamples; i++) {
+          const v = kWeighted[i] + ANTI_DENORMAL_OFFSET;
+          sumSq += v * v;
+        }
+        stepSums[s] = sumSq;
+      }
+      for (let s = 0; s + 4 <= numSteps; s++) {
+        const winSum =
+          stepSums[s] + stepSums[s + 1] + stepSums[s + 2] + stepSums[s + 3];
+        blockEnergies.push(winSum / windowSamples);
+      }
     } else {
       for (
         let start = 0;
@@ -245,7 +272,12 @@ export class LoudnessMeter {
     }
 
     // Peak momentary loudness across active spoken blocks (prevents trailing silence pauses from reporting -70 LUFS)
-    const maxBlockEnergy = blockEnergies.length > 0 ? Math.max(...blockEnergies) : 0;
+    let maxBlockEnergy = 0;
+    for (let i = 0; i < blockEnergies.length; i++) {
+      if (blockEnergies[i] > maxBlockEnergy) {
+        maxBlockEnergy = blockEnergies[i];
+      }
+    }
     const momentaryLufs =
       maxBlockEnergy > 1e-12 ? -0.691 + 10 * Math.log10(maxBlockEnergy) : -70.0;
 

@@ -27,12 +27,14 @@ import {
 export type ProjectLibrarySlice = Pick<
   StoriaStoreState,
   | 'importProjectFromBundle'
+  | 'importProjectsBundle'
   | 'updateProjectTitle'
   | 'updateProjectProperties'
   | 'switchProject'
   | 'createProject'
   | 'duplicateProject'
   | 'deleteProject'
+  | 'deleteProjectsBulk'
   | 'undo'
   | 'redo'
   | 'resetToSampleProject'
@@ -371,6 +373,68 @@ export function createProjectLibrarySlice({
         projects: finalLib,
         selectedBlockId: nextActive.blocks[0]?.id ?? null,
       });
+    },
+
+    deleteProjectsBulk: (projectIds: string[]) => {
+      if (!projectIds || projectIds.length === 0) return;
+      const currentList = get().projects;
+      const toDelete = new Set(projectIds);
+      const remaining = currentList.filter((p) => !toDelete.has(p.id));
+      if (remaining.length === 0) return; // safeguard: never delete entire library
+
+      const nextActive = toDelete.has(get().project.id) ? remaining[0] : get().project;
+      const finalLib = persistProject(nextActive, remaining);
+
+      set({
+        project: nextActive,
+        projects: finalLib,
+        selectedBlockId: nextActive.blocks[0]?.id ?? null,
+      });
+    },
+
+    importProjectsBundle: (incoming: Project[], activateFirst = false) => {
+      if (!incoming || incoming.length === 0) return 0;
+      stopAllAudioPlayback();
+      singletonHistory.clear();
+
+      const existingMap = new Map(get().projects.map((p) => [p.id, p]));
+      const now = Date.now();
+      const hydratedList: Project[] = [];
+
+      for (let i = 0; i < incoming.length; i++) {
+        const item = incoming[i];
+        let targetId = item.id;
+        if (existingMap.has(targetId)) {
+          targetId = `proj_${now}_${i}_${Math.random().toString(36).slice(2, 6)}`;
+        }
+        const hydrated = hydrateProjectTimeline({
+          ...item,
+          id: targetId,
+          updatedAt: Date.now(),
+        });
+        existingMap.set(hydrated.id, hydrated);
+        hydratedList.push(hydrated);
+      }
+
+      const allProjects = Array.from(existingMap.values());
+      const nextActive = activateFirst && hydratedList.length > 0 ? hydratedList[0] : get().project;
+      const persisted = persistProject(nextActive, allProjects);
+
+      if (activateFirst && hydratedList.length > 0) {
+        const nextSettings: AppSettings = {
+          ...get().appSettings,
+          activeProjectId: nextActive.id,
+        };
+        persistSettings(nextSettings);
+      }
+
+      set({
+        project: nextActive,
+        projects: persisted,
+        selectedBlockId: nextActive.blocks[0]?.id ?? null,
+      });
+
+      return hydratedList.length;
     },
 
     undo: () => {

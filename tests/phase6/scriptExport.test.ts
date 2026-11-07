@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  exportEpisodesBundleJson,
   exportProjectJson,
   exportToFountain,
   exportToMarkdown,
+  importEpisodesBundleJson,
   importProjectJson,
 } from '../../src/services/scriptExportService';
-import { createSampleProject } from '../../src/i18n/sampleProject';
+import { createInitialProjectLibrary, createSampleProject } from '../../src/i18n/sampleProject';
 
 describe('Phase 6 — Step 6.3: Fountain, Markdown & Project Archive Exporters', () => {
   it('exports valid Fountain screenplay syntax with title, character cues, and parentheticals', () => {
@@ -71,6 +73,25 @@ describe('Phase 6 — Step 6.3: Fountain, Markdown & Project Archive Exporters',
     expect(() => importProjectJson('{ corrupted json')).toThrow('Invalid JSON syntax');
     expect(() => importProjectJson('{"title": "No ID"}')).toThrow('missing or invalid "id" field');
     expect(() => importProjectJson('{"id": "p1"}')).toThrow('missing or invalid "title" field');
+  });
+
+  it('exports and imports multi-episode bundles with version metadata', () => {
+    const library = createInitialProjectLibrary();
+    const bundleJson = exportEpisodesBundleJson(library.slice(0, 2));
+
+    expect(bundleJson).toContain('"storiaBundleVersion": 1');
+    expect(bundleJson).toContain('"episodeCount": 2');
+
+    const importedEpisodes = importEpisodesBundleJson(bundleJson);
+    expect(importedEpisodes).toHaveLength(2);
+    expect(importedEpisodes[0].title).toBe(library[0].title);
+    expect(importedEpisodes[1].title).toBe(library[1].title);
+
+    // Also supports importing single episode JSON via importEpisodesBundleJson
+    const singleJson = exportProjectJson(library[0]);
+    const singleImported = importEpisodesBundleJson(singleJson);
+    expect(singleImported).toHaveLength(1);
+    expect(singleImported[0].id).toBe(library[0].id);
   });
 });
 

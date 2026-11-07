@@ -140,4 +140,38 @@ describe('Multi-Project (Episode) Studio Library & Episode Properties UI', () =>
     });
     expect(useStoriaStore.getState().project.title).toBe('Ep 2: Signals from Lastovo');
   });
+
+  it('supports episode searching, checkbox selection, and selective episode export in the upgraded modal', () => {
+    useStoriaStore.getState().resetToSampleProject();
+    render(<App />);
+
+    // Open modal
+    const openModalBtn = screen.getByTestId('open-episode-properties-btn');
+    fireEvent.click(openModalBtn);
+
+    // Verify search input filters episodes
+    const searchInput = screen.getByTestId('library-search-input') as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: 'Palagruža' } });
+
+    expect(screen.getByTestId('episode-library-card-proj_palagruza_ep2')).toBeDefined();
+    expect(screen.queryByTestId('episode-library-card-proj_dubrovnik_ep3')).toBeNull();
+
+    // Clear search
+    fireEvent.change(searchInput, { target: { value: '' } });
+    expect(screen.getByTestId('episode-library-card-proj_dubrovnik_ep3')).toBeDefined();
+
+    // Checkbox selection: select episode 1 and episode 2
+    const checkEp1 = screen.getByTestId('episode-select-checkbox-proj_magla_zagreb_ep1');
+    fireEvent.click(checkEp1);
+
+    // Export Selected button should appear with count (1)
+    const exportSelectedBtn = screen.getByTestId('library-toolbar-export-selected-btn');
+    expect(exportSelectedBtn).toBeDefined();
+    expect(exportSelectedBtn.textContent).toContain('1');
+
+    // Select second episode
+    const checkEp2 = screen.getByTestId('episode-select-checkbox-proj_palagruza_ep2');
+    fireEvent.click(checkEp2);
+    expect(exportSelectedBtn.textContent).toContain('2');
+  });
 });

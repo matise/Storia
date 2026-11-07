@@ -229,6 +229,17 @@ export interface TranslationDictionary {
   newEpisodeBtn: string;
   duplicateEpisodeBtn: string;
   deleteEpisodeBtn: string;
+  importEpisodesBtn: string;
+  exportAllEpisodesBtn: string;
+  exportSelectedEpisodesBtn: string;
+  clearLibraryBtn: string;
+  deleteSelectedBtn: string;
+  searchEpisodesPlaceholder: string;
+  selectAll: string;
+  selectedCount: string;
+  confirmResetLibrary: string;
+  confirmDeleteSelected: string;
+  activeEpisodeBadge: string;
   episodeTitleLabel: string;
   episodeDescriptionLabel: string;
   episodeLanguageLabel: string;
@@ -578,6 +589,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     newEpisodeBtn: '+ New Episode',
     duplicateEpisodeBtn: 'Duplicate',
     deleteEpisodeBtn: 'Delete Episode',
+    importEpisodesBtn: 'Import JSON',
+    exportAllEpisodesBtn: 'Export All',
+    exportSelectedEpisodesBtn: 'Export Selected',
+    clearLibraryBtn: 'Reset Library',
+    deleteSelectedBtn: 'Delete Selected',
+    searchEpisodesPlaceholder: 'Search episodes by title, genre, author...',
+    selectAll: 'Select All',
+    selectedCount: 'selected',
+    confirmResetLibrary: 'Are you sure you want to reset the episode library to default starter? Unsaved custom episodes will be removed.',
+    confirmDeleteSelected: 'Are you sure you want to delete the selected episode(s)?',
+    activeEpisodeBadge: 'Active',
     episodeTitleLabel: 'Episode Title',
     episodeDescriptionLabel: 'Description / Synopsis',
     episodeLanguageLabel: 'Episode Language',
@@ -920,6 +942,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     newEpisodeBtn: '+ Nova epizoda',
     duplicateEpisodeBtn: 'Dupliciraj',
     deleteEpisodeBtn: 'Obriši epizodu',
+    importEpisodesBtn: 'Uvezi JSON',
+    exportAllEpisodesBtn: 'Izvezi sve',
+    exportSelectedEpisodesBtn: 'Izvezi odabrano',
+    clearLibraryBtn: 'Resetiraj knjižnicu',
+    deleteSelectedBtn: 'Obriši odabrano',
+    searchEpisodesPlaceholder: 'Traži epizode po naslovu, žanru, autoru...',
+    selectAll: 'Odaberi sve',
+    selectedCount: 'odabrano',
+    confirmResetLibrary: 'Jeste li sigurni da želite resetirati knjižnicu epizoda na početnu? Nespremljene epizode bit će uklonjene.',
+    confirmDeleteSelected: 'Jeste li sigurni da želite obrisati odabrane epizode?',
+    activeEpisodeBadge: 'Aktivna',
     episodeTitleLabel: 'Naslov epizode',
     episodeDescriptionLabel: 'Opis / Sinopsis',
     episodeLanguageLabel: 'Jezik epizode',

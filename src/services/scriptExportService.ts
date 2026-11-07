@@ -236,6 +236,68 @@ export function importProjectJson(jsonStr: string): Project {
   return validatedProject;
 }
 
+export interface StoriaEpisodesBundle {
+  storiaBundleVersion: number;
+  exportedAt: number;
+  episodeCount: number;
+  episodes: Project[];
+}
+
+/**
+ * Packages multiple projects into a standardized Storia Studio JSON bundle.
+ */
+export function exportEpisodesBundleJson(episodes: Project[]): string {
+  const cleanEpisodes = episodes.map((ep) => ({
+    ...ep,
+    blocks: ep.blocks.map(({ waveformPeaks: _wp, ...rest }) => rest),
+  }));
+
+  const bundle: StoriaEpisodesBundle = {
+    storiaBundleVersion: 1,
+    exportedAt: Date.now(),
+    episodeCount: cleanEpisodes.length,
+    episodes: cleanEpisodes,
+  };
+
+  return JSON.stringify(bundle, null, 2);
+}
+
+/**
+ * Parses and validates an unknown JSON string into an array of validated Project objects.
+ * Supports:
+ * 1. Multi-episode bundle ({ storiaBundleVersion, episodes: [...] })
+ * 2. Array of projects ([ { ... }, ... ])
+ * 3. Single project object ({ id, title, ... })
+ */
+export function importEpisodesBundleJson(jsonStr: string): Project[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch (err) {
+    throw new Error(
+      `Invalid JSON syntax in episode bundle: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('Invalid episode bundle: root must be a valid JSON object or array.');
+  }
+
+  // Case 1: Multi-episode bundle format
+  if ('episodes' in parsed && Array.isArray((parsed as { episodes: unknown[] }).episodes)) {
+    const rawList = (parsed as { episodes: unknown[] }).episodes;
+    return rawList.map((item) => importProjectJson(JSON.stringify(item)));
+  }
+
+  // Case 2: Array of projects
+  if (Array.isArray(parsed)) {
+    return parsed.map((item) => importProjectJson(JSON.stringify(item)));
+  }
+
+  // Case 3: Single project JSON
+  return [importProjectJson(JSON.stringify(parsed))];
+}
+
 /**
  * Triggers a native browser file download for a Blob or string content.
  */

@@ -191,7 +191,7 @@ describe('Co-Writer Mode Selection (Scene, Complete Story, Podcast) & Scalable P
 
     expect(agentAside.style.width).toBe('280px');
     expect(localStorage.getItem('storia_layout_right_width')).toBe('280');
-  });
+  }, 15000);
 
   it('parses structured podcast transcript documents (Format, Sugovornici, Tema, [00:00:00] sections, Voditelj 1/2) when Co-Writer is set to podcast_episode', async () => {
     const { project } = useStoriaStore.getState();

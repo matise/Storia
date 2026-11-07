@@ -14,11 +14,17 @@ import {
   ZoomOut,
   ArrowLeftRight,
   Sliders,
+  Coins,
 } from 'lucide-react';
 import { ScriptBlock, Speaker } from '../../types/storia';
 import { useTranslation } from '../../i18n/useTranslation';
 import { useStoriaStore } from '../../store/useStoriaStore';
-import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
+import {
+  formatDurationReadout,
+  recalculateProjectTimeline,
+  formatTokenCount,
+  formatEuroPrice,
+} from '../../core/pacing/pacingCalculator';
 import { generateSyntheticPreviewPeaks } from './WaveformCanvas';
 import { BroadcastVuMeter } from './BroadcastVuMeter';
 import { LiveMeterSnapshot, studioTransportEngine } from '../../core/dsp/StudioTransportEngine';
@@ -689,10 +695,17 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
   const activeBlock = blocks[activeBlockIndex] ?? blocks[0];
   const activeSpeaker = speakers.find((s) => s.id === activeBlock?.speakerId);
 
+  const pacingSummary = React.useMemo(
+    () => recalculateProjectTimeline(blocks, speakers),
+    [blocks, speakers]
+  );
+  const formattedTokenCount = formatTokenCount(pacingSummary.totalAudioTokens);
+  const formattedPriceEur = formatEuroPrice(pacingSummary.estimatedCostEur);
+
   return (
     <section
       data-testid="episode-waveform-transport-deck"
-      className="mx-3 mt-2 mb-2 rounded-xl border border-emerald-500/45 bg-gradient-to-b from-slate-800/90 via-slate-900/95 to-slate-950 px-4 py-3 shrink-0 select-none space-y-2.5 shadow-xl shadow-black/50 ring-1 ring-inset ring-emerald-400/20"
+      className="mx-3 mt-2 mb-2 rounded-xl border border-cyan-500/45 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-4 py-3 shrink-0 select-none space-y-2.5 shadow-xl shadow-black/50 ring-1 ring-inset ring-cyan-400/20"
     >
       {/* Top Row: Transport Buttons, Zoom Controls, Timecode Readout & Speed Control */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -706,7 +719,7 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
               title={t('collapseWaveformTransportTooltip')}
               className="p-1.5 rounded-md bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer mr-0.5"
             >
-              <ChevronUp className="w-3.5 h-3.5 text-emerald-400" />
+              <ChevronUp className="w-3.5 h-3.5 text-cyan-400" />
             </button>
           )}
 
@@ -908,6 +921,18 @@ export const EpisodeWaveformTransport: React.FC<EpisodeWaveformTransportProps> =
             {formatDurationReadout(playheadSec, true)} /{' '}
             {formatDurationReadout(totalDurationSec, true)}
           </span>
+
+          {/* Audio Tokens & Estimated Euro Price */}
+          <div
+            data-testid="transport-tokens-cost-pill"
+            title={`Estimated audio synthesis: ${pacingSummary.totalAudioTokens.toLocaleString()} tokens (~€${pacingSummary.estimatedCostEur < 0.01 && pacingSummary.estimatedCostEur > 0 ? pacingSummary.estimatedCostEur.toFixed(3) : pacingSummary.estimatedCostEur.toFixed(2)})`}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] font-mono select-none"
+          >
+            <Coins className="w-3 h-3 text-amber-400 shrink-0" />
+            <span className="text-indigo-300 font-semibold">{formattedTokenCount} {t('tokensAbbrev')}</span>
+            <span className="text-slate-600">·</span>
+            <span className="text-emerald-400 font-semibold">~{formattedPriceEur}</span>
+          </div>
 
           <label className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] font-mono text-slate-300">
             <span className="text-slate-500">{t('transportSpeedLabel')}:</span>

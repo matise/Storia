@@ -384,7 +384,7 @@ export const ScriptWorkbench: React.FC = () => {
   return (
     <main className="flex-1 flex flex-col bg-slate-950 min-w-0 overflow-hidden">
       {/* Studio Header: Unified Compact Action Bar */}
-      <div className="min-h-11 py-1.5 border-b border-slate-700/80 bg-slate-900/95 shadow-xs px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
+      <div className="min-h-11 py-1.5 border-b border-slate-700/70 bg-slate-900 shadow-sm px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
         {/* Left: Unified Panel Deck Toggles & Block Insertion */}
         <div className="flex items-center gap-2">
           {/* Group 1: Unified Panel Deck Toggles (Waveform Transport & Episode Settings) */}
@@ -401,13 +401,13 @@ export const ScriptWorkbench: React.FC = () => {
               aria-label={t('waveformTransportBtn')}
               className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                 showWaveformTransport
-                  ? 'bg-emerald-950/80 border border-emerald-600/60 text-emerald-300 shadow-xs shadow-emerald-950/40'
+                  ? 'bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 shadow-xs shadow-cyan-950/40'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
               }`}
             >
-              <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <Activity className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               {showWaveformTransport ? (
-                <ChevronUp className="w-3 h-3 text-emerald-400/80 shrink-0" />
+                <ChevronUp className="w-3 h-3 text-cyan-400/80 shrink-0" />
               ) : (
                 <ChevronDown className="w-3 h-3 text-slate-500 shrink-0" />
               )}
@@ -423,7 +423,7 @@ export const ScriptWorkbench: React.FC = () => {
               aria-label={t('episodePropertiesBtn')}
               className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                 showEpisodeBanner
-                  ? 'bg-indigo-950/80 border border-indigo-600/60 text-indigo-200 shadow-xs shadow-indigo-950/40'
+                  ? 'bg-indigo-950/80 border border-indigo-500/60 text-indigo-200 shadow-xs shadow-indigo-950/40'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
               }`}
             >
@@ -442,7 +442,7 @@ export const ScriptWorkbench: React.FC = () => {
           <button
             type="button"
             onClick={() => addBlock('dialogue')}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 hover:text-white shadow-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span>{t('addLine')}</span>
@@ -531,7 +531,7 @@ export const ScriptWorkbench: React.FC = () => {
       {showEpisodeBanner && (
         <section
           data-testid="workbench-episode-properties-strip"
-          className="mx-3 mt-2.5 mb-1 rounded-xl border border-indigo-500/45 bg-gradient-to-b from-indigo-950/50 via-slate-900/95 to-slate-900 px-4 py-3 shrink-0 shadow-lg shadow-black/45 ring-1 ring-inset ring-indigo-400/20"
+          className="mx-3 mt-2.5 mb-1 rounded-xl border border-indigo-500/45 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-4 py-3 shrink-0 shadow-lg shadow-black/50 ring-1 ring-inset ring-indigo-500/20"
         >
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
             {/* Episode Title */}

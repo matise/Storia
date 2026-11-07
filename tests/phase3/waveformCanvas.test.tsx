@@ -105,6 +105,12 @@ describe('Phase 3 — DOD Canvas 2D SoA Waveform Renderer & Scrubber', () => {
     fireEvent.click(jumpStartBtn);
     expect(timecode.textContent).toContain('00:00.0 /');
 
+    // Token count & Euro price badge
+    const tokenCostPill = screen.getByTestId('transport-tokens-cost-pill');
+    expect(tokenCostPill).toBeDefined();
+    expect(tokenCostPill.textContent).toContain('tok');
+    expect(tokenCostPill.textContent).toContain('€');
+
     // Next Block transport button
     const nextBlockBtn = screen.getByTestId('transport-next-block-btn');
     fireEvent.click(nextBlockBtn);

@@ -25,7 +25,6 @@ import {
 } from '../../types/storia';
 import { useStoriaStore } from '../../store/useStoriaStore';
 import { useTranslation } from '../../i18n/useTranslation';
-import { recalculateProjectTimeline } from '../../core/pacing/pacingCalculator';
 
 export const TopBar: React.FC = () => {
   const { t, uiLanguage, toggleLanguage } = useTranslation();
@@ -51,25 +50,9 @@ export const TopBar: React.FC = () => {
   const setActiveTtsProvider = useStoriaStore((s) => s.setActiveTtsProvider);
   const setGeminiTextModel = useStoriaStore((s) => s.setGeminiTextModel);
   const isBatchSynthesizing = useStoriaStore((s) => s.isBatchSynthesizing);
-  const synthesizeAllBlocks = useStoriaStore((s) => s.synthesizeAllBlocks);
   const abortBatchSynthesis = useStoriaStore((s) => s.abortBatchSynthesis);
   const ttsErrorMessage = useStoriaStore((s) => s.ttsErrorMessage);
   const clearTtsError = useStoriaStore((s) => s.clearTtsError);
-
-  const summary = React.useMemo(
-    () =>
-      recalculateProjectTimeline(
-        project.blocks,
-        project.speakers,
-        project.metadata?.targetWpm ?? 140
-      ),
-    [project.blocks, project.speakers, project.metadata?.targetWpm]
-  );
-
-  const formattedTokens =
-    summary.totalAudioTokens >= 1000
-      ? `${(summary.totalAudioTokens / 1000).toFixed(1)}k`
-      : String(summary.totalAudioTokens);
 
   const apiKeyBadgeText = hasConfiguredApiKey
     ? t('apiKeyOk')
@@ -78,13 +61,14 @@ export const TopBar: React.FC = () => {
       : t('apiKeyMissing');
 
   return (
-    <div className="shrink-0 select-none">
-      <header className="h-14 border-b border-slate-800/90 bg-slate-950/95 px-3 sm:px-4 flex items-center justify-between gap-2.5 overflow-x-auto overflow-y-hidden select-none min-w-0">
+    <div className="w-full shrink-0 select-none">
+      <header className="w-full h-14 border-b border-slate-800/80 bg-slate-950/95 px-3 sm:px-4 flex items-center justify-between gap-2.5 shadow-md shadow-black/25 overflow-x-auto overflow-y-hidden select-none min-w-0">
         {/* Brand & Active Episode Selector */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950/60 ring-1 ring-white/10 bg-slate-900/90 hover:scale-105 transition-transform cursor-pointer">
-              <StoriaAppBrandIcon size={40} />
+            <div className="relative flex items-center justify-center shrink-0 hover:scale-105 transition-transform cursor-pointer drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]">
+              <StoriaAppBrandIcon size={53} />
+              <div className="absolute -bottom-1.5 w-8 h-1.5 bg-black/60 rounded-full blur-[2px] pointer-events-none" />
             </div>
             <span className="font-bold tracking-tight text-slate-100 text-lg hidden sm:inline">
               {t('appTitle')}
@@ -104,7 +88,7 @@ export const TopBar: React.FC = () => {
               title={project.title}
               value={project.id}
               onChange={(e) => switchProject(e.target.value)}
-              className="bg-transparent text-xs text-slate-100 font-medium focus:outline-none min-w-[140px] max-w-[220px] sm:max-w-[320px] md:max-w-[420px] lg:max-w-[520px] truncate cursor-pointer py-0.5"
+              className="w-44 bg-transparent text-xs text-slate-100 font-medium focus:outline-none truncate cursor-pointer py-0.5"
             >
               {projects.map((ep) => (
                 <option
@@ -136,6 +120,22 @@ export const TopBar: React.FC = () => {
             >
               <Settings2 className="w-3.5 h-3.5" />
             </button>
+
+            {/* Quick Demo: Trijada Geodetskog Plamena Icon Button */}
+            <button
+              type="button"
+              data-testid="load-geodesic-flame-demo-btn"
+              onClick={loadGeodesicFlameDemo}
+              title={t('loadGeodesicFlameDemoTooltip')}
+              aria-label={t('loadGeodesicFlameDemoTooltip')}
+              className={`p-1 rounded transition-colors cursor-pointer shrink-0 ${
+                project.id === 'proj_geodesic_flame_demo'
+                  ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/50'
+                  : 'text-amber-400 hover:text-amber-200 hover:bg-slate-800'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Bilingual EN / HR Switcher with Flags */}
@@ -163,22 +163,6 @@ export const TopBar: React.FC = () => {
                 <span className="text-slate-500 text-[10px]">en</span>
               </div>
             )}
-          </button>
-
-          {/* Quick Demo: Trijada Geodetskog Plamena Button */}
-          <button
-            type="button"
-            data-testid="load-geodesic-flame-demo-btn"
-            onClick={loadGeodesicFlameDemo}
-            title={t('loadGeodesicFlameDemoTooltip')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              project.id === 'proj_geodesic_flame_demo'
-                ? 'bg-amber-950/80 border-amber-500/70 text-amber-200 shadow-sm shadow-amber-950/40'
-                : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-amber-300'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="hidden xl:inline">{t('geodesicFlameBadge')}</span>
           </button>
         </div>
 
@@ -301,7 +285,7 @@ export const TopBar: React.FC = () => {
             <span>{apiKeyBadgeText}</span>
           </button>
 
-          {isBatchSynthesizing ? (
+          {isBatchSynthesizing && (
             <button
               type="button"
               data-testid="topbar-stop-synthesis-btn"
@@ -311,17 +295,6 @@ export const TopBar: React.FC = () => {
             >
               <Square className="w-3.5 h-3.5 fill-current shrink-0" />
               <span>{t('stopGeneration')}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void synthesizeAllBlocks()}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600/90 hover:bg-indigo-500 text-white shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
-            >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                {t('genAllAudio')} ({formattedTokens} {t('tokensAbbrev')})
-              </span>
             </button>
           )}
 

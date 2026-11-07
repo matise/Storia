@@ -2,6 +2,7 @@ import { ScriptBlock, Speaker } from '../../types/storia';
 
 export const AUDIO_TOKENS_PER_SECOND = 25;
 export const AUDIO_TOKEN_PRICE_PER_MILLION_USD = 10.0;
+export const USD_TO_EUR_RATE = 0.92;
 export const DEFAULT_TARGET_WPM = 140;
 
 export interface BlockPacingResult {
@@ -17,6 +18,7 @@ export interface TimelineSummaryResult {
   totalDurationSec: number;
   totalAudioTokens: number;
   estimatedCostUsd: number;
+  estimatedCostEur: number;
   speakerStats: Record<
     string,
     {
@@ -222,12 +224,16 @@ export function recalculateProjectTimeline(
   const estimatedCostUsd = Number(
     ((totalAudioTokens / 1_000_000) * AUDIO_TOKEN_PRICE_PER_MILLION_USD).toFixed(4)
   );
+  const estimatedCostEur = Number(
+    (estimatedCostUsd * USD_TO_EUR_RATE).toFixed(4)
+  );
 
   return {
     blocks: updatedBlocks,
     totalDurationSec,
     totalAudioTokens,
     estimatedCostUsd,
+    estimatedCostEur,
     speakerStats,
   };
 }
@@ -246,5 +252,26 @@ export function formatDurationReadout(seconds: number, includeTenths = false): s
     return `${mm}:${String(wholeSec).padStart(2, '0')}.${tenths}`;
   }
   return `${mm}:${String(Math.floor(remSec)).padStart(2, '0')}`;
+}
+
+/**
+ * Formats token counts into compact readout (e.g. 5.4k or 820)
+ */
+export function formatTokenCount(tokens: number): string {
+  const safeTokens = Math.max(0, Math.round(tokens || 0));
+  if (safeTokens >= 1000) {
+    return `${(safeTokens / 1000).toFixed(1)}k`;
+  }
+  return String(safeTokens);
+}
+
+/**
+ * Formats Euro price estimates (e.g. €0.05 or < €0.01)
+ */
+export function formatEuroPrice(costEur: number): string {
+  const safe = Math.max(0, costEur || 0);
+  if (safe === 0) return '€0.00';
+  if (safe < 0.01) return '< €0.01';
+  return `€${safe.toFixed(2)}`;
 }
 

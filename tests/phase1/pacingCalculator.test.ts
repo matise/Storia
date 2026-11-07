@@ -161,6 +161,8 @@ describe('Phase 1 — Spoken Pacing & Audio Token Calculator', () => {
     expect(summaryWithPeaks.blocks[1].estimatedDurationSec).toBe(14.8);
     expect(summaryWithPeaks.blocks[1].startTimeSec).toBe(15.4);
     expect(summaryWithPeaks.blocks[1].endTimeSec).toBeCloseTo(15.4 + 14.8, 3);
+    expect(summaryWithPeaks.estimatedCostEur).toBeGreaterThan(0);
+    expect(summaryWithPeaks.estimatedCostEur).toBeCloseTo(summaryWithPeaks.estimatedCostUsd * 0.92, 4);
   });
 });
 

@@ -127,7 +127,7 @@ describe('Gemini AI Speaker & Voice DSP Architect + AI Episode Architect', () =>
     expect(episodeStrip.className).toContain('rounded-xl');
     expect(episodeStrip.className).toContain('border-indigo-500/45');
     expect(waveformDeck.className).toContain('rounded-xl');
-    expect(waveformDeck.className).toContain('border-emerald-500/45');
+    expect(waveformDeck.className).toContain('border-cyan-500/45');
     expect(blocksContainer.className).toContain('border-t');
   });
 });

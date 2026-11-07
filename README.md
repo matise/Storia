@@ -7,7 +7,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.1-646cff.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-179%2F179%20Passing-emerald.svg)](https://vitest.dev/)
+[![Tests Passing](https://img.shields.io/badge/Tests-183%2F183%20Passing-emerald.svg)](https://vitest.dev/)
 [![Web Audio API](https://img.shields.io/badge/Web%20Audio-Modular%20DSP%20Rack-purple.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 [![Broadcast Compliant](https://img.shields.io/badge/Loudness-ITU--R%20BS.1770--4-amber.svg)](https://www.itu.int/rec/R-REC-BS.1770)
 
@@ -146,8 +146,8 @@ Storia introduces a fully modular studio DSP architecture supporting insert chai
 * **Three Specialized Screenwriting Modes:**
   1. **Scene Co-Writer (3 Beats):** Analyzes preceding dialogue, character motivations, and director hints to generate 3 distinct dramatic beat choices with creative rationales.
   2. **Complete Episodic Story Mode:** Drafts extensive multi-act story arcs complete with speaker handoffs, sound effects, and dramatic peaks.
-  3. **Podcast Episode Mode:** Generates engaging two-host conversational interviews, historical debates, and investigative discussions.
-* **Deep Multimodal Research & Document Ingestion:** Drag-and-drop PDFs, treatment outlines, historical codices, and reference images. The AI analyzes uploaded documents to ground character dialogue.
+  3. **Podcast Episode Mode & Direct Transcript Import:** Generates engaging two-host conversational interviews, historical debates, and investigative discussions. When provided with a structured podcast transcript document (`.docx`, `.txt`, `.md`, or pasted text featuring metadata headers like `Format:`, `Sugovornici:`, `Tema:`, `[00:00:00]` chapter markers, and `Speaker: Dialogue` turns), Storia automatically parses and imports the full verbatim transcript directly into a multi-speaker episode (`Load as Full Episode`).
+* **Deep Multimodal Research & Document Ingestion:** Drag-and-drop Word documents (`.docx` with native browser `word/document.xml` parsing), PDFs, treatment outlines, historical codices, and reference images. The AI analyzes uploaded documents to ground character dialogue or extract ready-to-produce podcast scripts.
 * **Google Search Grounded Fact-Checking:** Connects directly to verified Google Search results to substantiate historical queries, period attire, weaponry, architecture, and cultural facts.
 * **Script Doctor & Vocal Cadence Polisher:** Evaluates rhythmic flow, detects breathless phrasing, suggests emotional delivery adjustments, and inserts natural didaskalije.
 * **Bilingual Cultural & Grammatical Adapter (EN ↔ HR):** Preserves Slavic morphological agreements—including past-tense participle gender concord (*glagolski pridjevi radni* na *-o* vs *-la*), vocatives (*gosparu, Mare*), and cultural idioms—when translating between Croatian and English.
@@ -175,9 +175,10 @@ Storia features a dedicated, authentic dialect engine for the historic city vern
 ---
 
 ### 9. 🎛️ Broadcast Mastering Suite & Multitrack Stems
-* **ITU-R BS.1770-4 Loudness Normalization:** Integrated K-weighting pre-filter and $4\times$ polyphase sinc True Peak limiter enforcing $-16\text{ LUFS}$ integrated loudness for podcasts or EBU R128 compliance for broadcast radio.
+* **ITU-R BS.1770-4 Loudness Normalization:** Single-pass two-stage K-weighting pre-filter and $4\times$ polyphase sinc True Peak limiter enforcing $-16\text{ LUFS}$ integrated loudness for podcasts or EBU R128 compliance for broadcast radio without blocking the main UI thread on long multi-segment episodes.
 * **XorShift128+ TPDF Dither:** Clean multi-bit-depth quantization ($16\text{-bit}$, $24\text{-bit}$, and $32\text{-bit}$ float at $44.1\text{ kHz}$ or $48\text{ kHz}$).
-* **Pure Client-Side MP3 Encoding (320 kbps):** Zero-transcoding, zero-server MP3 rendering at maximum broadcast quality ($320\text{ kbps}$ CBR) powered by `@breezystack/lamejs`.
+* **Pure Client-Side MP3 Encoding (320 kbps):** Non-blocking, chunked zero-server MP3 rendering at maximum broadcast quality ($320\text{ kbps}$ CBR) powered by `@breezystack/lamejs`, with on-demand format-specific rendering (`WAV` or `MP3`).
+* **Live Regeneration Cache Coherency:** Automatic cache invalidation listeners ensure that newly regenerated dialogue or SFX segments immediately replace stale buffers in both the live Web Audio transport and offline stem/master export.
 * **Time-Aligned Multitrack Stems:** Export isolated, time-aligned audio stems for every speaker alongside the complete episode master mix for effortless mixing in Reaper, Pro Tools, or DaVinci Fairlight.
 * **Screenplay Interchange:** Export to industry-standard `.fountain`, clean Markdown `.md`, or complete native `.storia.json` project bundles.
 
@@ -210,14 +211,16 @@ Storia features a dedicated, authentic dialect engine for the historic city vern
 | **TemporalBVH** | `src/core/spatial/TemporalBVH.ts` | 1D interval tree spatial partition enabling $O(\log N)$ block and timepoint lookups during mouse hover, scrubbing, and playhead advancement. |
 | **ClockInterpolator** | `src/core/spatial/ClockInterpolator.ts` | High-precision time accumulator supporting demand-based 60 FPS requestAnimationFrame loops and smooth scrubbing. |
 | **WordTimingMapper** | `src/core/pacing/wordTimingMapper.ts` | Phonetic character-weight calculator and punctuation pause modeler for conversational speech alignment and click-to-seek progress mapping. |
-| **StudioTransportEngine** | `src/core/dsp/StudioTransportEngine.ts` | Web Audio API node graph orchestrating master timeline playback, multi-speaker DSP parameter updates, aux send routing, and gain staging. |
+| **StudioTransportEngine** | `src/core/dsp/StudioTransportEngine.ts` | Web Audio API node graph orchestrating master timeline playback, multi-speaker DSP parameter updates, aux send routing, cache invalidation sync, and gain staging. |
 | **LiveAudioPreviewer** | `src/core/dsp/LiveAudioPreviewer.ts` | Zero-latency single-block and speaker voice preview manager with dynamic elapsed time tracking and live DSP updating. |
 | **BiquadChain** | `src/core/dsp/BiquadChain.ts` | Cascaded 3-band parametric biquad equalizer (high shelf, mid peak, low shelf) with bypass toggles and frequency response calculations. |
-| **MasteringChain** | `src/core/mastering/MasteringChain.ts` | Offline audio mastering pipeline combining K-weighting filters, $4\times$ oversampled True Peak limiting, and TPDF dithering. |
-| **LoudnessMeter** | `src/core/mastering/LoudnessMeter.ts` | ITU-R BS.1770-4 momentary, short-term, and integrated LUFS measurement algorithm. |
+| **MasteringChain** | `src/core/mastering/MasteringChain.ts` | Offline audio mastering pipeline combining K-weighting filters, $4\times$ oversampled True Peak limiting, and TPDF dithering with cooperative main-thread yielding. |
+| **LoudnessMeter** | `src/core/mastering/LoudnessMeter.ts` | Single-pass ITU-R BS.1770-4 momentary, short-term, and integrated LUFS measurement algorithm with $O(N)$ sliding window energy gating. |
+| **EpisodeStemRenderer** | `src/core/mastering/EpisodeStemRenderer.ts` | Non-blocking offline episode master and time-aligned speaker stem renderer supporting format-specific WAV and chunked 320 kbps LAME MP3 encoding. |
 | **DubrovnikDictionary** | `src/core/dubrovnik/dubrovnikDictionary.ts` | Master bidirectional lexical database with 570+ authenticated Ragusan vocabulary entries across 7 semantic categories. |
 | **DubrovnikPhonetics** | `src/core/dubrovnik/dubrovnikPhonetics.ts` | Phonological rule engine handling masculine a-declension, infinitive truncation, diphthong contraction, and TTS breath pause injection. |
-| **UseStoriaStore** | `src/store/useStoriaStore.ts` | Central Zustand store managing multi-project state, command-pattern history stack (undo/redo), audio cache sync, and playback modes. |
+| **GeminiAgentService** | `src/services/geminiAgentService.ts` & `src/services/agent/*` | Modular AI agent suite: `dubrovnikAgentInstructions.ts`, `personaResearchAgent.ts`, `podcastTranscriptParser.ts`, `coWriterAgent.ts`, `scriptDoctorAgent.ts`, and `bilingualAdapterAgent.ts`. |
+| **UseStoriaStore** | `src/store/useStoriaStore.ts` & `src/store/slices/*` | Modular Zustand store composer backed by `storeTypes.ts`, `projectPersistence.ts`, and 5 domain slices (`uiAndSettingsSlice`, `projectLibrarySlice`, `scriptAndCastSlice`, `dspAndAuditionSlice`, `ttsSynthesisSlice`). |
 
 ---
 
@@ -306,7 +309,7 @@ npm run preview
 
 ### Running the Test Suite
 
-Storia includes a comprehensive test suite of **47 test files and 179 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, lamejs MP3 encoding, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, modular DSP effect chains, Jon Dattorro's 1997 Plate Reverb, and the Dubrovnik dialect engine:
+Storia includes a comprehensive test suite of **47 test files and 183 unit/integration tests** verifying pacing calculators, temporal BVH trees, loudness normalization, non-blocking multi-segment mastering, lamejs MP3 encoding, podcast transcript parsing, bilingual translation, realtime volume fade curves, collapsed mini transports, auto-advance sequencing, modular DSP effect chains, Jon Dattorro's 1997 Plate Reverb, and the Dubrovnik dialect engine:
 
 ```bash
 npm test

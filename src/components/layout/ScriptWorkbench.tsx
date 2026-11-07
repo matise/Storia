@@ -9,6 +9,7 @@ import {
   Plus,
   RefreshCw,
   SlidersHorizontal,
+  Sparkles,
   Square,
   Trash2,
   Volume2,
@@ -36,9 +37,17 @@ export const ScriptWorkbench: React.FC = () => {
   const addBlock = useStoriaStore((s) => s.addBlock);
   const isBatchSynthesizing = useStoriaStore((s) => s.isBatchSynthesizing);
   const abortBatchSynthesis = useStoriaStore((s) => s.abortBatchSynthesis);
+  const synthesizeAllBlocks = useStoriaStore((s) => s.synthesizeAllBlocks);
   const regenerateAllBlocksAudio = useStoriaStore((s) => s.regenerateAllBlocksAudio);
   const rebuildAllWaveforms = useStoriaStore((s) => s.rebuildAllWaveforms);
   const purgeAudioCache = useStoriaStore((s) => s.purgeAudioCache);
+  const missingAudioCount = React.useMemo(
+    () =>
+      project.blocks.filter(
+        (b) => b.ttsStatus !== 'ok' || !b.generatedAudioUrl
+      ).length,
+    [project.blocks]
+  );
   const updateProjectProperties = useStoriaStore((s) => s.updateProjectProperties);
   const setEpisodePropertiesModalOpen = useStoriaStore(
     (s) => s.setEpisodePropertiesModalOpen
@@ -456,17 +465,39 @@ export const ScriptWorkbench: React.FC = () => {
                 <span className="hidden sm:inline">{t('stopGeneration')}</span>
               </button>
             ) : (
-              <button
-                type="button"
-                data-testid="regen-all-audio-btn"
-                disabled={isBatchSynthesizing}
-                onClick={() => void regenerateAllBlocksAudio()}
-                title={t('regenAllAudio')}
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/70 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3 h-3 shrink-0" />
-                <span className="hidden xl:inline">{t('regenAllAudio')}</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  data-testid="regen-missing-audio-btn"
+                  disabled={isBatchSynthesizing || missingAudioCount === 0}
+                  onClick={() => void synthesizeAllBlocks()}
+                  title={t('regenMissingAudioTooltip')}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-cyan-300 hover:text-cyan-200 hover:bg-cyan-950/70 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3 shrink-0" />
+                  <span className="hidden xl:inline">{t('regenMissingAudio')}</span>
+                  {missingAudioCount > 0 && (
+                    <span
+                      data-testid="regen-missing-audio-count"
+                      className="px-1 py-0 rounded bg-cyan-950/90 border border-cyan-700/60 text-[10px] font-mono text-cyan-200"
+                    >
+                      {missingAudioCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="regen-all-audio-btn"
+                  disabled={isBatchSynthesizing}
+                  onClick={() => void regenerateAllBlocksAudio()}
+                  title={t('regenAllAudio')}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/70 disabled:opacity-40 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3 shrink-0" />
+                  <span className="hidden xl:inline">{t('regenAllAudio')}</span>
+                </button>
+              </>
             )}
 
             <button

@@ -93,6 +93,7 @@ describe('Audio & Waveform Deletion, Regeneration, and Rebuild Tools', () => {
     render(<ScriptWorkbench />);
 
     // Episode-level batch buttons
+    expect(screen.getByTestId('regen-missing-audio-btn')).toBeTruthy();
     expect(screen.getByTestId('regen-all-audio-btn')).toBeTruthy();
     expect(screen.getByTestId('rebuild-all-waveforms-btn')).toBeTruthy();
     expect(screen.getByTestId('clear-all-audio-btn')).toBeTruthy();

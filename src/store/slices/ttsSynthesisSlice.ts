@@ -611,13 +611,13 @@ export function createTtsSynthesisSlice({
       set({ isBatchSynthesizing: true });
       try {
         const blocksToRender = get().project.blocks.filter(
-          (b) => b.ttsStatus !== 'ok'
+          (b) => b.ttsStatus !== 'ok' || !b.generatedAudioUrl
         );
         for (const blk of blocksToRender) {
           if (audioRuntimeControllers.batchSynthesisAbortController?.signal.aborted) {
             break;
           }
-          await get().synthesizeBlock(blk.id);
+          await get().synthesizeBlock(blk.id, { forceRegenerate: true });
         }
       } finally {
         set({ isBatchSynthesizing: false });

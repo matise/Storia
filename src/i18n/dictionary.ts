@@ -13,6 +13,8 @@ export interface TranslationDictionary {
   engineGeminiTts: string;
   engineBrowserTts: string;
   genAllAudio: string;
+  regenMissingAudio: string;
+  regenMissingAudioTooltip: string;
   regenAllAudio: string;
   rebuildAllWaveforms: string;
   clearAllAudio: string;
@@ -364,6 +366,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     engineGeminiTts: 'Gemini 2.5 TTS',
     engineBrowserTts: 'Local Browser TTS',
     genAllAudio: 'Gen All Audio',
+    regenMissingAudio: 'Regen Not Generated',
+    regenMissingAudioTooltip:
+      'Generate audio only for blocks that are not generated yet or stale',
     regenAllAudio: 'Regen All Audio',
     rebuildAllWaveforms: 'Rebuild Waveforms',
     clearAllAudio: 'Clear All Audio',
@@ -703,6 +708,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     engineGeminiTts: 'Gemini 2.5 TTS',
     engineBrowserTts: 'Preglednik TTS',
     genAllAudio: 'Generiraj sve',
+    regenMissingAudio: 'Generiraj nedostajuće',
+    regenMissingAudioTooltip:
+      'Generiraj zvuk samo za segmente koji još nisu generirani ili su zastarjeli',
     regenAllAudio: 'Regeneriraj sve',
     rebuildAllWaveforms: 'Obnovi valne oblike',
     clearAllAudio: 'Obriši sav zvuk',

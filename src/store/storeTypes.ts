@@ -150,6 +150,7 @@ export interface StoriaStoreState {
   // Command-backed mutations
   addBlock: (type: BlockType, afterBlockId?: string, customData?: Partial<ScriptBlock>) => string;
   updateBlock: (blockId: string, patch: Partial<ScriptBlock>) => void;
+  setAllBlocksCollapsed: (collapsed: boolean) => void;
   deleteBlock: (blockId: string) => void;
   reorderBlocks: (fromIndex: number, toIndex: number) => void;
   moveBlockRelative: (blockId: string, direction: 'up' | 'down') => void;

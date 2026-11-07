@@ -6,7 +6,6 @@ import {
 } from '../types/storia';
 import {
   createInitialProjectLibrary,
-  createSampleProject,
 } from '../i18n/sampleProject';
 import { recalculateProjectTimeline } from '../core/pacing/pacingCalculator';
 
@@ -83,6 +82,7 @@ export function createEmptyPlaceholderProject(): Project {
       textModel: 'gemini-2.5-flash',
       ttsModel: 'gemini-2.5-flash-preview-tts',
       ttsProvider: 'gemini_tts',
+      enableSearchGrounding: true,
       temperature: 0.7,
       audioOutputFormat: 'pcm_48khz',
     },

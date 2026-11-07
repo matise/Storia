@@ -3,6 +3,8 @@ import {
   Activity,
   ChevronDown,
   ChevronUp,
+  ChevronsDownUp,
+  ChevronsUpDown,
   FileText,
   Globe,
   MessageSquarePlus,
@@ -53,6 +55,7 @@ export const ScriptWorkbench: React.FC = () => {
     (s) => s.setEpisodePropertiesModalOpen
   );
   const updateBlock = useStoriaStore((s) => s.updateBlock);
+  const setAllBlocksCollapsed = useStoriaStore((s) => s.setAllBlocksCollapsed);
   const reorderBlocks = useStoriaStore((s) => s.reorderBlocks);
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -384,9 +387,9 @@ export const ScriptWorkbench: React.FC = () => {
   return (
     <main className="flex-1 flex flex-col bg-slate-950 min-w-0 overflow-hidden">
       {/* Studio Header: Unified Compact Action Bar */}
-      <div className="min-h-11 py-1.5 border-b border-slate-700/70 bg-slate-900 shadow-sm px-3.5 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
-        {/* Left: Unified Panel Deck Toggles & Block Insertion */}
-        <div className="flex items-center gap-2">
+      <div className="min-h-10 py-1 border-b border-slate-700/70 bg-slate-900 shadow-sm px-3 flex flex-wrap items-center justify-between gap-1.5 shrink-0 select-none">
+        {/* Left: Unified Panel Deck Toggles, Collapse All & Block Insertion */}
+        <div className="flex items-center gap-1.5">
           {/* Group 1: Unified Panel Deck Toggles (Waveform Transport & Episode Settings) */}
           <div className="flex items-center bg-slate-950/90 border border-slate-800 rounded-md p-0.5 shrink-0">
             <button
@@ -399,7 +402,7 @@ export const ScriptWorkbench: React.FC = () => {
                   : t('expandWaveformTransportTooltip')
               }
               aria-label={t('waveformTransportBtn')}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
                 showWaveformTransport
                   ? 'bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 shadow-xs shadow-cyan-950/40'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
@@ -421,7 +424,7 @@ export const ScriptWorkbench: React.FC = () => {
               onClick={() => setShowEpisodeBanner((prev) => !prev)}
               title={t('toggleEpisodeMetaTooltip')}
               aria-label={t('episodePropertiesBtn')}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
                 showEpisodeBanner
                   ? 'bg-indigo-950/80 border border-indigo-500/60 text-indigo-200 shadow-xs shadow-indigo-950/40'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
@@ -436,13 +439,38 @@ export const ScriptWorkbench: React.FC = () => {
             </button>
           </div>
 
+          {/* Group 2: Global Blocks Collapse / Expand All */}
+          <div className="flex items-center bg-slate-950/90 border border-slate-800 rounded-md p-0.5 shrink-0">
+            <button
+              type="button"
+              data-testid="collapse-all-blocks-btn"
+              onClick={() => setAllBlocksCollapsed(true)}
+              title={t('collapseAllBlocksTooltip')}
+              aria-label={t('collapseAllBlocksTooltip')}
+              className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <ChevronsDownUp className="w-3.5 h-3.5" />
+            </button>
+            <div className="h-3.5 w-px bg-slate-800 mx-0.5 shrink-0" />
+            <button
+              type="button"
+              data-testid="expand-all-blocks-btn"
+              onClick={() => setAllBlocksCollapsed(false)}
+              title={t('expandAllBlocksTooltip')}
+              aria-label={t('expandAllBlocksTooltip')}
+              className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <ChevronsUpDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <div className="h-4 w-px bg-slate-800 shrink-0" />
 
-          {/* Group 2: Block Insertion */}
+          {/* Group 3: Block Insertion */}
           <button
             type="button"
             onClick={() => addBlock('dialogue')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 hover:text-white shadow-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 hover:text-white shadow-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span>{t('addLine')}</span>
@@ -735,7 +763,7 @@ export const ScriptWorkbench: React.FC = () => {
       <div
         ref={scrollContainerRef}
         data-testid="script-blocks-scroll-container"
-        className="flex-1 overflow-y-auto border-t border-slate-800/90 bg-slate-950 p-3 space-y-2"
+        className="flex-1 overflow-y-auto border-t border-slate-800/90 bg-slate-950 p-2.5 sm:p-3 space-y-1.5"
       >
         {project.blocks.map((block, index) => {
           const isCurrentPlayheadBlock = bvhHit.block?.id === block.id;

@@ -137,4 +137,69 @@ describe('Phase 3 — Collapsed Script Block Mini Transport Controls', () => {
     fireEvent.click(scrubber, { clientX: 150 }); // 50%
     expect(handleSeek).toHaveBeenCalledWith(expect.objectContaining({ id: 'blk-collapsed-1' }), 0.5);
   });
+
+  it('renders dialect and diacritics buttons in top bar for dialogue and omits them for SFX', () => {
+    const sfxBlock: ScriptBlock = {
+      id: 'blk-sfx-1',
+      order: 1,
+      type: 'sound_effect',
+      text: 'Heavy rain against window',
+      sfxCategory: 'weather_rain',
+      sfxDurationSec: 4.0,
+      ttsStatus: 'unrendered',
+      isCollapsed: false,
+    };
+
+    const dialogueBlock: ScriptBlock = {
+      ...sampleBlock,
+      id: 'blk-dialogue-1',
+      isCollapsed: false,
+    };
+
+    const { rerender } = render(
+      <ScriptBlockCard
+        block={dialogueBlock}
+        index={0}
+        totalBlocks={2}
+        speakers={[dummySpeaker]}
+        isSelected={false}
+      />
+    );
+
+    // Dialogue block has both tools in top bar
+    expect(screen.getByTestId('transform-dubrovnik-dialect-blk-dialogue-1')).toBeDefined();
+    expect(screen.getByTestId('restore-croatian-diacritics-blk-dialogue-1')).toBeDefined();
+
+    // Now render SFX block
+    rerender(
+      <ScriptBlockCard
+        block={sfxBlock}
+        index={1}
+        totalBlocks={2}
+        speakers={[dummySpeaker]}
+        isSelected={false}
+      />
+    );
+
+    // SFX block does NOT have Croatian dialect / diacritics conversion buttons
+    expect(screen.queryByTestId('transform-dubrovnik-dialect-blk-sfx-1')).toBeNull();
+    expect(screen.queryByTestId('restore-croatian-diacritics-blk-sfx-1')).toBeNull();
+    // But does have SFX category select and duration input
+    expect(screen.getByTestId('sfx-category-select-blk-sfx-1')).toBeDefined();
+    expect(screen.getByTestId('sfx-duration-input-blk-sfx-1')).toBeDefined();
+  });
+
+  it('collapses and expands all blocks globally via store action', () => {
+    useStoriaStore.getState().resetToSampleProject();
+    const store = useStoriaStore.getState();
+    expect(store.project.blocks.length).toBeGreaterThan(0);
+
+    // Collapse all
+    store.setAllBlocksCollapsed(true);
+    expect(useStoriaStore.getState().project.blocks.every((b) => b.isCollapsed)).toBe(true);
+
+    // Expand all
+    store.setAllBlocksCollapsed(false);
+    expect(useStoriaStore.getState().project.blocks.every((b) => !b.isCollapsed)).toBe(true);
+  });
 });

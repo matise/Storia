@@ -290,6 +290,8 @@ export interface TranslationDictionary {
   fadeOutTooltip: string;
   collapseBlockTooltip: string;
   expandBlockTooltip: string;
+  collapseAllBlocksTooltip: string;
+  expandAllBlocksTooltip: string;
 
   // Export Master Modal (Phase 6)
   exportMasterModalTitle: string;
@@ -655,6 +657,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     fadeOutTooltip: 'Drag horizontally for Fade Out, vertically for curve',
     collapseBlockTooltip: 'Collapse / Minimize segment card',
     expandBlockTooltip: 'Expand segment card',
+    collapseAllBlocksTooltip: 'Collapse all segment cards',
+    expandAllBlocksTooltip: 'Expand all segment cards',
 
     exportMasterModalTitle: 'Studio Export & Broadcast Audio Mastering',
     tabAudioMastering: 'Audio Master & Stems',
@@ -1014,6 +1018,8 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     fadeOutTooltip: 'Povuci vodoravno za Fade Out, okomito za oblik krivulje',
     collapseBlockTooltip: 'Sažmi / Minimiziraj karticu segmenta',
     expandBlockTooltip: 'Proširi karticu segmenta',
+    collapseAllBlocksTooltip: 'Sažmi sve kartice segmenata',
+    expandAllBlocksTooltip: 'Proširi sve kartice segmenata',
 
     exportMasterModalTitle: 'Studijski izvoz i emitiranje (Mastering)',
     tabAudioMastering: 'Audio Master i Stemovi',

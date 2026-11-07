@@ -36,6 +36,7 @@ export type ScriptAndCastSlice = Pick<
   | 'loadCoWriterBeatAsEpisode'
   | 'addBlock'
   | 'updateBlock'
+  | 'setAllBlocksCollapsed'
   | 'deleteBlock'
   | 'reorderBlocks'
   | 'moveBlockRelative'
@@ -211,6 +212,18 @@ export function createScriptAndCastSlice({
         });
       }
       void get().syncCacheStatuses();
+    },
+
+    setAllBlocksCollapsed: (collapsed: boolean) => {
+      const { project } = get();
+      const nextBlocks = project.blocks.map((b) => ({ ...b, isCollapsed: collapsed }));
+      const nextProject: Project = {
+        ...project,
+        blocks: nextBlocks,
+        updatedAt: Date.now(),
+      };
+      persistProject(nextProject);
+      set({ project: nextProject });
     },
 
     deleteBlock: (blockId: string) => {

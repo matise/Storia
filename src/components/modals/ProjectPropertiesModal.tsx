@@ -5,6 +5,7 @@ import {
   Copy,
   Download,
   FolderKanban,
+  FolderPlus,
   Globe,
   Loader2,
   Plus,
@@ -615,7 +616,53 @@ export const ProjectPropertiesModal: React.FC = () => {
 
             {/* Episode Cards Scroll List */}
             <div className="space-y-2 overflow-y-auto pr-1 flex-1 min-h-60 max-h-[50vh]">
-              {filteredProjects.length === 0 ? (
+              {projects.length === 0 ? (
+                <div
+                  data-testid="library-empty-state-card"
+                  className="p-6 text-center space-y-4 border border-dashed border-slate-700/80 rounded-xl bg-slate-900/40 my-auto"
+                >
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 mx-auto flex items-center justify-center">
+                    <FolderPlus className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-slate-200">
+                      {t('emptyLibraryHeadline')}
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                      {t('emptyLibraryLead')}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      data-testid="empty-library-create-btn"
+                      onClick={() => createProject()}
+                      className="w-full sm:w-auto px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {t('createFirstEpisodeBtn')}
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="empty-library-import-btn"
+                      onClick={handleTriggerImport}
+                      className="w-full sm:w-auto px-3.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {t('importEpisodesBtn')}
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="empty-library-restore-btn"
+                      onClick={() => resetToSampleProject()}
+                      className="w-full sm:w-auto px-3.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      {t('restoreSamplesBtn')}
+                    </button>
+                  </div>
+                </div>
+              ) : filteredProjects.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 border border-dashed border-slate-800 rounded-lg">
                   No episodes match your search or filter.
                 </div>
@@ -759,7 +806,21 @@ export const ProjectPropertiesModal: React.FC = () => {
           {/* ======================================================== */}
           {/* Right Column: Active Episode Properties & AI Architect  */}
           {/* ======================================================== */}
-          <div className="lg:col-span-6 space-y-4">
+          <div
+            className={`lg:col-span-6 space-y-4 relative ${
+              projects.length === 0 ? 'opacity-40 pointer-events-none select-none' : ''
+            }`}
+          >
+            {projects.length === 0 && (
+              <div
+                data-testid="no-active-episode-notice"
+                className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>No active episode — create, import, or restore an episode to edit properties.</span>
+              </div>
+            )}
+
             {/* Gemini AI Episode Architect Card */}
             <div
               data-testid="ai-episode-architect-panel"

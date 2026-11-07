@@ -40,5 +40,14 @@ describe('Phase 1 — Studio Workbench 3-Pane UI Integration', () => {
     const redoBtn = screen.getByTitle('Ponovi (Ctrl+Y)');
     fireEvent.click(redoBtn);
     expect(useStoriaStore.getState().project.blocks.length).toBe(initialBlockCount + 1);
+
+    // Test Collapse All / Expand All buttons in Workbench top action bar
+    const collapseAllBtn = screen.getByTestId('collapse-all-blocks-btn');
+    fireEvent.click(collapseAllBtn);
+    expect(useStoriaStore.getState().project.blocks.every((b) => b.isCollapsed)).toBe(true);
+
+    const expandAllBtn = screen.getByTestId('expand-all-blocks-btn');
+    fireEvent.click(expandAllBtn);
+    expect(useStoriaStore.getState().project.blocks.every((b) => !b.isCollapsed)).toBe(true);
   });
 });

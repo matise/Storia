@@ -285,7 +285,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
         boxShadow: themeStyle.boxShadow,
       }}
       className={`rounded-md border transition-all ${
-        isCollapsed ? 'px-2.5 py-1.5' : 'p-2.5'
+        isCollapsed ? 'px-2.5 py-1.5' : 'px-2.5 py-2'
       }`}
     >
       {/* 1. Collapsed Mode: Single Clean Compact Summary Strip */}
@@ -714,7 +714,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
               )}
 
               {/* Clean Director's Notes (Didaskalije) Input */}
-              <div className="flex items-center bg-slate-950/90 border border-slate-800/90 rounded px-2 py-0.5 text-xs text-indigo-300">
+              <div className="flex items-center bg-slate-950/90 border border-slate-800/90 rounded px-1.5 py-0.5 text-xs text-indigo-300">
                 <input
                   type="text"
                   value={block.directorNotes ?? ''}
@@ -722,13 +722,40 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                     updateBlock(block.id, { directorNotes: e.target.value })
                   }
                   placeholder={t('directorNotesPlaceholder')}
-                  className="bg-transparent text-xs text-indigo-200 placeholder:text-slate-600 focus:outline-none w-36 sm:w-52 font-mono"
+                  className="bg-transparent text-xs text-indigo-200 placeholder:text-slate-600 focus:outline-none w-28 sm:w-44 font-mono"
                 />
               </div>
             </div>
 
-            {/* Right Side: Status Badge, Audio Tools, Order Buttons & Delete Block together at the top */}
-            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {/* Right Side: Dialect / Diacritics Tools (Dialogue/Narration only), Status Badge, Audio Tools, Order & Delete */}
+            <div className="flex flex-wrap items-center gap-1 shrink-0">
+              {/* Dialect & Diacritics Tools for dialogue/narration */}
+              {(block.type === 'dialogue' || block.type === 'narration') && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    data-testid={`transform-dubrovnik-dialect-${block.id}`}
+                    onClick={handleApplyDubrovnikDialect}
+                    title={t('dubrovnikDialectButtonTooltip')}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950 hover:bg-amber-950/70 border border-slate-800 hover:border-amber-600/50 text-[10px] text-amber-300 font-mono transition-colors cursor-pointer"
+                  >
+                    <Feather className="w-2.5 h-2.5 text-amber-400" />
+                    <span className="hidden md:inline">Dubrovački</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-testid={`restore-croatian-diacritics-${block.id}`}
+                    onClick={handleAutoRestoreCroatianDiacritics}
+                    title="Automatski dodaj hrvatske dijakritičke znakove (č, ć, ž, š, đ) / Auto-restore Croatian diacritics"
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950 hover:bg-indigo-950/70 border border-slate-800 hover:border-indigo-600/50 text-[10px] text-indigo-300 font-mono transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
+                    <span className="hidden md:inline">Auto čćžšđ</span>
+                  </button>
+                </div>
+              )}
+
               {statusBadge}
 
               {/* Per-Block Audio & Waveform Regeneration / Deletion Toolbar in Top Bar */}
@@ -746,7 +773,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-indigo-300 hover:bg-indigo-950/80 hover:text-indigo-200 disabled:opacity-40 transition-colors cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span className="hidden sm:inline">{t('regenerateAudioBtn')}</span>
+                  <span className="hidden lg:inline">{t('regenerateAudioBtn')}</span>
                 </button>
 
                 {/* Rebuild SoA Waveform Peaks */}
@@ -762,7 +789,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/80 hover:text-emerald-200 disabled:opacity-40 transition-colors cursor-pointer"
                 >
                   <Activity className="w-3 h-3" />
-                  <span className="hidden sm:inline">{t('rebuildWaveformBtn')}</span>
+                  <span className="hidden lg:inline">{t('rebuildWaveformBtn')}</span>
                 </button>
 
                 {/* Delete / Clear Block Audio & Waveform Data */}
@@ -778,7 +805,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-rose-300 hover:bg-rose-950/80 hover:text-rose-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
                 >
                   <XCircle className="w-3 h-3" />
-                  <span className="hidden sm:inline">{t('deleteAudioBtn')}</span>
+                  <span className="hidden lg:inline">{t('deleteAudioBtn')}</span>
                 </button>
               </div>
 
@@ -825,31 +852,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
           </div>
 
       {/* Script Textarea + Live Karaoke Word Synchronizer Strip */}
-      <div className="mb-2.5 space-y-1.5">
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            type="button"
-            data-testid={`transform-dubrovnik-dialect-${block.id}`}
-            onClick={handleApplyDubrovnikDialect}
-            title={t('dubrovnikDialectButtonTooltip')}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-950 hover:bg-amber-950/70 border border-slate-800 hover:border-amber-600/50 text-[10px] text-amber-300 font-mono transition-colors cursor-pointer"
-          >
-            <Feather className="w-2.5 h-2.5 text-amber-400" />
-            <span>Dubrovački</span>
-          </button>
-
-          <button
-            type="button"
-            data-testid={`restore-croatian-diacritics-${block.id}`}
-            onClick={handleAutoRestoreCroatianDiacritics}
-            title="Automatski dodaj hrvatske dijakritičke znakove (č, ć, ž, š, đ) / Auto-restore Croatian diacritics"
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-950 hover:bg-indigo-950/70 border border-slate-800 hover:border-indigo-600/50 text-[10px] text-indigo-300 font-mono transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
-            <span>Auto čćžšđ</span>
-          </button>
-        </div>
-
+      <div className="mb-1.5">
         <UnifiedScriptEditor
           blockId={block.id}
           text={block.text}

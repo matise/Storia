@@ -130,4 +130,41 @@ describe('Gemini AI Speaker & Voice DSP Architect + AI Episode Architect', () =>
     expect(waveformDeck.className).toContain('border-cyan-500/45');
     expect(blocksContainer.className).toContain('border-t');
   });
+
+  it('supports attaching documents/scripts to AI Episode Architect and creates an episode from empty library', async () => {
+    useStoriaStore.getState().clearEntireLibrary();
+    expect(useStoriaStore.getState().projects.length).toBe(0);
+
+    useStoriaStore.getState().setEpisodePropertiesModalOpen(true);
+    render(<ProjectPropertiesModal />);
+
+    // AI Episode Architect panel should be active and interactive even when projects is empty
+    const architectPanel = screen.getByTestId('ai-episode-architect-panel');
+    expect(architectPanel).toBeDefined();
+
+    const attachBtn = screen.getByTestId('ai-attach-files-btn');
+    expect(attachBtn).toBeDefined();
+
+    // Attach a mock document file
+    const file = new File(['[SCENE START]\nCOMMANDER: Signal detected.\n[SCENE END]'], 'deep_space_pitch.txt', {
+      type: 'text/plain',
+    });
+    const fileInput = screen.getByTestId('ai-architect-file-input') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByText('deep_space_pitch.txt')).toBeDefined();
+    });
+
+    // Create AI episode from the attached document
+    fireEvent.click(screen.getByTestId('ai-create-full-episode-btn'));
+
+    await waitFor(() => {
+      expect(useStoriaStore.getState().projects.length).toBe(1);
+    });
+
+    const createdProject = useStoriaStore.getState().project;
+    expect(createdProject.speakers.length).toBeGreaterThanOrEqual(2);
+    expect(createdProject.blocks.length).toBeGreaterThanOrEqual(4);
+  });
 });

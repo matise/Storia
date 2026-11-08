@@ -370,6 +370,10 @@ export interface TranslationDictionary {
   aiTemplatePodcast: string;
   aiTemplateDubrovnikDrama: string;
   aiTemplateSciFiThriller: string;
+  aiAttachDocumentsBtn: string;
+  aiAttachedFilesCount: string;
+  aiClearAttachedFiles: string;
+  aiDropFilesHerePrompt: string;
 }
 
 export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
@@ -594,7 +598,7 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     episodePropertiesBtn: 'Episode Settings',
     episodePropertiesModalTitle: 'Episodes Library & Episode Properties',
     episodesLibraryTitle: 'Studio Episodes Library',
-    newEpisodeBtn: '+ New Episode',
+    newEpisodeBtn: 'New Episode',
     duplicateEpisodeBtn: 'Duplicate',
     deleteEpisodeBtn: 'Delete Episode',
     importEpisodesBtn: 'Import JSON',
@@ -605,7 +609,7 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     confirmClearEntireLibrary: 'Are you sure you want to delete ALL episodes? Your library will be completely empty until an episode is created or imported.',
     emptyLibraryHeadline: 'Your Studio Library is Empty',
     emptyLibraryLead: 'Create your first episode, import a project JSON bundle, or explore built-in starter templates.',
-    createFirstEpisodeBtn: '+ Create First Episode',
+    createFirstEpisodeBtn: 'Create First Episode',
     restoreSamplesBtn: 'Restore Built-In Samples',
     deleteSelectedBtn: 'Delete Selected',
     searchEpisodesPlaceholder: 'Search episodes by title, genre, author...',
@@ -733,6 +737,10 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     aiTemplatePodcast: 'Investigative Podcast',
     aiTemplateDubrovnikDrama: 'Dubrovnik Drama',
     aiTemplateSciFiThriller: 'Sci-Fi Thriller',
+    aiAttachDocumentsBtn: 'Attach Documents / Script',
+    aiAttachedFilesCount: 'Attached Context Files',
+    aiClearAttachedFiles: 'Clear files',
+    aiDropFilesHerePrompt: 'Drop documents, scripts, or audio transcripts here',
   },
   hr: {
     appTitle: 'Storia',
@@ -955,7 +963,7 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     episodePropertiesBtn: 'Postavke epizode',
     episodePropertiesModalTitle: 'Knjižnica epizoda i svojstva epizode',
     episodesLibraryTitle: 'Studijska knjižnica epizoda',
-    newEpisodeBtn: '+ Nova epizoda',
+    newEpisodeBtn: 'Nova epizoda',
     duplicateEpisodeBtn: 'Dupliciraj',
     deleteEpisodeBtn: 'Obriši epizodu',
     importEpisodesBtn: 'Uvezi JSON',
@@ -966,7 +974,7 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     confirmClearEntireLibrary: 'Jeste li sigurni da želite obrisati SVE epizode? Vaša knjižnica bit će potpuno prazna dok ne stvorite ili uvezete epizodu.',
     emptyLibraryHeadline: 'Vaša studijska knjižnica je prazna',
     emptyLibraryLead: 'Stvorite svoju prvu epizodu, uvezite JSON paket projekta ili istražite ugrađene početne predloške.',
-    createFirstEpisodeBtn: '+ Stvori prvu epizodu',
+    createFirstEpisodeBtn: 'Stvori prvu epizodu',
     restoreSamplesBtn: 'Vrati ugrađene primjere',
     deleteSelectedBtn: 'Obriši odabrano',
     searchEpisodesPlaceholder: 'Traži epizode po naslovu, žanru, autoru...',
@@ -1094,5 +1102,9 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     aiTemplatePodcast: 'Analitički Podcast',
     aiTemplateDubrovnikDrama: 'Dubrovačka Drama',
     aiTemplateSciFiThriller: 'Sci-Fi Triler',
+    aiAttachDocumentsBtn: 'Priloži dokumente / Scenarij',
+    aiAttachedFilesCount: 'Priloženi kontekstualni spisi',
+    aiClearAttachedFiles: 'Ukloni spise',
+    aiDropFilesHerePrompt: 'Ispustite dokumente, scenarije ili transkripte ovdje',
   },
 };

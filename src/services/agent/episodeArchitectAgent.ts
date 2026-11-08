@@ -1,6 +1,7 @@
 import {
   AudioEffectConfig,
   BlockType,
+  CoWriterAttachment,
   CroatianDialect,
   DubrovnikRegister,
   EpisodeAiBlueprint,
@@ -117,6 +118,7 @@ export function buildEpisodeArchitectSystemPrompt(
     `  ]`,
     `}`,
     `Include 2 to 3 distinct speakers and 4 to 6 opening script blocks (starting with an atmospheric sound_effect or narration, followed by engaging dialogue).`,
+    `When source documents or files are attached (e.g. story pitches, character bibles, screenplay drafts, research reports, or podcast transcripts), thoroughly analyze their characters, narrative tone, plot beats, technical vocabulary, and setting. Incorporate the primary characters from the document into the "speakers" array and base the opening "blocks" directly on the source document's narrative or interview topic.`,
     dubrovnikRules,
   ]
     .filter(Boolean)
@@ -125,6 +127,7 @@ export function buildEpisodeArchitectSystemPrompt(
 
 export function buildFallbackEpisodeBlueprint(params: {
   prompt: string;
+  attachments?: CoWriterAttachment[];
   language: SupportedLanguage;
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
@@ -132,6 +135,7 @@ export function buildFallbackEpisodeBlueprint(params: {
 }): EpisodeAiBlueprint {
   const {
     prompt,
+    attachments,
     language,
     dialect = 'standard',
     dubrovnikRegister = 'contemporary',
@@ -142,17 +146,20 @@ export function buildFallbackEpisodeBlueprint(params: {
   const isDubrovnik = isHr && dialect === 'dubrovnik';
   const lower = prompt.toLowerCase();
   const now = Date.now();
+  const firstAttachment = attachments?.[0];
 
   const isPodcast =
     /podcast|interview|intervju|debate|debata|analiza|voditelj|host|talk|razgovor|ekonomija|dron|tehnologij/.test(
       lower
-    );
+    ) || (firstAttachment?.name.toLowerCase().includes('podcast') ?? false);
   const isSciFi =
     /sci-fi|scifi|space|svemir|signal|station|orbital|ai|cyber|future|budućnost|palagru/.test(
       lower
-    );
+    ) || (firstAttachment?.name.toLowerCase().includes('scifi') ?? false);
 
-  const cleanTopic = prompt.trim();
+  const cleanTopic =
+    prompt.trim() ||
+    (firstAttachment ? `Tema iz dokumenta "${firstAttachment.name}"` : '');
 
   if (isPodcast) {
     const spk1Id = `spk_${now}_0`;
@@ -655,6 +662,7 @@ export function buildFallbackEpisodeBlueprint(params: {
 
 export async function generateEpisodeBlueprintWithAi(params: {
   prompt: string;
+  attachments?: CoWriterAttachment[];
   language: SupportedLanguage;
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
@@ -665,6 +673,7 @@ export async function generateEpisodeBlueprintWithAi(params: {
 }): Promise<EpisodeAiBlueprint> {
   const {
     prompt,
+    attachments,
     language,
     dialect = 'standard',
     dubrovnikRegister = 'contemporary',
@@ -676,6 +685,7 @@ export async function generateEpisodeBlueprintWithAi(params: {
 
   const fallback = buildFallbackEpisodeBlueprint({
     prompt,
+    attachments,
     language,
     dialect,
     dubrovnikRegister,
@@ -698,6 +708,34 @@ export async function generateEpisodeBlueprintWithAi(params: {
       apiKey.trim()
     );
 
+    const parts: Array<
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } }
+    > = [
+      {
+        text: `Episode Premise / Concept: ${prompt.trim() || 'An atmospheric multi-speaker audio drama or investigative podcast episode.'}`,
+      },
+    ];
+
+    if (attachments && attachments.length > 0) {
+      for (const att of attachments) {
+        if (att.dataUrl && att.dataUrl.startsWith('data:')) {
+          const commaIdx = att.dataUrl.indexOf(',');
+          const base64Data = att.dataUrl.slice(commaIdx + 1);
+          parts.push({
+            inlineData: {
+              mimeType: att.mimeType || (att.isImage ? 'image/png' : 'application/pdf'),
+              data: base64Data,
+            },
+          });
+        } else if (att.textContent) {
+          parts.push({
+            text: `[SOURCE DOCUMENT: ${att.name}]\n${att.textContent.slice(0, 60000)}\n[END SOURCE DOCUMENT: ${att.name}]`,
+          });
+        }
+      }
+    }
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -709,11 +747,7 @@ export async function generateEpisodeBlueprintWithAi(params: {
         contents: [
           {
             role: 'user',
-            parts: [
-              {
-                text: `Episode Premise / Concept: ${prompt.trim() || 'An atmospheric multi-speaker audio drama or investigative podcast episode.'}`,
-              },
-            ],
+            parts,
           },
         ],
         generationConfig: {

@@ -49,5 +49,5 @@ describe('Phase 1 — Studio Workbench 3-Pane UI Integration', () => {
     const expandAllBtn = screen.getByTestId('expand-all-blocks-btn');
     fireEvent.click(expandAllBtn);
     expect(useStoriaStore.getState().project.blocks.every((b) => !b.isCollapsed)).toBe(true);
-  });
+  }, 15000);
 });

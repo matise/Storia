@@ -46,3 +46,13 @@ export {
   buildFallbackEpisodeBlueprint,
   generateEpisodeBlueprintWithAi,
 } from './agent/episodeArchitectAgent';
+
+export {
+  type ExtractedCastMember,
+  type CastExtractionResult,
+  buildCastExtractionSystemPrompt,
+  buildFallbackCastExtraction,
+  extractCastFromDocumentWithAi,
+  castMemberToSpeaker,
+} from './agent/castArchitectAgent';
+

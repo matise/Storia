@@ -374,6 +374,22 @@ export interface TranslationDictionary {
   aiAttachedFilesCount: string;
   aiClearAttachedFiles: string;
   aiDropFilesHerePrompt: string;
+
+  // AI Cast from Document & Bible Tools
+  aiExtractCastFromDocBtn: string;
+  aiExtractingCastBtn: string;
+  aiStagedCastTitle: string;
+  aiStagedCastSubtitle: string;
+  aiCreateEpisodeWithCastBtn: string;
+  aiImportCastToActiveEpisodeBtn: string;
+  aiAuditionCastMember: string;
+  aiAuditioningCastMember: string;
+  aiArchetypeLabel: string;
+  aiCastFromBibleSidebarBtn: string;
+  aiCastFromBibleModalTitle: string;
+  aiSelectAllCast: string;
+  aiDeselectAllCast: string;
+  aiCastImportSuccess: string;
 }
 
 export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
@@ -741,6 +757,23 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     aiAttachedFilesCount: 'Attached Context Files',
     aiClearAttachedFiles: 'Clear files',
     aiDropFilesHerePrompt: 'Drop documents, scripts, or audio transcripts here',
+
+    // AI Cast from Document & Bible Tools
+    aiExtractCastFromDocBtn: 'Extract Cast from Doc',
+    aiExtractingCastBtn: 'Extracting Cast...',
+    aiStagedCastTitle: 'Staged Characters Extracted from Document',
+    aiStagedCastSubtitle:
+      'Review extracted characters, adjust base voices and DSP presets before adding to your episode or library.',
+    aiCreateEpisodeWithCastBtn: 'Create Episode with Selected Cast',
+    aiImportCastToActiveEpisodeBtn: 'Import Cast to Active Episode',
+    aiAuditionCastMember: 'Audition',
+    aiAuditioningCastMember: 'Playing...',
+    aiArchetypeLabel: 'Archetype',
+    aiCastFromBibleSidebarBtn: 'AI Cast from Bible',
+    aiCastFromBibleModalTitle: 'Extract Cast from Character Bible',
+    aiSelectAllCast: 'Select All',
+    aiDeselectAllCast: 'Deselect All',
+    aiCastImportSuccess: 'Successfully imported cast into active episode!',
   },
   hr: {
     appTitle: 'Storia',
@@ -1106,5 +1139,22 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     aiAttachedFilesCount: 'Priloženi kontekstualni spisi',
     aiClearAttachedFiles: 'Ukloni spise',
     aiDropFilesHerePrompt: 'Ispustite dokumente, scenarije ili transkripte ovdje',
+
+    // AI Cast from Document & Bible Tools
+    aiExtractCastFromDocBtn: 'Izvuci likove iz spisa',
+    aiExtractingCastBtn: 'Izvlačenje likova...',
+    aiStagedCastTitle: 'Likovi izvučeni iz dokumenta',
+    aiStagedCastSubtitle:
+      'Pregledajte izvučene likove, prilagodite glasove i DSP profile prije dodavanja u epizodu ili knjižnicu.',
+    aiCreateEpisodeWithCastBtn: 'Kreiraj epizodu s odabranim likovima',
+    aiImportCastToActiveEpisodeBtn: 'Uvezi likove u aktivnu epizodu',
+    aiAuditionCastMember: 'Isprobaj glas',
+    aiAuditioningCastMember: 'Sviranje...',
+    aiArchetypeLabel: 'Arhetip',
+    aiCastFromBibleSidebarBtn: 'AI likovi iz dokumenta',
+    aiCastFromBibleModalTitle: 'Izvuci likove iz opisa likova',
+    aiSelectAllCast: 'Označi sve',
+    aiDeselectAllCast: 'Odznači sve',
+    aiCastImportSuccess: 'Uspješno uvezeno likova u aktivnu epizodu!',
   },
 };

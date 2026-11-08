@@ -167,4 +167,85 @@ describe('Gemini AI Speaker & Voice DSP Architect + AI Episode Architect', () =>
     expect(createdProject.speakers.length).toBeGreaterThanOrEqual(2);
     expect(createdProject.blocks.length).toBeGreaterThanOrEqual(4);
   });
+
+  it('extracts cast from character bible document, stages cards with archetypes & EQ, and allows creating episode or importing cast', async () => {
+    const store = useStoriaStore.getState();
+    store.resetToSampleProject();
+    const initialEpisodeCount = store.projects.length;
+    const initialSpeakerCount = store.project.speakers.length;
+    store.setEpisodePropertiesModalOpen(true);
+
+    render(<ProjectPropertiesModal />);
+
+    // Attach mock character bible for Ena, Mare, and Foxy
+    const docContent = `
+      RAZRADA LIKOVA:
+      Matija "Mate Fox" (Foxy): DJ m@tise, Lazareti organizator, 43 godine. Vulpes (Lisica). Promukao noćni glas.
+      Ena: Kupari, 25 godina. Bijela čaplja (White Heron), inženjerka sustava, matematička geometrija 14:19. Kristalan analitički glas.
+      Mare: Mlini, 26 godina. Crni blavor / morska murina, 135 BPM, flegmatični oklop, duboki ženski alt.
+    `;
+    const docFile = new File([docContent], 'Razrada Likova_ Ena, Mare i Foxy.docx', {
+      type: 'text/plain',
+    });
+
+    const fileInput = screen.getByTestId('ai-architect-file-input') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [docFile] } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Razrada Likova_ Ena, Mare i Foxy.docx')).toBeDefined();
+    });
+
+    // Click "Extract Cast from Doc" button
+    const extractBtn = screen.getByTestId('ai-extract-cast-btn');
+    expect(extractBtn).toBeDefined();
+    fireEvent.click(extractBtn);
+
+    // Staged characters panel should appear with 3 character cards
+    await waitFor(() => {
+      expect(screen.getByTestId('staged-characters-panel')).toBeDefined();
+    });
+
+    // Verify extracted characters
+    expect(screen.getByText('Matija "Mate Fox" (Foxy)')).toBeDefined();
+    expect(screen.getByText('Ena')).toBeDefined();
+    expect(screen.getByText('Mare')).toBeDefined();
+
+    // Check archetype badges
+    expect(screen.getByText(/Vulpes/)).toBeDefined();
+    expect(screen.getByText(/White Heron/)).toBeDefined();
+    expect(screen.getByText(/Sea Moray/)).toBeDefined();
+
+    // Check audition button click does not throw
+    const auditionBtns = screen.getAllByTestId(/staged-char-audition-btn-/);
+    expect(auditionBtns.length).toBe(3);
+    fireEvent.click(auditionBtns[0]);
+
+    // Check voice dropdown change
+    const voiceSelects = screen.getAllByTestId(/staged-char-voice-select-/);
+    fireEvent.change(voiceSelects[0], { target: { value: 'Fenrir' } });
+    expect((voiceSelects[0] as HTMLSelectElement).value).toBe('Fenrir');
+
+    // Test Action 1: Import Cast to Active Episode
+    const importBtn = screen.getByTestId('import-cast-to-active-btn');
+    fireEvent.click(importBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('staged-cast-notice-banner')).toBeDefined();
+      expect(useStoriaStore.getState().project.speakers.length).toBe(initialSpeakerCount + 3);
+    });
+
+    // Test Action 2: Create Episode with Selected Cast
+    const createWithCastBtn = screen.getByTestId('create-episode-with-cast-btn');
+    fireEvent.click(createWithCastBtn);
+
+    await waitFor(() => {
+      expect(useStoriaStore.getState().projects.length).toBe(initialEpisodeCount + 1);
+    });
+
+    const newEpisode = useStoriaStore.getState().project;
+    expect(newEpisode.speakers.length).toBe(3);
+    expect(newEpisode.speakers.some((s) => s.name.includes('Foxy'))).toBe(true);
+    expect(newEpisode.speakers.some((s) => s.name.includes('Ena'))).toBe(true);
+    expect(newEpisode.speakers.some((s) => s.name.includes('Mare'))).toBe(true);
+  });
 });

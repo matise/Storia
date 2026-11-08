@@ -1,10 +1,13 @@
 import React from 'react';
 import {
+  Check,
   ChevronDown,
   ChevronUp,
+  Loader2,
   Play,
   RefreshCw,
   Sliders,
+  Sparkles,
   Square,
   Trash2,
   UserPlus,
@@ -22,6 +25,12 @@ import {
   studioTransportEngine,
 } from '../../core/dsp/StudioTransportEngine';
 import { BroadcastVuMeter } from '../workbench/BroadcastVuMeter';
+import { processUploadedFiles } from '../../utils/fileAttachmentReader';
+import {
+  castMemberToSpeaker,
+  extractCastFromDocumentWithAi,
+} from '../../services/geminiAgentService';
+import { getApiKey } from '../../core/storage/keyVault';
 
 export interface CastSidebarProps {
   width?: number;
@@ -85,11 +94,66 @@ export const CastSidebar: React.FC<CastSidebarProps> = ({ width = 280 }) => {
     });
   };
 
+  const [isImportingBible, setIsImportingBible] = React.useState<boolean>(false);
+  const [bibleNotice, setBibleNotice] = React.useState<string | null>(null);
+  const bibleFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleBibleFilesAdded = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0 || isImportingBible) return;
+    setIsImportingBible(true);
+    setBibleNotice(null);
+    try {
+      const attachments = await processUploadedFiles(fileList);
+      const result = await extractCastFromDocumentWithAi({
+        attachments,
+        language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
+        apiKey: getApiKey(),
+        textModel: project.aiSettings.textModel,
+      });
+
+      if (result.characters.length > 0) {
+        result.characters.forEach((c, idx) => {
+          const newSpk = castMemberToSpeaker(c, project.speakers.length + idx);
+          addSpeaker(newSpk);
+        });
+        setBibleNotice(
+          project.defaultLanguage === 'hr'
+            ? `Dodano ${result.characters.length} uloga!`
+            : `Added ${result.characters.length} cast members!`
+        );
+        setTimeout(() => setBibleNotice(null), 4000);
+      }
+    } catch (err) {
+      setBibleNotice(
+        err instanceof Error ? err.message : 'Cast extraction failed'
+      );
+      setTimeout(() => setBibleNotice(null), 4000);
+    } finally {
+      setIsImportingBible(false);
+    }
+  };
+
   return (
     <aside
       style={{ width, minWidth: width, maxWidth: width }}
       className="border-r border-slate-800/90 bg-slate-950 flex flex-col justify-between shrink-0 select-none overflow-hidden"
     >
+      {/* Hidden file input for Bible upload */}
+      <input
+        ref={bibleFileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.docx,.txt,.md,.fountain,.json,.csv,image/*"
+        onChange={(e) => {
+          void handleBibleFilesAdded(e.target.files);
+          e.target.value = '';
+        }}
+        className="hidden"
+        data-testid="sidebar-bible-file-input"
+      />
+
       {/* Header & Speaker Roster */}
       <div className="p-3 flex flex-col gap-3 overflow-y-auto">
         <div className="flex items-center justify-between">
@@ -101,14 +165,46 @@ export const CastSidebar: React.FC<CastSidebarProps> = ({ width = 280 }) => {
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => addSpeaker()}
-          className="w-full py-1.5 px-3 rounded-md border border-dashed border-slate-700 hover:border-indigo-500/70 bg-slate-900/60 hover:bg-slate-900 text-xs font-medium text-indigo-300 flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
-        >
-          <UserPlus className="w-3.5 h-3.5 shrink-0" />
-          <span>{t('newSpeaker')}</span>
-        </button>
+        {/* Action Row: New Speaker + AI Cast from Bible */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            data-testid="sidebar-new-speaker-btn"
+            onClick={() => addSpeaker()}
+            className="flex-1 py-1.5 px-2.5 rounded-md border border-dashed border-slate-700 hover:border-indigo-500/70 bg-slate-900/60 hover:bg-slate-900 text-xs font-medium text-indigo-300 flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
+          >
+            <UserPlus className="w-3.5 h-3.5 shrink-0" />
+            <span>{t('newSpeaker')}</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="sidebar-cast-from-bible-btn"
+            disabled={isImportingBible}
+            onClick={() => bibleFileInputRef.current?.click()}
+            title={t('aiCastFromBibleSidebarBtn')}
+            className="py-1.5 px-2 rounded-md border border-slate-700 hover:border-amber-500/70 bg-slate-900/60 hover:bg-slate-900 text-xs font-medium text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1 whitespace-nowrap transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+          >
+            {isImportingBible ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            )}
+            <span className="text-[10px] font-semibold">
+              {isImportingBible ? 'AI...' : 'Bible'}
+            </span>
+          </button>
+        </div>
+
+        {bibleNotice && (
+          <div
+            data-testid="sidebar-bible-notice"
+            className="px-2 py-1 rounded bg-amber-950/70 border border-amber-700/60 text-[10px] text-amber-200 flex items-center gap-1 font-mono"
+          >
+            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>{bibleNotice}</span>
+          </div>
+        )}
 
         {/* Speaker Cards */}
         <div className="flex flex-col gap-2.5">

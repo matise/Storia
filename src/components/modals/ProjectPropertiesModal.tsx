@@ -10,6 +10,7 @@ import {
   Globe,
   Loader2,
   Paperclip,
+  Play,
   Plus,
   RotateCcw,
   Search,
@@ -18,23 +19,38 @@ import {
   Square,
   Trash2,
   Upload,
+  Users,
   X,
 } from 'lucide-react';
 import { useStoriaStore } from '../../store/useStoriaStore';
 import { useTranslation } from '../../i18n/useTranslation';
 import { getApiKey } from '../../core/storage/keyVault';
-import { generateEpisodeBlueprintWithAi } from '../../services/geminiAgentService';
+import {
+  generateEpisodeBlueprintWithAi,
+  extractCastFromDocumentWithAi,
+  castMemberToSpeaker,
+  type ExtractedCastMember,
+} from '../../services/geminiAgentService';
 import {
   exportEpisodesBundleJson,
   exportProjectJson,
   importEpisodesBundleJson,
   triggerBrowserFileDownload,
 } from '../../services/scriptExportService';
-import { CoWriterAttachment, Project } from '../../types/storia';
+import {
+  CoWriterAttachment,
+  GEMINI_VOICE_CATALOG,
+  Project,
+  Speaker,
+} from '../../types/storia';
 import {
   formatAttachmentSize,
   processUploadedFiles,
 } from '../../utils/fileAttachmentReader';
+import {
+  speakWithBrowserTts,
+  stopAllAudioPlayback,
+} from '../../core/dsp/LiveAudioPreviewer';
 
 export const ProjectPropertiesModal: React.FC = () => {
   const { t } = useTranslation();
@@ -51,6 +67,7 @@ export const ProjectPropertiesModal: React.FC = () => {
   const importProjectsBundle = useStoriaStore((s) => s.importProjectsBundle);
   const resetToSampleProject = useStoriaStore((s) => s.resetToSampleProject);
   const updateProjectProperties = useStoriaStore((s) => s.updateProjectProperties);
+  const addSpeaker = useStoriaStore((s) => s.addSpeaker);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = React.useState<string>('');
@@ -74,6 +91,12 @@ export const ProjectPropertiesModal: React.FC = () => {
   const [isDraggingOverArchitect, setIsDraggingOverArchitect] = React.useState<boolean>(false);
   const [isAiGenerating, setIsAiGenerating] = React.useState<boolean>(false);
   const [aiEpisodeRationale, setAiEpisodeRationale] = React.useState<string | null>(null);
+
+  // Staged Cast Architect state
+  const [stagedCharacters, setStagedCharacters] = React.useState<ExtractedCastMember[]>([]);
+  const [isExtractingCast, setIsExtractingCast] = React.useState<boolean>(false);
+  const [auditioningMemberId, setAuditioningMemberId] = React.useState<string | null>(null);
+  const [stagedCastNotice, setStagedCastNotice] = React.useState<string | null>(null);
 
   // Hidden file input refs
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -260,6 +283,134 @@ export const ProjectPropertiesModal: React.FC = () => {
     } finally {
       setIsAiGenerating(false);
     }
+  };
+
+  const handleExtractCastFromDoc = async () => {
+    if (isExtractingCast || isAiGenerating) return;
+    setIsExtractingCast(true);
+    setStagedCastNotice(null);
+    try {
+      const result = await extractCastFromDocumentWithAi({
+        prompt: aiEpisodePrompt,
+        attachments: aiAttachments,
+        language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
+        apiKey: getApiKey(),
+        textModel: project.aiSettings.textModel,
+      });
+      setStagedCharacters(
+        result.characters.map((c) => ({ ...c, selected: true }))
+      );
+      if (result.rationale) {
+        setAiEpisodeRationale(result.rationale);
+      }
+    } finally {
+      setIsExtractingCast(false);
+    }
+  };
+
+  const handleToggleSelectCharacter = (id: string) => {
+    setStagedCharacters((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, selected: !c.selected } : c))
+    );
+  };
+
+  const handleSelectAllCharacters = (selectAll: boolean) => {
+    setStagedCharacters((prev) =>
+      prev.map((c) => ({ ...c, selected: selectAll }))
+    );
+  };
+
+  const handleChangeCharacterVoice = (id: string, newVoice: string) => {
+    setStagedCharacters((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, voiceId: newVoice } : c))
+    );
+  };
+
+  const handleAuditionCharacter = (
+    member: ExtractedCastMember,
+    index: number
+  ) => {
+    if (auditioningMemberId === member.id) {
+      stopAllAudioPlayback();
+      setAuditioningMemberId(null);
+      return;
+    }
+    stopAllAudioPlayback();
+    setAuditioningMemberId(member.id);
+
+    const tempSpeaker = castMemberToSpeaker(member, index);
+    const sample =
+      member.sampleDialogue ||
+      (project.defaultLanguage === 'hr'
+        ? `Pozdrav, ja sam ${member.name}. Zvuk i akustika su podešeni.`
+        : `Hello, I am ${member.name}. Studio audio acoustics and timbre are ready.`);
+
+    const started = speakWithBrowserTts({
+      text: sample,
+      speaker: tempSpeaker,
+      language: project.defaultLanguage,
+      onEnded: () => {
+        setAuditioningMemberId((curr) => (curr === member.id ? null : curr));
+      },
+    });
+
+    if (!started) {
+      setAuditioningMemberId(null);
+    }
+  };
+
+  const handleCreateEpisodeWithStagedCast = () => {
+    const selected = stagedCharacters.filter((c) => c.selected);
+    if (selected.length === 0) return;
+
+    const newSpeakers: Speaker[] = selected.map((m, idx) =>
+      castMemberToSpeaker(m, idx)
+    );
+
+    const epNum = projects.length + 1;
+    const names = selected.map((s) => s.name).join(', ');
+    const title =
+      project.defaultLanguage === 'hr'
+        ? `Ep ${epNum}: "${names.slice(0, 42)}"`
+        : `Ep ${epNum}: "${names.slice(0, 42)}"`;
+
+    const description =
+      project.defaultLanguage === 'hr'
+        ? `Epizoda s ulogama iz dokumenta: ${names}.`
+        : `Episode featuring cast from document: ${names}.`;
+
+    createProject({
+      title,
+      description,
+      defaultLanguage: project.defaultLanguage,
+      dialect: project.dialect,
+      dubrovnikRegister: project.dubrovnikRegister,
+      speakers: newSpeakers,
+    });
+
+    setStagedCastNotice(
+      project.defaultLanguage === 'hr'
+        ? `Kreirana nova epizoda s ${newSpeakers.length} likova!`
+        : `Created new episode with ${newSpeakers.length} characters!`
+    );
+  };
+
+  const handleImportCastToActiveEpisode = () => {
+    const selected = stagedCharacters.filter((c) => c.selected);
+    if (selected.length === 0) return;
+
+    selected.forEach((m, idx) => {
+      const spk = castMemberToSpeaker(m, project.speakers.length + idx);
+      addSpeaker(spk);
+    });
+
+    setStagedCastNotice(
+      project.defaultLanguage === 'hr'
+        ? `Uspješno uvezeno ${selected.length} likova u aktivnu epizodu!`
+        : `Successfully imported ${selected.length} characters into active episode!`
+    );
   };
 
   const handleAiFillActiveProperties = async () => {
@@ -1007,8 +1158,31 @@ export const ProjectPropertiesModal: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <button
                   type="button"
+                  data-testid="ai-extract-cast-btn"
+                  disabled={isExtractingCast || isAiGenerating}
+                  onClick={() => void handleExtractCastFromDoc()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 disabled:opacity-50 text-white font-semibold transition-all cursor-pointer shadow-xs text-xs"
+                >
+                  {isExtractingCast ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>{t('aiExtractingCastBtn')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-3.5 h-3.5" />
+                      <span>
+                        {t('aiExtractCastFromDocBtn')}
+                        {aiAttachments.length > 0 ? ` (${aiAttachments.length})` : ''}
+                      </span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
                   data-testid="ai-create-full-episode-btn"
-                  disabled={isAiGenerating}
+                  disabled={isAiGenerating || isExtractingCast}
                   onClick={() => void handleGenerateFullAiEpisode()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 disabled:opacity-50 text-white font-semibold transition-all cursor-pointer shadow-xs text-xs"
                 >
@@ -1031,7 +1205,7 @@ export const ProjectPropertiesModal: React.FC = () => {
                 <button
                   type="button"
                   data-testid="ai-fill-episode-props-btn"
-                  disabled={isAiGenerating || projects.length === 0}
+                  disabled={isAiGenerating || isExtractingCast || projects.length === 0}
                   onClick={() => void handleAiFillActiveProperties()}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-indigo-500/50 text-indigo-200 font-medium transition-colors cursor-pointer disabled:opacity-50 text-xs"
                 >
@@ -1046,6 +1220,222 @@ export const ProjectPropertiesModal: React.FC = () => {
                   className="px-2.5 py-1.5 rounded bg-emerald-950/50 border border-emerald-700/50 text-[11px] text-emerald-200 leading-relaxed"
                 >
                   {aiEpisodeRationale}
+                </div>
+              )}
+
+              {/* Staged Characters Extracted from Document */}
+              {stagedCharacters.length > 0 && (
+                <div
+                  data-testid="staged-characters-panel"
+                  className="p-3 rounded-lg bg-slate-950/90 border border-amber-500/40 space-y-3 shadow-md"
+                >
+                  {/* Staged Header */}
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-300 text-xs">
+                        <Users className="w-3.5 h-3.5 text-amber-400" />
+                        <span>
+                          {t('aiStagedCastTitle')} ({stagedCharacters.length})
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {t('aiStagedCastSubtitle')}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        data-testid="staged-cast-toggle-all-btn"
+                        onClick={() =>
+                          handleSelectAllCharacters(
+                            !stagedCharacters.every((c) => c.selected)
+                          )
+                        }
+                        className="text-[10px] text-indigo-300 hover:text-indigo-200 underline cursor-pointer"
+                      >
+                        {stagedCharacters.every((c) => c.selected)
+                          ? t('aiDeselectAllCast')
+                          : t('aiSelectAllCast')}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="staged-cast-clear-btn"
+                        onClick={() => {
+                          stopAllAudioPlayback();
+                          setStagedCharacters([]);
+                          setStagedCastNotice(null);
+                        }}
+                        className="text-slate-500 hover:text-rose-400 p-0.5 cursor-pointer"
+                        title="Dismiss staged cast"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Character Cards List */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {stagedCharacters.map((char, idx) => {
+                      const isAuditioning = auditioningMemberId === char.id;
+                      return (
+                        <div
+                          key={char.id}
+                          data-testid={`staged-character-card-${char.id}`}
+                          className={`p-2.5 rounded-lg border transition-all text-xs space-y-2 ${
+                            char.selected
+                              ? 'bg-slate-900/90 border-indigo-500/60'
+                              : 'bg-slate-950/60 border-slate-800/80 opacity-60'
+                          }`}
+                        >
+                          {/* Row 1: Checkbox, Name, Archetype Badge, Voice & Audition */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <input
+                                type="checkbox"
+                                data-testid={`staged-char-checkbox-${char.id}`}
+                                checked={char.selected ?? false}
+                                onChange={() => handleToggleSelectCharacter(char.id)}
+                                className="w-3.5 h-3.5 rounded border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer"
+                              />
+                              <span className="font-bold text-slate-100 truncate">
+                                {char.name}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                ({char.gender}, {char.age})
+                              </span>
+                              {char.archetype && (
+                                <span
+                                  data-testid={`staged-char-archetype-${char.id}`}
+                                  className="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-700/60 text-[10px] text-amber-200 font-medium truncate max-w-[200px]"
+                                  title={char.archetype}
+                                >
+                                  {char.archetype}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Voice selector & Audition button */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <select
+                                data-testid={`staged-char-voice-select-${char.id}`}
+                                value={char.voiceId}
+                                onChange={(e) =>
+                                  handleChangeCharacterVoice(char.id, e.target.value)
+                                }
+                                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                              >
+                                {GEMINI_VOICE_CATALOG.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.id} ({v.register})
+                                  </option>
+                                ))}
+                              </select>
+
+                              <button
+                                type="button"
+                                data-testid={`staged-char-audition-btn-${char.id}`}
+                                onClick={() => handleAuditionCharacter(char, idx)}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer border ${
+                                  isAuditioning
+                                    ? 'bg-rose-950 border-rose-600 text-rose-300 animate-pulse'
+                                    : 'bg-indigo-950/70 border-indigo-700/60 hover:bg-indigo-900 text-indigo-300 hover:text-indigo-100'
+                                }`}
+                              >
+                                {isAuditioning ? (
+                                  <>
+                                    <Square className="w-2.5 h-2.5 fill-current" />
+                                    <span>{t('stopSpeakerPreview')}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-2.5 h-2.5 fill-current" />
+                                    <span>{t('aiAuditionCastMember')}</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Row 2: Delivery & Acting Notes */}
+                          <div className="text-[11px] text-slate-300 leading-snug space-y-0.5">
+                            <div>
+                              <span className="text-slate-500 font-semibold">
+                                {t('styleLabel')}:{' '}
+                              </span>
+                              <span>{char.stylePrompt}</span>
+                            </div>
+                            {char.actingNotes && (
+                              <div className="text-slate-400 italic">
+                                "{char.actingNotes}"
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 3: Acoustic / EQ Badges */}
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono text-slate-400">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800">
+                              Low: {char.lowShelfGainDb >= 0 ? `+${char.lowShelfGainDb}` : char.lowShelfGainDb} dB
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800">
+                              Mid: {char.midPeakGainDb >= 0 ? `+${char.midPeakGainDb}` : char.midPeakGainDb} dB
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800">
+                              High: {char.highShelfGainDb >= 0 ? `+${char.highShelfGainDb}` : char.highShelfGainDb} dB
+                            </span>
+                            {char.acousticRationale && (
+                              <span className="text-slate-500 truncate max-w-xs" title={char.acousticRationale}>
+                                • {char.acousticRationale}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Staged Cast Actions Toolbar */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800/80">
+                    <button
+                      type="button"
+                      data-testid="create-episode-with-cast-btn"
+                      disabled={stagedCharacters.filter((c) => c.selected).length === 0}
+                      onClick={handleCreateEpisodeWithStagedCast}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 disabled:opacity-40 text-white font-semibold transition-all cursor-pointer shadow-xs text-xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>
+                        {t('aiCreateEpisodeWithCastBtn')} (
+                        {stagedCharacters.filter((c) => c.selected).length})
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      data-testid="import-cast-to-active-btn"
+                      disabled={
+                        stagedCharacters.filter((c) => c.selected).length === 0 ||
+                        projects.length === 0
+                      }
+                      onClick={handleImportCastToActiveEpisode}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-amber-500/60 hover:border-amber-400 text-amber-200 font-semibold transition-colors cursor-pointer disabled:opacity-40 text-xs"
+                    >
+                      <Users className="w-3.5 h-3.5 text-amber-400" />
+                      <span>
+                        {t('aiImportCastToActiveEpisodeBtn')} (
+                        {stagedCharacters.filter((c) => c.selected).length})
+                      </span>
+                    </button>
+                  </div>
+
+                  {stagedCastNotice && (
+                    <div
+                      data-testid="staged-cast-notice-banner"
+                      className="px-2.5 py-1.5 rounded bg-emerald-950/60 border border-emerald-700/70 text-[11px] text-emerald-200 font-medium"
+                    >
+                      {stagedCastNotice}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -20,7 +20,7 @@ import {
   stripMarkdownJsonFence,
 } from './dubrovnikAgentInstructions';
 
-const SPEAKER_COLORS = [
+export const SPEAKER_COLORS = [
   '#6366f1',
   '#10b981',
   '#f59e0b',

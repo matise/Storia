@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from engine import StableAudioServiceEngine
+from downloader import model_downloader
 
 # Global singleton engine and concurrency queue
 engine = StableAudioServiceEngine(default_device="cuda", model_half=True)
@@ -36,9 +37,19 @@ async def idle_watcher():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: launch idle watcher
+    # Startup preflight checks
+    print("\n--- Stable Audio 3 Service Pre-flight Check ---")
+    try:
+        model_statuses = model_downloader.list_all_models_status()
+        for m in model_statuses:
+            badge = "[READY]" if m["is_installed"] else "[MISSING]"
+            print(f" {badge:<9} {m['model_name']:<18} ({m['installed_size_mb']} MB)")
+    except Exception as e:
+        print(f" [WARNING] Could not query model statuses on startup: {e}")
+
+    # Launch idle watcher
     watcher_task = asyncio.create_task(idle_watcher())
-    print("[Server] Stable Audio 3 Service initialized. Idle watcher active.")
+    print("[Server] Stable Audio 3 Service initialized. Idle watcher active.\n")
     yield
     # Shutdown
     watcher_task.cancel()
@@ -70,6 +81,9 @@ class GenerateRequest(BaseModel):
     seed: int = Field(-1, description="Random seed (-1 for randomized)")
     chunked_decode: Optional[bool] = Field(None, description="Force chunked decode for lower peak VRAM")
 
+class DownloadModelRequest(BaseModel):
+    model_name: str = Field(..., description="Model identifier to download: 'small-sfx', 'small-music', 'small-music-base', or 'all'")
+
 def tensor_to_wav_bytes(audio_tensor: torch.Tensor, sample_rate: int) -> bytes:
     buffer = io.BytesIO()
     # Expects [channels, samples]
@@ -80,6 +94,47 @@ def tensor_to_wav_bytes(audio_tensor: torch.Tensor, sample_rate: int) -> bytes:
 @app.get("/v1/system/status")
 async def get_system_status():
     return engine.get_status()
+
+@app.get("/v1/system/models")
+async def list_models():
+    """
+    List all supported models and their local installation status.
+    """
+    return model_downloader.list_all_models_status()
+
+@app.get("/v1/system/models/progress")
+async def get_download_progress():
+    """
+    Query real-time progress for active model downloads.
+    """
+    return model_downloader.current_download_state
+
+@app.post("/v1/system/models/download")
+async def trigger_model_download(req: DownloadModelRequest, background_tasks: BackgroundTasks):
+    """
+    Trigger automated background download for a model (or all models).
+    """
+    if model_downloader.current_download_state["is_downloading"]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"A download is already in progress: '{model_downloader.current_download_state['active_model']}'"
+        )
+
+    def run_download():
+        try:
+            if req.model_name == "all":
+                model_downloader.download_all()
+            else:
+                model_downloader.download_model(req.model_name)
+        except Exception as e:
+            print(f"[Server] Background download failed: {e}")
+
+    background_tasks.add_task(run_download)
+    return {
+        "status": "download_started",
+        "model_name": req.model_name,
+        "message": f"Download task initiated for '{req.model_name}'."
+    }
 
 @app.post("/v1/system/hibernate")
 async def trigger_hibernate():

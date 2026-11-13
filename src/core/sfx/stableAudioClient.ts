@@ -15,6 +15,26 @@ export interface StableAudioStatus {
   peak_vram_mb: number;
 }
 
+export interface ModelStatusInfo {
+  model_name: string;
+  repo_id: string;
+  description: string;
+  is_installed: boolean;
+  installed_size_mb: number;
+  missing_files: string[];
+}
+
+export interface DownloadProgressInfo {
+  is_downloading: boolean;
+  active_model: string | null;
+  file: string | null;
+  progress_pct: number;
+  speed_mb_s: number;
+  downloaded_mb: number;
+  total_mb: number;
+  error: string | null;
+}
+
 export interface GenerateAudioRequest {
   prompt: string;
   negative_prompt?: string;
@@ -48,6 +68,46 @@ export class StableAudioClient {
     const res = await fetch(`${this.baseUrl}/v1/system/status`);
     if (!res.ok) {
       throw new Error(`Failed to fetch status from Stable Audio daemon: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  /**
+   * List all models supported by the daemon and their local installation state.
+   */
+  async getModels(): Promise<ModelStatusInfo[]> {
+    const res = await fetch(`${this.baseUrl}/v1/system/models`);
+    if (!res.ok) {
+      throw new Error(`Failed to query model list: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  /**
+   * Query active model download progress.
+   */
+  async getDownloadProgress(): Promise<DownloadProgressInfo> {
+    const res = await fetch(`${this.baseUrl}/v1/system/models/progress`);
+    if (!res.ok) {
+      throw new Error(`Failed to query download progress: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  /**
+   * Trigger background download of a model ('small-sfx', 'small-music', 'small-music-base', or 'all').
+   */
+  async downloadModel(modelName: string): Promise<{ status: string; model_name: string; message: string }> {
+    const res = await fetch(`${this.baseUrl}/v1/system/models/download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model_name: modelName }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to trigger model download (${res.status}): ${errText}`);
     }
     return res.json();
   }

@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Python & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# AI & Machine Learning Model Checkpoints
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+*.gguf
+*.tflite
+*.mlmodel
+*.incomplete
+
+# Local Model Storage & Cache Directories
+services/stable-audio/models/
+services/stable-audio/.cache/
+**/models--stabilityai--*
+.cache/
+.huggingface/
+huggingface/
+
+# Audio scratch and generated test files
+services/stable-audio/*.wav
+services/stable-audio/*.mp3
+services/stable-audio/*.flac
+services/stable-audio/*.ogg
+services/stable-audio/output_*.wav
+services/stable-audio/test_*.wav
+
+# Logs & Temporary files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.tmp/
+tmp/
+
+# Secrets & Environment variables
+.env
+.env.local
+.env.*.local
+*.token
+hf_token.txt
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+

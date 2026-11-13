@@ -1,0 +1,36 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Model Weights and Checkpoints (Heavy Binaries)
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+*.gguf
+*.incomplete
+models/
+.cache/
+snapshots/
+blobs/
+
+# Generated Audio Files (WAV, MP3, FLAC, OGG)
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.aac
+
+# Local Environment and Logs
+*.log
+.env
+.env.*
+hf_token.txt
+*.token
+

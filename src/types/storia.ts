@@ -379,6 +379,53 @@ export interface BilingualAdaptationResult {
   genderAgreementApplied: string;
 }
 
+export interface ScriptTextSelection {
+  blockId: string;
+  startOffset: number;
+  endOffset: number;
+  selectedText: string;
+}
+
+export type AgentToolType =
+  | 'update_block'
+  | 'replace_selected_text'
+  | 'insert_blocks'
+  | 'split_block'
+  | 'delete_block'
+  | 'move_block'
+  | 'batch_update_blocks'
+  | 'update_speaker'
+  | 'update_episode_metadata';
+
+export interface AgentToolAction {
+  id: string;
+  tool: AgentToolType;
+  summary: string;
+  applied?: boolean;
+  targetBlockId?: string;
+  targetSpeakerId?: string;
+  payload: Record<string, unknown>;
+}
+
+export interface AgentChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  agentMode: AIAgentMode;
+  content: string;
+  timestamp: number;
+  speakerId?: string;
+  selectionContext?: {
+    blockId?: string;
+    blockOrder?: number;
+    selectedText?: string;
+  };
+  toolActions?: AgentToolAction[];
+  sources?: GroundingSource[];
+  beatCandidates?: CoWriterBeatCandidate[];
+  doctorOptions?: ScriptDoctorOption[];
+  adaptationResult?: BilingualAdaptationResult;
+}
+
 export type CroatianDialect = 'standard' | 'dubrovnik';
 export type DubrovnikRegister = 'classical' | 'traditional' | 'contemporary';
 
@@ -557,6 +604,7 @@ export interface Project {
   blocks: ScriptBlock[];
   auxBusses?: AuxBusConfig[]; // Modular Aux Send Busses & Effect Stacks
   researchNotebook?: PersonaResearchRecord[];
+  chatHistory?: AgentChatMessage[]; // Persistent multi-turn Role-Master Studio Chat history
   createdAt: number;
   updatedAt: number;
   metadata?: {

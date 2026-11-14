@@ -56,3 +56,28 @@ export {
   castMemberToSpeaker,
 } from './agent/castArchitectAgent';
 
+export {
+  type DetectedStoryTone,
+  type StudioContextSnapshot,
+  detectStoryTone,
+  extractContextKeywords,
+  buildCreativeDivergencePrompt,
+  buildStudioContextSnapshot,
+  formatRecentChatHistoryForPrompt,
+} from './agent/agentContextBuilder';
+
+export {
+  resolveSpeakerFromReference,
+  resolveTargetBlock,
+  executeStudioToolActions,
+} from './agent/agentToolExecutor';
+
+export {
+  type RoleMasterChatResponse,
+  type RoleMasterChatOptions,
+  buildRoleMasterSystemPrompt,
+  buildLocalRoleMasterChatTurn,
+  runRoleMasterChatTurn,
+} from './agent/studioChatAgent';
+
+

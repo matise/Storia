@@ -1,9 +1,11 @@
 import {
+  AgentChatMessage,
   CroatianDialect,
   DubrovnikRegister,
   GeminiTextModelId,
   GroundingSource,
   PersonaResearchRecord,
+  ScriptBlock,
   Speaker,
   SupportedLanguage,
 } from '../../types/storia';
@@ -12,6 +14,7 @@ import {
   buildDubrovnikAgentInstructions,
   buildGeminiEndpoint,
 } from './dubrovnikAgentInstructions';
+import { formatRecentChatHistoryForPrompt } from './agentContextBuilder';
 
 /**
  * Constructs the dual-layer system instruction for Persona-Grounded Research,
@@ -108,10 +111,21 @@ export function buildFallbackPersonaResearch(
   speaker: Speaker,
   query: string,
   language: SupportedLanguage,
-  modelId: GeminiTextModelId
+  modelId: GeminiTextModelId,
+  contextOptions?: {
+    activeBlock?: ScriptBlock;
+    selectedText?: string;
+    episodeTitle?: string;
+    episodeGenre?: string;
+  }
 ): PersonaResearchRecord {
   const qLower = query.toLowerCase();
   const isPistolQuery = /pištolj|policij|1938|weapon|pistol|police|browning|fn/.test(qLower);
+  const personaSnippet = speaker.personaPrompt?.split(/[.;]/)[0]?.trim() || speaker.name;
+  const activeFocus =
+    contextOptions?.selectedText?.trim() ||
+    contextOptions?.activeBlock?.text?.trim().slice(0, 60) ||
+    '';
 
   if (language === 'hr') {
     const personaResponse = isPistolQuery
@@ -119,8 +133,8 @@ export function buildFallbackPersonaResearch(
         ? `Koliko sam puta vidjela te crne futrole u Petrinjskoj... Naši redari nose belgijski FN Model 1910 ili 1922 u kalibru 7.65 milimetara — kratka cijev koja prebrzo planu u magli.`
         : `Znam taj zvuk zatvarača u snu. Zagrebački detektivi i redarstvenici nose belgijski FN Browning Model 1910 i 1922, kalibar 7.65 milimetara — stane u džep kaputa, ali u uskoj veži zvuči kao top.`
       : speaker.gender === 'female'
-        ? `Pitala sam se isto dok sam listala stare arhive. Kad pogledaš ispod službenih izvještaja glede "${query.trim()}", uvijek pronađeš tragove koje su htjeli sakriti u magli.`
-        : `Dugo sam kopao po arhivima oko toga — "${query.trim()}". Službeni papiri kažu jedno, ali na zagrebačkom asfaltu istina uvijek ima drugačiji okus.`;
+        ? `Gledajući iz moje perspektive (${personaSnippet}), pitanje "${query.trim()}" izravno se veže na ono o čemu govorimo${activeFocus ? ` ("${activeFocus}")` : ''}. Proučila sam sve dostupne izvore i sigurna sam da ključ leži u detaljima koje drugi previde.`
+        : `Ako mene pitaš (${personaSnippet}), stvar oko "${query.trim()}" potpuno mijenja našu trenutnu situaciju${activeFocus ? ` ("${activeFocus}")` : ''}. Provjerio sam podatke iz prve ruke i tu nema mjesta slučajnosti.`;
 
     return {
       id: `res_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -129,7 +143,7 @@ export function buildFallbackPersonaResearch(
       personaResponse,
       objectiveSummary: isPistolQuery
         ? 'Redarstvo i žandarmerija Kraljevine Jugoslavije (uključujući Zagreb 1930-ih) standardno su koristili poluautomatske pištolje FN Model 1910 i FN Model 1922 (7.65×17mm / 9×17mm).'
-        : `Kontekstualni sažetak istraživanja za upit: "${query.trim()}".`,
+        : `Kontekstualni sažetak istraživanja za upit: "${query.trim()}" prilagođen ulozi ${speaker.name}.`,
       sources: isPistolQuery
         ? [
             {
@@ -154,7 +168,7 @@ export function buildFallbackPersonaResearch(
 
   const personaResponseEn = isPistolQuery
     ? `I know the weight of that steel by heart. The Zagreb police detectives carry the Belgian FN Browning Model 1910 and 1922 chambered in 7.65mm—compact enough for a trenchcoat pocket, loud enough to wake the whole block.`
-    : `I've spent enough sleepless nights digging into "${query.trim()}". The official ledger tells a clean story, but out on the wet cobblestones the facts cut a lot sharper.`;
+    : `Looking at "${query.trim()}" from my perspective (${personaSnippet}), it connects directly to what we are dealing with right now${activeFocus ? ` ("${activeFocus}")` : ''}. Once you strip away the surface assumptions, the underlying facts point in a very clear direction.`;
 
   return {
     id: `res_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -163,7 +177,7 @@ export function buildFallbackPersonaResearch(
     personaResponse: personaResponseEn,
     objectiveSummary: isPistolQuery
       ? 'Yugoslav police and Zagreb municipal detectives in 1938 carried the Belgian FN Model 1910 and Model 1922 semi-automatic pistols (7.65mm Browning).'
-      : `Verified contextual summary for query: "${query.trim()}".`,
+      : `Verified contextual summary for query: "${query.trim()}" through ${speaker.name}'s lens.`,
     sources: [
       {
         title: 'Croatian History Museum — Interwar Police & Military Collection (hpm.hr)',
@@ -187,6 +201,11 @@ export async function runPersonaResearch(options: {
   speaker: Speaker;
   query: string;
   language: SupportedLanguage;
+  activeBlock?: ScriptBlock;
+  selectedText?: string;
+  episodeTitle?: string;
+  episodeGenre?: string;
+  chatHistory?: AgentChatMessage[];
   apiKey?: string | null;
   modelId?: GeminiTextModelId;
   enableSearchGrounding?: boolean;
@@ -199,6 +218,11 @@ export async function runPersonaResearch(options: {
     speaker,
     query,
     language,
+    activeBlock,
+    selectedText,
+    episodeTitle,
+    episodeGenre,
+    chatHistory,
     apiKey,
     modelId = 'gemini-3-flash-preview',
     enableSearchGrounding = true,
@@ -213,8 +237,21 @@ export async function runPersonaResearch(options: {
     throw new Error('Research query cannot be empty.');
   }
 
+  const contextOptions = {
+    activeBlock,
+    selectedText,
+    episodeTitle,
+    episodeGenre,
+  };
+
   if (!apiKey || apiKey.trim().length < 10) {
-    const fallback = buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
+    const fallback = buildFallbackPersonaResearch(
+      speaker,
+      trimmedQuery,
+      language,
+      modelId,
+      contextOptions
+    );
     if (dialect === 'dubrovnik' && language === 'hr') {
       fallback.personaResponse = transformToDubrovnikDialect(
         fallback.personaResponse,
@@ -232,6 +269,30 @@ export async function runPersonaResearch(options: {
   );
   const endpoint = buildGeminiEndpoint(modelId, apiKey);
 
+  const recentChat = formatRecentChatHistoryForPrompt(
+    chatHistory,
+    'persona_research',
+    4
+  );
+
+  const contextAugmentation = [
+    episodeTitle ? `Episode: "${episodeTitle}" (${episodeGenre ?? 'Audio Drama'})` : '',
+    activeBlock ? `Current Script Block: "${activeBlock.text}"` : '',
+    selectedText?.trim() ? `Highlighted Text Focus: "${selectedText.trim()}"` : '',
+    recentChat,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const userPromptText =
+    language === 'hr'
+      ? `Istraži i odgovori u ulozi lika (${speaker.name}) na pitanje: ${trimmedQuery}${
+          contextAugmentation ? `\n\nKontekst scene:\n${contextAugmentation}` : ''
+        }`
+      : `Research and answer strictly in-character (${speaker.name}) to the question: ${trimmedQuery}${
+          contextAugmentation ? `\n\nScene Context:\n${contextAugmentation}` : ''
+        }`;
+
   const requestBody: Record<string, unknown> = {
     systemInstruction: {
       parts: [{ text: systemInstruction }],
@@ -241,10 +302,7 @@ export async function runPersonaResearch(options: {
         role: 'user',
         parts: [
           {
-            text:
-              language === 'hr'
-                ? `Istraži i odgovori u ulozi lika (${speaker.name}) na pitanje: ${trimmedQuery}`
-                : `Research and answer strictly in-character (${speaker.name}) to the question: ${trimmedQuery}`,
+            text: userPromptText,
           },
         ],
       },
@@ -267,7 +325,13 @@ export async function runPersonaResearch(options: {
     });
 
     if (!response.ok) {
-      return buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
+      return buildFallbackPersonaResearch(
+        speaker,
+        trimmedQuery,
+        language,
+        modelId,
+        contextOptions
+      );
     }
 
     const data = await response.json();
@@ -278,7 +342,13 @@ export async function runPersonaResearch(options: {
         .trim() || undefined;
 
     if (!rawText) {
-      return buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
+      return buildFallbackPersonaResearch(
+        speaker,
+        trimmedQuery,
+        language,
+        modelId,
+        contextOptions
+      );
     }
 
     const extractedSources = extractGroundingSources(data);
@@ -286,7 +356,8 @@ export async function runPersonaResearch(options: {
       speaker,
       trimmedQuery,
       language,
-      modelId
+      modelId,
+      contextOptions
     );
 
     return {
@@ -303,7 +374,13 @@ export async function runPersonaResearch(options: {
     if (abortSignal?.aborted || (err as Error)?.name === 'AbortError') {
       throw err;
     }
-    return buildFallbackPersonaResearch(speaker, trimmedQuery, language, modelId);
+    return buildFallbackPersonaResearch(
+      speaker,
+      trimmedQuery,
+      language,
+      modelId,
+      contextOptions
+    );
   }
 }
 

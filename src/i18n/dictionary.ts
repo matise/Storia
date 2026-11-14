@@ -405,6 +405,17 @@ export interface TranslationDictionary {
   aiSelectAllCast: string;
   aiDeselectAllCast: string;
   aiCastImportSuccess: string;
+
+  // Role-Master Studio Chat & Live Selection Context
+  liveContextFocusLabel: string;
+  selectedSpanBadgeLabel: string;
+  clearTextSelectionTooltip: string;
+  roleMasterChatTitle: string;
+  roleMasterChatPlaceholder: string;
+  roleMasterSendBtn: string;
+  roleMasterClearChatBtn: string;
+  roleMasterAppliedToolLabel: string;
+  roleMasterUndoActionBtn: string;
 }
 
 export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
@@ -804,6 +815,17 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     aiSelectAllCast: 'Select All',
     aiDeselectAllCast: 'Deselect All',
     aiCastImportSuccess: 'Successfully imported cast into active episode!',
+
+    liveContextFocusLabel: 'Active Context',
+    selectedSpanBadgeLabel: 'Selected Span',
+    clearTextSelectionTooltip: 'Clear highlighted text selection',
+    roleMasterChatTitle: 'Role-Master Studio Chat & Tools',
+    roleMasterChatPlaceholder:
+      'Ask naturally or command tools (e.g. "Change this to...", "Make it whispered", "Split into dialogue")...',
+    roleMasterSendBtn: 'Send',
+    roleMasterClearChatBtn: 'Clear Chat',
+    roleMasterAppliedToolLabel: 'Tool Applied',
+    roleMasterUndoActionBtn: 'Undo',
   },
   hr: {
     appTitle: 'Storia',
@@ -1201,5 +1223,16 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     aiSelectAllCast: 'Označi sve',
     aiDeselectAllCast: 'Odznači sve',
     aiCastImportSuccess: 'Uspješno uvezeno likova u aktivnu epizodu!',
+
+    liveContextFocusLabel: 'Aktivni kontekst',
+    selectedSpanBadgeLabel: 'Označeni tekst',
+    clearTextSelectionTooltip: 'Očisti označeni dio teksta',
+    roleMasterChatTitle: 'Studijski Chat i Alati Uloge',
+    roleMasterChatPlaceholder:
+      'Pitaj prirodno ili zadaj izmjenu (npr. "Promijeni ovo u...", "Neka govori šapatom", "Podijeli u dijalog")...',
+    roleMasterSendBtn: 'Pošalji',
+    roleMasterClearChatBtn: 'Očisti razgovor',
+    roleMasterAppliedToolLabel: 'Alat izvršen',
+    roleMasterUndoActionBtn: 'Poništi',
   },
 };

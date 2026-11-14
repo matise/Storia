@@ -62,6 +62,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
       : [initialProject, ...initialProjectsLibrary],
     appSettings: initialSettings,
     selectedBlockId: initialProject.blocks[0]?.id ?? null,
+    selectedTextRange: null,
     editingSpeakerId: null,
     isApiKeyModalOpen: false,
     isEpisodePropertiesModalOpen: false,

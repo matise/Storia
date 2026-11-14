@@ -6,6 +6,7 @@ import {
   WordTimingToken,
 } from '../../core/pacing/wordTimingMapper';
 import { useTranslation } from '../../i18n/useTranslation';
+import { useStoriaStore } from '../../store/useStoriaStore';
 
 export interface UnifiedScriptEditorProps {
   blockId: string;
@@ -37,8 +38,33 @@ export const UnifiedScriptEditor: React.FC<UnifiedScriptEditorProps> = ({
   onStopPlayback,
 }) => {
   const { t } = useTranslation();
+  const setSelectedTextRange = useStoriaStore((s) => s.setSelectedTextRange);
+  const selectedTextRange = useStoriaStore((s) => s.selectedTextRange);
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const [forceEditMode, setForceEditMode] = React.useState(false);
+
+  const handleTextareaSelectionSync = (
+    el: HTMLTextAreaElement | null
+  ) => {
+    if (!el) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (end > start) {
+      const sliced = el.value.slice(start, end);
+      if (sliced.trim().length > 0) {
+        setSelectedTextRange({
+          blockId,
+          startOffset: start,
+          endOffset: end,
+          selectedText: sliced,
+        });
+        return;
+      }
+    }
+    if (selectedTextRange && selectedTextRange.blockId === blockId) {
+      setSelectedTextRange(null);
+    }
+  };
 
   // When playback stops, reset forceEditMode
   React.useEffect(() => {
@@ -176,6 +202,9 @@ export const UnifiedScriptEditor: React.FC<UnifiedScriptEditorProps> = ({
           value={text}
           disabled={disabled}
           onChange={(e) => onChangeText(e.target.value)}
+          onSelect={(e) => handleTextareaSelectionSync(e.currentTarget)}
+          onMouseUp={(e) => handleTextareaSelectionSync(e.currentTarget)}
+          onKeyUp={(e) => handleTextareaSelectionSync(e.currentTarget)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
               e.preventDefault();

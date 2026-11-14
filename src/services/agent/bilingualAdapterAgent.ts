@@ -1,4 +1,5 @@
 import {
+  AgentChatMessage,
   BilingualAdaptationResult,
   CroatianDialect,
   DubrovnikRegister,
@@ -11,7 +12,9 @@ import { transformToDubrovnikDialect } from '../../core/dubrovnik/dubrovnikPhone
 import {
   buildDubrovnikAgentInstructions,
   buildGeminiEndpoint,
+  stripMarkdownJsonFence,
 } from './dubrovnikAgentInstructions';
+import { formatRecentChatHistoryForPrompt } from './agentContextBuilder';
 
 /**
  * Constructs the linguistic and morphological gender-agreement prompt for Bilingual Adaptation.
@@ -21,10 +24,25 @@ export function buildBilingualAdapterPrompt(options: {
   speaker?: Speaker;
   sourceLang: SupportedLanguage;
   targetLang: SupportedLanguage;
+  selectedText?: string;
+  customInstruction?: string;
+  precedingBlocks?: ScriptBlock[];
+  chatHistory?: AgentChatMessage[];
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
 }): string {
-  const { block, speaker, sourceLang, targetLang, dialect, dubrovnikRegister } = options;
+  const {
+    block,
+    speaker,
+    sourceLang,
+    targetLang,
+    selectedText,
+    customInstruction,
+    precedingBlocks = [],
+    chatHistory,
+    dialect,
+    dubrovnikRegister,
+  } = options;
   const gender = speaker?.gender ?? 'neutral';
 
   const croatianMorphologyRule =
@@ -41,13 +59,35 @@ export function buildBilingualAdapterPrompt(options: {
       ? buildDubrovnikAgentInstructions(dubrovnikRegister)
       : '';
 
+  const recentContext =
+    precedingBlocks.length > 0
+      ? `Preceding Scene Context:\n${precedingBlocks
+          .slice(-3)
+          .map((b) => `[${b.type}]: "${b.text}"`)
+          .join('\n')}`
+      : '';
+
+  const recentChat = formatRecentChatHistoryForPrompt(
+    chatHistory,
+    'bilingual_adapter',
+    4
+  );
+
   return [
     `Adapt the following audio drama script block from ${sourceLang.toUpperCase()} to ${targetLang.toUpperCase()}.`,
     `Speaker: ${speaker?.name ?? 'Narrator'} (Gender: ${gender}, Persona: ${speaker?.personaPrompt ?? 'N/A'})`,
     croatianMorphologyRule,
     dubrovnikDialectRule,
+    recentContext,
     `Original Text: "${block.text}"`,
+    selectedText?.trim()
+      ? `HIGHLIGHTED SELECTION FOCUS: The user highlighted "${selectedText.trim()}". Ensure this specific phrase is culturally and idiomatically adapted and return the complete updated block text in "adaptedText".`
+      : '',
+    customInstruction?.trim()
+      ? `User Adaptation Instruction: "${customInstruction.trim()}"`
+      : '',
     `Original Director Notes: "${block.directorNotes ?? ''}"`,
+    recentChat,
     'Return ONLY a JSON object with: { "adaptedText": "...", "adaptedDirectorNotes": "...", "culturalNotes": "...", "genderAgreementApplied": "..." }',
   ]
     .filter(Boolean)
@@ -59,11 +99,29 @@ export function buildFallbackBilingualAdaptation(options: {
   speaker?: Speaker;
   sourceLang: SupportedLanguage;
   targetLang: SupportedLanguage;
+  selectedText?: string;
+  customInstruction?: string;
   dialect?: CroatianDialect;
   dubrovnikRegister?: DubrovnikRegister;
 }): BilingualAdaptationResult {
-  const { block, speaker, sourceLang, targetLang, dialect, dubrovnikRegister } = options;
-  const text = block.text.trim();
+  const {
+    block,
+    speaker,
+    sourceLang,
+    targetLang,
+    selectedText,
+    dialect,
+    dubrovnikRegister,
+  } = options;
+  const fullText = block.text.trim();
+  const focusSpan =
+    selectedText &&
+    selectedText.trim().length > 0 &&
+    selectedText.trim() !== fullText &&
+    fullText.includes(selectedText.trim())
+      ? selectedText.trim()
+      : null;
+  const text = focusSpan ?? fullText;
   const isFemale = speaker?.gender === 'female';
 
   // Known sample lines & smart morphological adaptation
@@ -79,20 +137,25 @@ export function buildFallbackBilingualAdaptation(options: {
   };
 
   if (sourceLang === 'hr' && targetLang === 'en') {
-    const adaptedText =
+    const adaptedSpan =
       knownTranslationsHrToEn[text] ??
       (isFemale
         ? `I told you already — "${text}"`
         : `I saw it myself — "${text}"`);
 
+    const adaptedText = focusSpan
+      ? fullText.replace(focusSpan, adaptedSpan)
+      : adaptedSpan;
+
     return {
       sourceLang,
       targetLang,
-      originalText: text,
+      originalText: fullText,
       adaptedText,
       adaptedDirectorNotes: block.directorNotes || 'whispered / natural',
-      culturalNotes:
-        'Adapted Zagreb noir idioms into natural English radio-drama cadence while matching syllable pacing.',
+      culturalNotes: focusSpan
+        ? `Adapted highlighted span "${focusSpan}" into natural English cadence while preserving surrounding block context.`
+        : 'Adapted idioms into natural English radio-drama cadence while matching syllable pacing.',
       genderAgreementApplied: `Speaker (${speaker?.name ?? 'Narrator'}: ${
         speaker?.gender ?? 'neutral'
       }) perspective preserved in English idiom.`,
@@ -133,16 +196,20 @@ export function buildFallbackBilingualAdaptation(options: {
     adaptedHr = transformToDubrovnikDialect(adaptedHr, dubrovnikRegister);
   }
 
+  const finalAdaptedHr = focusSpan
+    ? fullText.replace(focusSpan, adaptedHr)
+    : adaptedHr;
+
   return {
     sourceLang,
     targetLang,
-    originalText: text,
-    adaptedText: adaptedHr,
+    originalText: fullText,
+    adaptedText: finalAdaptedHr,
     adaptedDirectorNotes: block.directorNotes || 'prirodno / natural',
     culturalNotes:
       dialect === 'dubrovnik'
         ? 'Prilagođeno autentičnom dubrovačkom govoru (raguzejski idiom) uz očuvanje trajanja izgovora.'
-        : 'Prilagođeno autentičnom zagrebačkom govornom ritmu uz očuvanje trajanja izgovora.',
+        : 'Prilagođeno autentičnom govornom ritmu uz očuvanje trajanja izgovora.',
     genderAgreementApplied: isFemale
       ? 'Ženski rod (-la glagolski pridjev radni: "vidjela sam / znala sam")'
       : 'Muški rod (-o glagolski pridjev radni: "vidio sam / znao sam")',
@@ -158,6 +225,10 @@ export async function adaptBlockBilingually(options: {
   speaker?: Speaker;
   sourceLang: SupportedLanguage;
   targetLang: SupportedLanguage;
+  selectedText?: string;
+  customInstruction?: string;
+  precedingBlocks?: ScriptBlock[];
+  chatHistory?: AgentChatMessage[];
   apiKey?: string | null;
   modelId?: GeminiTextModelId;
   dialect?: CroatianDialect;
@@ -170,6 +241,10 @@ export async function adaptBlockBilingually(options: {
     speaker,
     sourceLang,
     targetLang,
+    selectedText,
+    customInstruction,
+    precedingBlocks,
+    chatHistory,
     apiKey,
     modelId = 'gemini-3-flash-preview',
     dialect,
@@ -184,6 +259,8 @@ export async function adaptBlockBilingually(options: {
       speaker,
       sourceLang,
       targetLang,
+      selectedText,
+      customInstruction,
       dialect,
       dubrovnikRegister,
     });
@@ -202,6 +279,10 @@ export async function adaptBlockBilingually(options: {
     speaker,
     sourceLang,
     targetLang,
+    selectedText,
+    customInstruction,
+    precedingBlocks,
+    chatHistory,
     dialect,
     dubrovnikRegister,
   });
@@ -232,7 +313,7 @@ export async function adaptBlockBilingually(options: {
       return buildFallbackBilingualAdaptation({ block, speaker, sourceLang, targetLang });
     }
 
-    const parsed = JSON.parse(rawJson) as Partial<BilingualAdaptationResult>;
+    const parsed = JSON.parse(stripMarkdownJsonFence(rawJson)) as Partial<BilingualAdaptationResult>;
     if (!parsed.adaptedText || typeof parsed.adaptedText !== 'string') {
       return buildFallbackBilingualAdaptation({ block, speaker, sourceLang, targetLang });
     }

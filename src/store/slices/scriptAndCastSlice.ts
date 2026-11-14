@@ -1,12 +1,17 @@
 import {
+  AgentChatMessage,
+  AgentToolAction,
+  AIAgentMode,
   BlockType,
   CoWriterBeatBlockDraft,
   CoWriterBeatCandidate,
   PersonaResearchRecord,
   Project,
   ScriptBlock,
+  ScriptTextSelection,
   Speaker,
 } from '../../types/storia';
+import { executeStudioToolActions } from '../../services/agent/agentToolExecutor';
 import {
   AddBlockCommand,
   AddOrRemoveSpeakerCommand,
@@ -31,6 +36,10 @@ import {
 export type ScriptAndCastSlice = Pick<
   StoriaStoreState,
   | 'selectBlock'
+  | 'setSelectedTextRange'
+  | 'addChatMessage'
+  | 'clearChatHistory'
+  | 'executeAgentToolActions'
   | 'addResearchRecord'
   | 'insertSceneBeatBlocks'
   | 'loadCoWriterBeatAsEpisode'
@@ -54,7 +63,12 @@ export function createScriptAndCastSlice({
 }: StoreSliceContext): ScriptAndCastSlice {
   return {
     selectBlock: (blockId: string | null) => {
-      set({ selectedBlockId: blockId });
+      const currentRange = get().selectedTextRange;
+      set({
+        selectedBlockId: blockId,
+        selectedTextRange:
+          currentRange && currentRange.blockId === blockId ? currentRange : null,
+      });
       if (blockId) {
         const idx = get().project.blocks.findIndex((b) => b.id === blockId);
         if (idx >= 0) {
@@ -64,6 +78,47 @@ export function createScriptAndCastSlice({
             get().project.blocks[idx].startTimeSec ?? 0;
         }
       }
+    },
+
+    setSelectedTextRange: (range: ScriptTextSelection | null) => {
+      if (!range || !range.selectedText || !range.selectedText.trim()) {
+        set({ selectedTextRange: null });
+        return;
+      }
+      set({
+        selectedBlockId: range.blockId,
+        selectedTextRange: range,
+      });
+    },
+
+    addChatMessage: (message: AgentChatMessage) => {
+      const existing = get().project.chatHistory ?? [];
+      const nextHistory = [...existing, message].slice(-60);
+      const nextProject: Project = {
+        ...get().project,
+        chatHistory: nextHistory,
+        updatedAt: Date.now(),
+      };
+      const nextProjects = persistProject(nextProject, get().projects);
+      set({ project: nextProject, projects: nextProjects });
+    },
+
+    clearChatHistory: (agentMode?: AIAgentMode) => {
+      const existing = get().project.chatHistory ?? [];
+      const nextHistory = agentMode
+        ? existing.filter((m) => m.agentMode !== agentMode)
+        : [];
+      const nextProject: Project = {
+        ...get().project,
+        chatHistory: nextHistory,
+        updatedAt: Date.now(),
+      };
+      const nextProjects = persistProject(nextProject, get().projects);
+      set({ project: nextProject, projects: nextProjects });
+    },
+
+    executeAgentToolActions: (actions: AgentToolAction[]) => {
+      return executeStudioToolActions(get, actions);
     },
 
     addResearchRecord: (record: PersonaResearchRecord) => {

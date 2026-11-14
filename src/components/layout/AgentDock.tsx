@@ -9,16 +9,23 @@ import {
   Globe,
   Languages,
   Loader2,
+  MessageSquare,
   MessageSquarePlus,
   Paperclip,
+  RotateCcw,
+  Scissors,
   Search,
+  Send,
   Sparkles,
   Square,
+  Trash2,
   Upload,
   Wand2,
+  Wrench,
   X,
 } from 'lucide-react';
 import {
+  AgentChatMessage,
   AIAgentMode,
   BilingualAdaptationResult,
   CoWriterAttachment,
@@ -34,10 +41,12 @@ import { useTranslation } from '../../i18n/useTranslation';
 import { getApiKey } from '../../core/storage/keyVault';
 import {
   adaptBlockBilingually,
+  buildStudioContextSnapshot,
   doctorDialogueBlock,
   extractTextFromDocxArrayBuffer,
   generateNextSceneBeats,
   runPersonaResearch,
+  runRoleMasterChatTurn,
 } from '../../services/geminiAgentService';
 import { formatDurationReadout } from '../../core/pacing/pacingCalculator';
 
@@ -49,6 +58,8 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   const { t } = useTranslation();
   const project = useStoriaStore((s) => s.project);
   const selectedBlockId = useStoriaStore((s) => s.selectedBlockId);
+  const selectedTextRange = useStoriaStore((s) => s.selectedTextRange);
+  const setSelectedTextRange = useStoriaStore((s) => s.setSelectedTextRange);
   const addBlock = useStoriaStore((s) => s.addBlock);
   const updateBlock = useStoriaStore((s) => s.updateBlock);
   const setGeminiTextModel = useStoriaStore((s) => s.setGeminiTextModel);
@@ -56,9 +67,18 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
   const addResearchRecord = useStoriaStore((s) => s.addResearchRecord);
   const insertSceneBeatBlocks = useStoriaStore((s) => s.insertSceneBeatBlocks);
   const loadCoWriterBeatAsEpisode = useStoriaStore((s) => s.loadCoWriterBeatAsEpisode);
+  const addChatMessage = useStoriaStore((s) => s.addChatMessage);
+  const clearChatHistory = useStoriaStore((s) => s.clearChatHistory);
+  const executeAgentToolActions = useStoriaStore((s) => s.executeAgentToolActions);
+  const undo = useStoriaStore((s) => s.undo);
 
   const [activeMode, setActiveMode] = React.useState<AIAgentMode>('persona_research');
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Role-Master Studio Chat State
+  const [chatInput, setChatInput] = React.useState<string>('');
+  const [isChatLoading, setIsChatLoading] = React.useState<boolean>(false);
+  const [suggestedFollowUps, setSuggestedFollowUps] = React.useState<string[]>([]);
 
   // Mode 1: Persona Research State
   const [selectedSpeakerId, setSelectedSpeakerId] = React.useState<string>(
@@ -116,12 +136,161 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
     (s) => s.id === activeBlock?.speakerId
   );
 
+  const studioSnapshot = React.useMemo(
+    () =>
+      buildStudioContextSnapshot({
+        project,
+        selectedBlockId,
+        selectedTextRange,
+      }),
+    [project, selectedBlockId, selectedTextRange]
+  );
+
+  const activeSelectedSpan =
+    studioSnapshot.selectedTextRange?.selectedText?.trim() || null;
+
   const notebook = project.researchNotebook ?? [];
   const displayedRecord =
     notebook.find((r) => r.id === activeRecordId) ?? notebook[0] ?? null;
 
   const activeTextModel = project.aiSettings.textModel;
   const searchGroundingEnabled = project.aiSettings.enableSearchGrounding;
+
+  const roleChatMessages = React.useMemo(
+    () => (project.chatHistory ?? []).filter((m) => m.agentMode === activeMode),
+    [project.chatHistory, activeMode]
+  );
+
+  const defaultQuickChips = React.useMemo(() => {
+    const isHr = project.defaultLanguage === 'hr';
+    const hasSpan = Boolean(activeSelectedSpan);
+    switch (activeMode) {
+      case 'persona_research':
+        return isHr
+          ? [
+              'Učini glas malo sporijim i dubljim',
+              'Dodaj repliku u glasu ovog lika',
+              'Promijeni glumačku uputu u šapat',
+            ]
+          : [
+              'Make voice slower and deeper',
+              'Add a dialogue line in character',
+              'Set delivery cue to whispered',
+            ];
+      case 'cowriter':
+        return isHr
+          ? [
+              'Podijeli ovaj blok u dijalog',
+              'Dodaj zvučni efekt prije ovog bloka',
+              'Dodaj novu repliku nakon ovoga',
+            ]
+          : [
+              'Split this block into dialogue',
+              'Add sound effect before this block',
+              'Add a new dialogue line after this',
+            ];
+      case 'bilingual_adapter':
+        return isHr
+          ? [
+              hasSpan ? 'Prilagodi označeni dio dubrovačkom' : 'Prilagodi dubrovačkom govoru',
+              hasSpan ? 'Prevedi označeni dio na engleski' : 'Prevedi na engleski',
+              'Prilagodi hrvatskom govornom ritmu',
+            ]
+          : [
+              hasSpan ? 'Translate selected span to Croatian' : 'Translate to Croatian',
+              'Adapt into Dubrovnik dialect',
+              'Translate to English',
+            ];
+      case 'dialogue_doctor':
+      default:
+        return isHr
+          ? [
+              hasSpan ? 'Skrati označeni dio' : 'Skrati i ispoliraj za prirodniji govor',
+              'Promijeni ton u šapat',
+              'Podijeli ovaj blok u dijalog',
+            ]
+          : [
+              hasSpan ? 'Shorten selected span' : 'Shorten and tighten spoken rhythm',
+              'Make delivery whispered',
+              'Split this block into dialogue',
+            ];
+    }
+  }, [activeMode, project.defaultLanguage, activeSelectedSpan]);
+
+  const handleSendRoleMasterChat = async (overrideMessage?: string) => {
+    const textToSend = (overrideMessage ?? chatInput).trim();
+    if (!textToSend || isChatLoading) return;
+
+    if (!overrideMessage) {
+      setChatInput('');
+    }
+
+    const userMsg: AgentChatMessage = {
+      id: `chat_usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      role: 'user',
+      agentMode: activeMode,
+      content: textToSend,
+      timestamp: Date.now(),
+      selectionContext: {
+        blockId: activeBlock?.id,
+        blockOrder: activeBlock?.order,
+        selectedText: activeSelectedSpan ?? undefined,
+      },
+    };
+    addChatMessage(userMsg);
+
+    setIsChatLoading(true);
+    try {
+      const response = await runRoleMasterChatTurn({
+        userMessage: textToSend,
+        role: activeMode,
+        project,
+        blocks: project.blocks,
+        speakers: project.speakers,
+        selectedBlockId: activeBlock?.id ?? selectedBlockId,
+        selectedTextRange,
+        activeSpeakerId:
+          activeMode === 'persona_research'
+            ? selectedSpeakerId
+            : activeBlock?.speakerId,
+        episodeTitle: project.title,
+        episodeDescription: project.description,
+        episodeGenre: project.metadata?.genre,
+        language: project.defaultLanguage,
+        dialect: project.dialect,
+        dubrovnikRegister: project.dubrovnikRegister,
+        chatHistory: [...(project.chatHistory ?? []), userMsg],
+        attachments: coWriterAttachments,
+        apiKey: getApiKey(),
+        modelId: activeTextModel,
+      });
+
+      const executedTools =
+        response.toolActions.length > 0
+          ? executeAgentToolActions(response.toolActions)
+          : [];
+
+      const assistantMsg: AgentChatMessage = {
+        id: `chat_ast_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        role: 'assistant',
+        agentMode: activeMode,
+        content: response.reply,
+        timestamp: Date.now(),
+        selectionContext: {
+          blockId: activeBlock?.id,
+          blockOrder: activeBlock?.order,
+          selectedText: activeSelectedSpan ?? undefined,
+        },
+        toolActions: executedTools,
+      };
+      addChatMessage(assistantMsg);
+      setSuggestedFollowUps(response.suggestedFollowUps);
+    } catch (err) {
+      console.warn('Role-Master chat error:', err);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
 
   // Handlers
   const handleRunPersonaResearch = async () => {
@@ -144,6 +313,11 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         language: project.defaultLanguage,
         dialect: project.dialect,
         dubrovnikRegister: project.dubrovnikRegister,
+        activeBlock,
+        selectedText: activeSelectedSpan ?? undefined,
+        episodeTitle: project.title,
+        episodeGenre: project.metadata?.genre,
+        chatHistory: project.chatHistory,
         apiKey: getApiKey(),
         modelId: activeTextModel,
         enableSearchGrounding: searchGroundingEnabled,
@@ -266,6 +440,13 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         language: project.defaultLanguage,
         dialect: project.dialect,
         dubrovnikRegister: project.dubrovnikRegister,
+        selectedBlockId: activeBlock?.id ?? selectedBlockId,
+        selectedText: activeSelectedSpan ?? undefined,
+        followingBlocks: studioSnapshot.followingBlocks,
+        episodeTitle: project.title,
+        episodeDescription: project.description,
+        episodeGenre: project.metadata?.genre,
+        chatHistory: project.chatHistory,
         apiKey: getApiKey(),
         modelId: activeTextModel,
         directionHint,
@@ -305,6 +486,11 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         language: project.defaultLanguage,
         dialect: project.dialect,
         dubrovnikRegister: project.dubrovnikRegister,
+        selectedText: activeSelectedSpan ?? undefined,
+        precedingBlocks: studioSnapshot.beforeActiveBlocks,
+        followingBlocks: studioSnapshot.followingBlocks,
+        episodeGenre: project.metadata?.genre,
+        chatHistory: project.chatHistory,
         apiKey: getApiKey(),
         modelId: activeTextModel,
         abortSignal: ctrl.signal,
@@ -347,6 +533,9 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
         speaker: activeBlockSpeaker,
         sourceLang,
         targetLang,
+        selectedText: activeSelectedSpan ?? undefined,
+        precedingBlocks: studioSnapshot.beforeActiveBlocks,
+        chatHistory: project.chatHistory,
         dialect: project.dialect,
         dubrovnikRegister: project.dubrovnikRegister,
         apiKey: getApiKey(),
@@ -500,6 +689,53 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
                   ? 'Tradicionalni'
                   : 'Suvremeni'}
             </span>
+          </div>
+        )}
+
+        {/* Live Context & Selection Bar */}
+        {activeBlock && (
+          <div
+            data-testid="agent-dock-selection-bar"
+            className="rounded-lg bg-slate-900/85 border border-slate-800/90 px-2.5 py-1.5 space-y-1.5 shrink-0"
+          >
+            <div className="flex items-center justify-between gap-2 text-[10px] font-mono">
+              <span className="text-slate-400 truncate">
+                <span className="text-indigo-400 font-semibold">
+                  {t('liveContextFocusLabel')}:
+                </span>{' '}
+                #{activeBlock.order + 1} •{' '}
+                {activeBlockSpeaker?.name ?? activeBlock.type}
+              </span>
+              <span className="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800 text-[9px] text-slate-400 uppercase shrink-0">
+                {studioSnapshot.detectedTone}
+              </span>
+            </div>
+
+            {activeSelectedSpan && (
+              <div
+                data-testid="agent-dock-selected-text-pill"
+                className="flex items-center justify-between gap-1.5 px-2 py-1 rounded bg-indigo-950/70 border border-indigo-500/50 text-[11px] text-indigo-100"
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Scissors className="w-3 h-3 text-indigo-400 shrink-0" />
+                  <span className="text-[10px] font-mono text-indigo-300 shrink-0">
+                    {t('selectedSpanBadgeLabel')}:
+                  </span>
+                  <span className="italic truncate" title={activeSelectedSpan}>
+                    "{activeSelectedSpan}"
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  data-testid="clear-selected-text-btn"
+                  onClick={() => setSelectedTextRange(null)}
+                  title={t('clearTextSelectionTooltip')}
+                  className="text-indigo-300 hover:text-rose-400 shrink-0 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1236,6 +1472,152 @@ export const AgentDock: React.FC<AgentDockProps> = ({ width = 360 }) => {
             )}
           </div>
         )}
+
+        {/* ================================================================= */}
+        {/* ROLE-MASTER STUDIO CHAT & TOOL EXECUTION PANEL (ALL 4 ROLES)      */}
+        {/* ================================================================= */}
+        <div
+          data-testid="role-master-chat-panel"
+          className="mt-1 pt-2.5 border-t border-slate-800/90 space-y-2 text-xs"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-300">
+              <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{t('roleMasterChatTitle')}</span>
+            </div>
+            {roleChatMessages.length > 0 && (
+              <button
+                type="button"
+                data-testid="clear-role-chat-btn"
+                onClick={() => clearChatHistory(activeMode)}
+                className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-rose-400 cursor-pointer"
+                title={t('roleMasterClearChatBtn')}
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>{t('roleMasterClearChatBtn')}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Role-Specific Command Chips */}
+          <div className="flex flex-wrap gap-1">
+            {(suggestedFollowUps.length > 0 ? suggestedFollowUps : defaultQuickChips).map(
+              (chip, idx) => (
+                <button
+                  key={`${chip}-${idx}`}
+                  type="button"
+                  data-testid={`role-master-quick-chip-${idx}`}
+                  onClick={() => void handleSendRoleMasterChat(chip)}
+                  className="px-2 py-0.5 rounded-full bg-slate-900 hover:bg-indigo-950/80 border border-slate-800 hover:border-indigo-600/60 text-[10px] text-slate-300 hover:text-indigo-200 transition-colors cursor-pointer truncate max-w-full"
+                >
+                  {chip}
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Role Chat History Feed */}
+          {roleChatMessages.length > 0 && (
+            <div
+              data-testid="role-master-chat-messages"
+              className="space-y-2 max-h-56 overflow-y-auto rounded-lg bg-slate-900/60 border border-slate-800/90 p-2"
+            >
+              {roleChatMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  data-testid={`chat-message-${msg.role}`}
+                  className={`rounded-md p-2 text-[11px] leading-snug space-y-1.5 ${
+                    msg.role === 'user'
+                      ? 'bg-indigo-950/60 border border-indigo-800/50 text-indigo-100 ml-3'
+                      : 'bg-slate-950/90 border border-slate-800 text-slate-200 mr-2'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+                    <span>
+                      {msg.role === 'user'
+                        ? 'You'
+                        : activeMode === 'persona_research'
+                          ? 'Persona Master'
+                          : activeMode === 'cowriter'
+                            ? 'Co-Writer Master'
+                            : activeMode === 'bilingual_adapter'
+                              ? 'Bilingual Master'
+                              : 'Dialogue Doctor'}
+                    </span>
+                    {msg.selectionContext?.selectedText && (
+                      <span className="text-indigo-300 truncate max-w-[130px]">
+                        "{msg.selectionContext.selectedText}"
+                      </span>
+                    )}
+                  </div>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                  {msg.toolActions && msg.toolActions.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-slate-800/80">
+                      {msg.toolActions.map((act, aIdx) => (
+                        <div
+                          key={act.id || aIdx}
+                          data-testid={`chat-tool-badge-${act.tool}`}
+                          className="flex items-center justify-between gap-1.5 px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-700/50 text-[10px] font-mono text-emerald-300"
+                        >
+                          <span className="flex items-center gap-1 truncate">
+                            <Wrench className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">
+                              {act.summary || `${t('roleMasterAppliedToolLabel')}: ${act.tool}`}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            data-testid="chat-undo-tool-btn"
+                            onClick={() => undo()}
+                            className="flex items-center gap-0.5 px-1 py-0.2 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-300 shrink-0 cursor-pointer"
+                            title={t('roleMasterUndoActionBtn')}
+                          >
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            <span>{t('roleMasterUndoActionBtn')}</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Chat Input Box */}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="text"
+              data-testid="role-master-chat-input"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSendRoleMasterChat();
+                }
+              }}
+              placeholder={t('roleMasterChatPlaceholder')}
+              className="flex-1 rounded-md bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
+            <button
+              type="button"
+              data-testid="role-master-chat-send-btn"
+              disabled={!chatInput.trim() || isChatLoading}
+              onClick={() => void handleSendRoleMasterChat()}
+              className="py-1.5 px-2.5 rounded-md bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
+              title={t('roleMasterSendBtn')}
+            >
+              {isChatLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+              <span>{t('roleMasterSendBtn')}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Footer Notice */}

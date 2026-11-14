@@ -156,10 +156,163 @@ export function buildFallbackEpisodeBlueprint(params: {
     /sci-fi|scifi|space|svemir|signal|station|orbital|ai|cyber|future|budućnost|palagru/.test(
       lower
     ) || (firstAttachment?.name.toLowerCase().includes('scifi') ?? false);
+  const isComedy =
+    /comedy|komedij|satir|humor|funny|smiješn|sitcom|banter|farsa|parodij/.test(
+      lower
+    );
 
   const cleanTopic =
     prompt.trim() ||
     (firstAttachment ? `Tema iz dokumenta "${firstAttachment.name}"` : '');
+
+  if (isComedy) {
+    const spk1Id = `spk_${now}_0`;
+    const spk2Id = `spk_${now}_1`;
+
+    const speakers: Speaker[] = [
+      {
+        id: spk1Id,
+        name: isHr ? 'Lovro' : 'Arthur',
+        color: SPEAKER_COLORS[2],
+        gender: 'male',
+        age: '35',
+        personaPrompt: isHr
+          ? 'Brzopleti improvizator koji svaku sitnicu pretvori u epski nesporazum, ali izvuče šarmantan izlaz.'
+          : 'Fast-talking improviser who turns minor hiccups into theatrical crises with deadpan charm.',
+        actingNotes: isHr
+          ? 'Živahan tempo, brze stanke za komični tajming, toplina u glasu.'
+          : 'Snappy comic timing, expressive inflection, agile conversational rhythm.',
+        voice: {
+          baseVoice: 'Puck',
+          stylePrompt: isHr
+            ? 'Živahan, duhovit i brz dramski glas'
+            : 'Witty, agile comedic delivery with crisp timing',
+          speakingRate: 1.06,
+          pitchAdjustment: 0,
+          enableDirectorNotes: true,
+          ssmlEnabled: true,
+          acoustics: {
+            biquadEq: {
+              enabled: true,
+              lowShelfGainDb: 1.0,
+              midPeakGainDb: 2.5,
+              highShelfGainDb: 2.0,
+            },
+            compression: {
+              enabled: true,
+              thresholdDb: -19,
+              ratio: 2.6,
+              attackMs: 12,
+              releaseMs: 85,
+            },
+            effectStack: createDefaultSpeakerDspStack(spk1Id, 1.0, 2.5, 2.0, -19, 2.6),
+          },
+        },
+        createdAt: now,
+      },
+      {
+        id: spk2Id,
+        name: isHr ? 'Nina' : 'Beatrice',
+        color: SPEAKER_COLORS[3],
+        gender: 'female',
+        age: '33',
+        personaPrompt: isHr
+          ? 'Kraljica suhe ironije. Jednom mirnom rečenicom prizemlji svaku Lovrinu dramu.'
+          : 'Master of razor-sharp dry wit. Punctures every grand scheme with a single calm observation.',
+        actingNotes: isHr
+          ? 'Suha ironija, podignuta obrva u glasu, savršeno odmjerena pauza prije poante.'
+          : 'Dry, deadpan delivery with a subtle smile and surgical pauses.',
+        voice: {
+          baseVoice: 'Zephyr',
+          stylePrompt: isHr
+            ? 'Britak, ironičan i bistar ženski glas'
+            : 'Dry, witty, razor-sharp comedic female voice',
+          speakingRate: 1.02,
+          pitchAdjustment: 0,
+          enableDirectorNotes: true,
+          ssmlEnabled: true,
+          acoustics: {
+            biquadEq: {
+              enabled: true,
+              lowShelfGainDb: 1.0,
+              midPeakGainDb: 2.0,
+              highShelfGainDb: 2.5,
+            },
+            compression: {
+              enabled: true,
+              thresholdDb: -19,
+              ratio: 2.5,
+              attackMs: 14,
+              releaseMs: 90,
+            },
+            effectStack: createDefaultSpeakerDspStack(spk2Id, 1.0, 2.0, 2.5, -19, 2.5),
+          },
+        },
+        createdAt: now + 1,
+      },
+    ];
+
+    const blocks: ScriptBlock[] = [
+      {
+        id: `blk_${now}_1`,
+        type: 'sound_effect',
+        text: isHr
+          ? 'Zveckanje šalica kave i naglo škripanje stolice u živahnom uredu'
+          : 'Clinking espresso cups and an abrupt chair scrape in a bustling room',
+        sfxCategory: 'footsteps',
+        sfxDurationSec: 2.5,
+        sfxIntensity: 0.6,
+        pauseAfterMs: 350,
+        ttsStatus: 'unrendered',
+        order: 0,
+      },
+      {
+        id: `blk_${now}_2`,
+        type: 'dialogue',
+        speakerId: spk1Id,
+        text: isHr
+          ? `Imam plan koji ne može propasti — osim ako netko pita za detalje oko teme: ${cleanTopic || 'našeg današnjeg eksperimenta'}.`
+          : `I have a completely foolproof plan—assuming nobody asks a single follow-up question about ${cleanTopic || 'today’s little experiment'}.`,
+        directorNotes: isHr ? 'entuzijastično, ali pomalo krivo' : 'enthusiastic, slightly guilty',
+        pauseAfterMs: 350,
+        ttsStatus: 'unrendered',
+        order: 1,
+      },
+      {
+        id: `blk_${now}_3`,
+        type: 'dialogue',
+        speakerId: spk2Id,
+        text: isHr
+          ? `Zadnji put kad si izgovorio "plan koji ne može propasti", morali smo objašnjavati vatrogascima zašto aparat za kavu svira jazz.`
+          : `The last time you said "foolproof," we spent two hours explaining to building security why the espresso machine was broadcasting jazz.`,
+        directorNotes: isHr ? 'suho i ironično' : 'deadpan, dry wit',
+        pauseAfterMs: 400,
+        ttsStatus: 'unrendered',
+        order: 2,
+      },
+    ];
+
+    return {
+      title: isHr
+        ? `Ep ${episodeNumber}: "${cleanTopic ? cleanTopic.slice(0, 48) : 'Plan Bez Greške'}"`
+        : `Ep ${episodeNumber}: "${cleanTopic ? cleanTopic.slice(0, 48) : 'Foolproof in Theory'}"`,
+      description: isHr
+        ? `Komična audio-epizoda s brzim dijalozima i ironičnim obratima: ${cleanTopic || 'svakodnevni kaos u studiju'}.`
+        : `Fast-paced comedic audio episode with sharp banter: ${cleanTopic || 'everyday chaos in the studio'}.`,
+      defaultLanguage: language,
+      dialect,
+      dubrovnikRegister,
+      genre: isHr ? 'Audio Komedija / Satira' : 'Audio Comedy / Satire',
+      author: 'Storia AI Studio',
+      targetWpm: 150,
+      targetLufs: -16,
+      speakers,
+      blocks,
+      rationale: isHr
+        ? 'Kreirana su dva kontrastna komična lika (entuzijast vs. suha ironija) s bistrom dikcijom i bržim ritmom (150 WPM).'
+        : 'Created two contrasting comedic leads (enthusiastic improviser vs. deadpan realist) tuned for 150 WPM banter.',
+    };
+  }
 
   if (isPodcast) {
     const spk1Id = `spk_${now}_0`;

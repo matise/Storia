@@ -1,4 +1,5 @@
 import {
+  AgentChatMessage,
   CoWriterAttachment,
   CoWriterBeatCandidate,
   CoWriterWorkflowMode,
@@ -16,6 +17,22 @@ import {
   stripMarkdownJsonFence,
 } from './dubrovnikAgentInstructions';
 import { extractPodcastTranscriptCandidatesFromInputs } from './podcastTranscriptParser';
+import {
+  buildCreativeDivergencePrompt,
+  detectStoryTone,
+  extractContextKeywords,
+  formatRecentChatHistoryForPrompt,
+} from './agentContextBuilder';
+
+export interface CoWriterContextOptions {
+  precedingBlocks?: ScriptBlock[];
+  followingBlocks?: ScriptBlock[];
+  selectedBlockId?: string | null;
+  selectedText?: string;
+  episodeTitle?: string;
+  episodeDescription?: string;
+  episodeGenre?: string;
+}
 
 export function buildFallbackSceneBeats(
   speakers: Speaker[],
@@ -23,7 +40,8 @@ export function buildFallbackSceneBeats(
   directionHint?: string,
   attachments?: CoWriterAttachment[],
   deepResearch?: boolean,
-  mode: CoWriterWorkflowMode = 'scene_beats'
+  mode: CoWriterWorkflowMode = 'scene_beats',
+  contextOptions?: CoWriterContextOptions
 ): CoWriterBeatCandidate[] {
   if (mode === 'podcast_episode') {
     const parsedTranscriptCandidates = extractPodcastTranscriptCandidatesFromInputs({
@@ -40,12 +58,260 @@ export function buildFallbackSceneBeats(
 
   const s1 = speakers[0]?.id ?? 'spk_marko';
   const s2 = speakers[1]?.id ?? speakers[0]?.id ?? 'spk_ana';
+  const s1Name = speakers[0]?.name ?? 'Speaker 1';
+  const s2Name = speakers[1]?.name ?? speakers[0]?.name ?? 'Speaker 2';
   const narrator =
     speakers.find((s) => s.name.toLowerCase().includes('narrat'))?.id ?? s1;
-  const hintNote = directionHint?.trim() ? ` (${directionHint.trim()})` : '';
+  const hintClean = directionHint?.trim() ?? '';
+  const hintNote = hintClean ? ` (${hintClean})` : '';
 
   const hasFiles = Boolean(attachments && attachments.length > 0);
   const firstFile = hasFiles ? attachments![0] : undefined;
+
+  const preceding = contextOptions?.precedingBlocks ?? [];
+  const selectedBlock = contextOptions?.selectedBlockId
+    ? preceding.find((b) => b.id === contextOptions.selectedBlockId) ??
+      preceding[preceding.length - 1]
+    : preceding[preceding.length - 1];
+  const selectedSnippet =
+    contextOptions?.selectedText?.trim() ||
+    selectedBlock?.text?.trim() ||
+    '';
+
+  const toneCorpus = [
+    hintClean,
+    contextOptions?.episodeTitle ?? '',
+    contextOptions?.episodeDescription ?? '',
+    contextOptions?.episodeGenre ?? '',
+    selectedSnippet,
+    ...preceding.slice(-3).map((b) => b.text),
+  ].join(' ');
+  const detectedTone = detectStoryTone(toneCorpus);
+  const keywords = extractContextKeywords(toneCorpus, 4);
+  const focusKeyword =
+    hintClean ||
+    (contextOptions?.selectedText?.trim() ? `"${contextOptions.selectedText.trim()}"` : '') ||
+    keywords[0] ||
+    '';
+
+  // When a specific directionHint, highlighted text, or non-noir genre (comedy, sci-fi, coastal, intimate) is active
+  // in scene_beats mode without attachments, synthesize context-driven beats tailored to the actual scene!
+  if (
+    mode === 'scene_beats' &&
+    !hasFiles &&
+    (Boolean(hintClean) ||
+      Boolean(contextOptions?.selectedText?.trim()) ||
+      detectedTone === 'comedy_satire' ||
+      detectedTone === 'scifi_tech' ||
+      detectedTone === 'intimate_drama' ||
+      detectedTone === 'coastal_mediterranean')
+  ) {
+    const topicPhrase =
+      hintClean ||
+      (contextOptions?.selectedText?.trim()
+        ? contextOptions.selectedText.trim()
+        : selectedSnippet.slice(0, 65) || contextOptions?.episodeTitle || 'ovaj trenutak');
+
+    if (language === 'hr') {
+      const contextualBeatsHr: CoWriterBeatCandidate[] = [
+        {
+          id: 'beat_1',
+          title: `1. Karakterna suigra i podtekst${hintNote}`,
+          rationale: `Izravno se nadovezuje na odabrani kontekst (${topicPhrase.slice(0, 50)}) kroz karakternu napetost između ${s1Name} i ${s2Name}.`,
+          blocks: [
+            {
+              type: 'dialogue',
+              speakerId: s1,
+              text: hintClean
+                ? `Čekaj malo — ako gledamo "${hintClean}", onda sve što smo maloprije rekli dobiva sasvim drugi smisao.`
+                : `Misliš li stvarno to što si upravo izgovorio: "${topicPhrase.slice(0, 55)}"?`,
+              directorNotes:
+                detectedTone === 'comedy_satire'
+                  ? 'ironično, brz komični tajming'
+                  : 'izravno, s nevjericom / probing',
+              pauseAfterMs: 400,
+            },
+            {
+              type: 'dialogue',
+              speakerId: s2,
+              text:
+                detectedTone === 'comedy_satire'
+                  ? `Naravno da mislim! Samo što ti uvijek tražiš dramski zaplet tamo gdje je običan nesporazum.`
+                  : `Znam kako zvuči, ali više ne možemo ignorirati činjenice koje su pred nama.`,
+              directorNotes:
+                detectedTone === 'comedy_satire'
+                  ? 'duhovito, kroz smijeh / wry chuckle'
+                  : 'staloženo, iskreno / grounded',
+              pauseAfterMs: 450,
+            },
+          ],
+        },
+        {
+          id: 'beat_2',
+          title: deepResearch
+            ? `2. Dubinska sinteza i pomak u prostoru${hintNote}`
+            : `2. Zvučna dinamika i promjena ritma${hintNote}`,
+          rationale:
+            'Mijenja akustičnu perspektivu scene kombiniranjem konkretnog zvučnog detalja i pripovjednog prijelaza.',
+          blocks: [
+            {
+              type: 'sound_effect',
+              text:
+                detectedTone === 'scifi_tech'
+                  ? 'Tiho pulsiranje telemetrijske konzole i kratki digitalni signal potvrde.'
+                  : detectedTone === 'coastal_mediterranean'
+                    ? 'Šum valova uz kameni mul i udar bure u drvene škure.'
+                    : 'Naglo pomicanje stolice i tihi žamor prostora u pozadini.',
+              directorNotes: 'prostorni fokus / spatial detail',
+              pauseAfterMs: 350,
+            },
+            {
+              type: 'narration',
+              speakerId: narrator,
+              text: `U tom trenutku fokus razgovora prebacio se na ${focusKeyword || 'ključnu odluku koja ih je čekala'}.`,
+              directorNotes: 'prirodan pripovjedački ritam',
+              pauseAfterMs: 500,
+            },
+            {
+              type: 'dialogue',
+              speakerId: s2,
+              text: `Idemo odmah provjeriti ${hintClean || 'taj trag'} prije nego što izgubimo korak.`,
+              directorNotes: 'odlučno, u pokretu',
+              pauseAfterMs: 450,
+            },
+          ],
+        },
+        {
+          id: 'beat_3',
+          title: `3. Neočekivani obrat i ironični odmak${hintNote}`,
+          rationale:
+            'Razbija predvidljivi obrazac scene uvođenjem nove perspektive i duhovite kontre.',
+          blocks: [
+            {
+              type: 'dialogue',
+              speakerId: s1,
+              text: `Najbolji dio cijele priče oko "${topicPhrase.slice(0, 48)}" je to što smo rješenje imali pred nosom od prve minute.`,
+              directorNotes: 'suho, ironično / dry wit',
+              pauseAfterMs: 400,
+            },
+            {
+              type: 'dialogue',
+              speakerId: s2,
+              text: `Reci to naglas još jednom i preuzimaš cijelu odgovornost za idući korak.`,
+              directorNotes: 'britko, s osmijehom / sharp',
+              pauseAfterMs: 450,
+            },
+          ],
+        },
+      ];
+
+      return contextualBeatsHr.map((b) => ({
+        ...b,
+        deepResearchUsed: Boolean(deepResearch),
+        analyzedFiles: attachments?.map((a) => a.name),
+        mode,
+      }));
+    } else {
+      const contextualBeatsEn: CoWriterBeatCandidate[] = [
+        {
+          id: 'beat_1',
+          title: `1. Character Subtext & Friction${hintNote}`,
+          rationale: `Directly builds upon the active context (${topicPhrase.slice(0, 50)}) through sharp interplay between ${s1Name} and ${s2Name}.`,
+          blocks: [
+            {
+              type: 'dialogue',
+              speakerId: s1,
+              text: hintClean
+                ? `Wait a second—if we factor in "${hintClean}", everything we just assumed flips upside down.`
+                : `Hold on. Did you actually mean what you just said about "${topicPhrase.slice(0, 55)}"?`,
+              directorNotes:
+                detectedTone === 'comedy_satire'
+                  ? 'deadpan, quick comic timing'
+                  : 'probing, direct',
+              pauseAfterMs: 400,
+            },
+            {
+              type: 'dialogue',
+              speakerId: s2,
+              text:
+                detectedTone === 'comedy_satire'
+                  ? `Of course I meant it! You are the only person who turns a simple Tuesday into a grand conspiracy.`
+                  : `Every word of it. We cannot keep tiptoeing around what is right in front of us.`,
+              directorNotes:
+                detectedTone === 'comedy_satire'
+                  ? 'wry, amused'
+                  : 'grounded, unflinching',
+              pauseAfterMs: 450,
+            },
+          ],
+        },
+        {
+          id: 'beat_2',
+          title: deepResearch
+            ? `2. Analytical Synthesis & Acoustic Shift${hintNote}`
+            : `2. Kinetic Action & Soundstage Pivot${hintNote}`,
+          rationale:
+            'Shifts the acoustic environment and narrative momentum with tactile sound design.',
+          blocks: [
+            {
+              type: 'sound_effect',
+              text:
+                detectedTone === 'scifi_tech'
+                  ? 'Low harmonic hum of the telemetry array locking onto a new frequency.'
+                  : detectedTone === 'coastal_mediterranean'
+                    ? 'Crisp sea breeze and waves lapping against the stone pier.'
+                    : 'Chair scraping back sharply and quick footsteps across the room.',
+              directorNotes: 'focused stereo field',
+              pauseAfterMs: 350,
+            },
+            {
+              type: 'narration',
+              speakerId: narrator,
+              text: `The focus of the room shifted immediately toward ${focusKeyword || 'the decision waiting ahead of them'}.`,
+              directorNotes: 'clear narrative pacing',
+              pauseAfterMs: 500,
+            },
+            {
+              type: 'dialogue',
+              speakerId: s2,
+              text: `Let's test "${hintClean || 'that theory'}" right now while we still have the advantage.`,
+              directorNotes: 'energized, moving',
+              pauseAfterMs: 450,
+            },
+          ],
+        },
+        {
+          id: 'beat_3',
+          title: `3. Unexpected Twist & Ironic Pivot${hintNote}`,
+          rationale:
+            'Subverts the expected trajectory with character wit and a fresh angle.',
+          blocks: [
+            {
+              type: 'dialogue',
+              speakerId: s1,
+              text: `The funniest part about "${topicPhrase.slice(0, 48)}" is that the answer was sitting in plain sight the whole time.`,
+              directorNotes: 'sardonically, dry wit',
+              pauseAfterMs: 400,
+            },
+            {
+              type: 'dialogue',
+              speakerId: s2,
+              text: `Say that one more time and you are leading the next briefing yourself.`,
+              directorNotes: 'dryly, crisp',
+              pauseAfterMs: 450,
+            },
+          ],
+        },
+      ];
+
+      return contextualBeatsEn.map((b) => ({
+        ...b,
+        deepResearchUsed: Boolean(deepResearch),
+        analyzedFiles: attachments?.map((a) => a.name),
+        mode,
+      }));
+    }
+  }
 
   let baseBeats: CoWriterBeatCandidate[];
 
@@ -531,6 +797,13 @@ export function buildFallbackSceneBeats(
  */
 export async function generateNextSceneBeats(options: {
   precedingBlocks: ScriptBlock[];
+  followingBlocks?: ScriptBlock[];
+  selectedBlockId?: string | null;
+  selectedText?: string;
+  episodeTitle?: string;
+  episodeDescription?: string;
+  episodeGenre?: string;
+  chatHistory?: AgentChatMessage[];
   speakers: Speaker[];
   language: SupportedLanguage;
   apiKey?: string | null;
@@ -546,6 +819,13 @@ export async function generateNextSceneBeats(options: {
 }): Promise<CoWriterBeatCandidate[]> {
   const {
     precedingBlocks,
+    followingBlocks = [],
+    selectedBlockId,
+    selectedText,
+    episodeTitle,
+    episodeDescription,
+    episodeGenre,
+    chatHistory,
     speakers,
     language,
     apiKey,
@@ -560,6 +840,29 @@ export async function generateNextSceneBeats(options: {
     abortSignal,
   } = options;
 
+  // Anchor preceding and following blocks around selectedBlockId if present
+  const selectedIdx = selectedBlockId
+    ? precedingBlocks.findIndex((b) => b.id === selectedBlockId)
+    : -1;
+  const anchoredPreceding =
+    selectedIdx >= 0 ? precedingBlocks.slice(0, selectedIdx + 1) : precedingBlocks;
+  const anchoredFollowing =
+    followingBlocks.length > 0
+      ? followingBlocks
+      : selectedIdx >= 0 && selectedIdx + 1 < precedingBlocks.length
+        ? precedingBlocks.slice(selectedIdx + 1, selectedIdx + 5)
+        : [];
+
+  const contextOptions: CoWriterContextOptions = {
+    precedingBlocks: anchoredPreceding,
+    followingBlocks: anchoredFollowing,
+    selectedBlockId,
+    selectedText,
+    episodeTitle,
+    episodeDescription,
+    episodeGenre,
+  };
+
   if (!apiKey || apiKey.trim().length < 10) {
     const fallbacks = buildFallbackSceneBeats(
       speakers,
@@ -567,7 +870,8 @@ export async function generateNextSceneBeats(options: {
       directionHint,
       attachments,
       deepResearch,
-      mode
+      mode,
+      contextOptions
     );
     if (dialect === 'dubrovnik' && language === 'hr') {
       return fallbacks.map((beat) => ({
@@ -582,16 +886,35 @@ export async function generateNextSceneBeats(options: {
     return fallbacks;
   }
 
-  const contextLines = precedingBlocks
+  const contextLines = anchoredPreceding
     .slice(-8)
-    .map((b) => {
+    .map((b, idx, arr) => {
       const spk = speakers.find((s) => s.id === b.speakerId)?.name ?? b.type.toUpperCase();
-      return `[${b.type}] ${spk}: ${b.text}`;
+      const isSelected =
+        (selectedBlockId && b.id === selectedBlockId) ||
+        (!selectedBlockId && idx === arr.length - 1);
+      const marker = isSelected ? '>>> [ACTIVE SELECTION] ' : '';
+      return `${marker}[${b.type}] ${spk}: ${b.text}`;
     })
     .join('\n');
 
+  const followingLines =
+    anchoredFollowing.length > 0
+      ? anchoredFollowing
+          .slice(0, 4)
+          .map((b) => {
+            const spk =
+              speakers.find((s) => s.id === b.speakerId)?.name ?? b.type.toUpperCase();
+            return `[${b.type}] ${spk}: ${b.text}`;
+          })
+          .join('\n')
+      : '';
+
   const speakerList = speakers
-    .map((s) => `${s.id}: ${s.name} (${s.personaPrompt})`)
+    .map(
+      (s) =>
+        `${s.id}: ${s.name} (Gender: ${s.gender}, Age: ${s.age}, Persona: ${s.personaPrompt}, Acting: ${s.actingNotes})`
+    )
     .join('\n');
 
   const parsedPodcastCandidates =
@@ -627,16 +950,41 @@ export async function generateNextSceneBeats(options: {
       ? buildDubrovnikAgentInstructions(dubrovnikRegister)
       : '';
 
-  let modeRolePrompt = `You are an expert audio drama Co-Writer generating 3 candidate narrative continuation beats in ${
-    language === 'hr' ? 'Croatian (hr)' : 'English (en)'
-  }.`;
+  const detectedTone = detectStoryTone(
+    [
+      episodeTitle ?? '',
+      episodeDescription ?? '',
+      episodeGenre ?? '',
+      directionHint ?? '',
+      selectedText ?? '',
+      contextLines,
+    ].join(' '),
+    dialect
+  );
+  const creativeDivergenceRules = buildCreativeDivergencePrompt({
+    language,
+    tone: detectedTone,
+    genre: episodeGenre,
+  });
+  const recentChatPrompt = formatRecentChatHistoryForPrompt(chatHistory, 'cowriter', 6);
+
+  let modeRolePrompt = [
+    `You are an elite audio drama Co-Writer and Narrative Showrunner generating 3 creatively distinct candidate narrative continuation beats in ${
+      language === 'hr' ? 'Croatian (hr)' : 'English (en)'
+    }.`,
+    `Ensure the 3 candidate beats explore genuinely DIFFERENT creative directions anchored at the active selection:`,
+    `- Beat 1 (Character Subtext & Relational Friction): Deepen psychological subtext, unspoken motives, or conversational intimacy/conflict.`,
+    `- Beat 2 (Kinetic Action & Acoustic Staging): Advance the physical action and sensory environment using evocative sound design/foley and dynamic pacing.`,
+    `- Beat 3 (Unexpected Twist, Irony, or Genre Pivot): Surprise the listener with a sharp revelation, dry humor/irony, or structural turn suited to the episode's genre.`,
+  ].join('\n');
+
   let modeStructureInstruction =
     'CRITICAL INSTRUCTION: Return ONLY a valid JSON object with a "beats" array of 3 beat objects. Do not wrap in markdown or backticks.\n{ "beats": [ { "id": "beat_1", "title": "...", "rationale": "...", "blocks": [ { "type": "dialogue" | "narration" | "sound_effect", "speakerId": "...", "text": "...", "directorNotes": "...", "pauseAfterMs": 450 } ] } ] }';
 
   if (mode === 'complete_story') {
     modeRolePrompt = `You are a master storyteller and audio dramatist generating a comprehensive, long complete audio drama story in ${
       language === 'hr' ? 'Croatian (hr)' : 'English (en)'
-    }.`;
+    }. Craft each candidate draft with a distinct creative interpretation, authentic character voices, and vivid acoustic worldbuilding tailored to the episode's genre and premise.`;
     modeStructureInstruction =
       'CRITICAL INSTRUCTION: Return ONLY a valid JSON object with a "beats" array containing 2 or 3 complete story candidate drafts. Each candidate draft MUST be an extensive, fully realized episodic narrative containing 8 to 14 script blocks covering opening atmospheric narration, sound effects/foley, escalating dialogue, climax, and resolution.\n{ "beats": [ { "id": "story_1", "title": "...", "rationale": "...", "blocks": [ { "type": "dialogue" | "narration" | "sound_effect", "speakerId": "...", "text": "...", "directorNotes": "...", "pauseAfterMs": 450 } ] } ] }';
   } else if (mode === 'podcast_episode') {
@@ -650,11 +998,27 @@ export async function generateNextSceneBeats(options: {
       '{ "beats": [ { "id": "podcast_1", "title": "...", "rationale": "...", "blocks": [ { "type": "dialogue" | "narration" | "sound_effect", "speakerId": "...", "text": "...", "directorNotes": "...", "pauseAfterMs": 400 } ] } ] }';
   }
 
+  const episodeHeader =
+    episodeTitle || episodeGenre || episodeDescription
+      ? `Episode Context: "${episodeTitle ?? 'Untitled'}" | Genre: ${episodeGenre ?? 'Audio Drama'}${
+          episodeDescription ? `\nSynopsis: ${episodeDescription}` : ''
+        }`
+      : '';
+
   const promptText = [
     modeRolePrompt,
+    episodeHeader,
     `Available Speakers:\n${speakerList}`,
-    `Recent Script Context:\n${contextLines}`,
+    `Recent Script Context (Anchored at Selection):\n${contextLines}`,
+    selectedText?.trim()
+      ? `Highlighted Text Selection in Active Block: "${selectedText.trim()}"`
+      : '',
+    followingLines
+      ? `Upcoming Blocks After Selection (bridge smoothly toward these if continuing mid-script):\n${followingLines}`
+      : '',
     directionHint ? `Director Hint / Topic Prompt: ${directionHint}` : '',
+    recentChatPrompt,
+    creativeDivergenceRules,
     attachmentDescriptions,
     deepResearchInstructions,
     dubrovnikDialectInstructions,
@@ -716,7 +1080,8 @@ export async function generateNextSceneBeats(options: {
         directionHint,
         attachments,
         deepResearch,
-        mode
+        mode,
+        contextOptions
       );
     }
 
@@ -729,7 +1094,8 @@ export async function generateNextSceneBeats(options: {
         directionHint,
         attachments,
         deepResearch,
-        mode
+        mode,
+        contextOptions
       );
     }
 
@@ -742,7 +1108,8 @@ export async function generateNextSceneBeats(options: {
         directionHint,
         attachments,
         deepResearch,
-        mode
+        mode,
+        contextOptions
       );
     }
 
@@ -845,7 +1212,8 @@ export async function generateNextSceneBeats(options: {
       directionHint,
       attachments,
       deepResearch,
-      mode
+      mode,
+      contextOptions
     );
   }
 }

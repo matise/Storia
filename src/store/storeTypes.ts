@@ -1,4 +1,7 @@
 import {
+  AgentChatMessage,
+  AgentToolAction,
+  AIAgentMode,
   AppSettings,
   AudioEffectConfig,
   BlockType,
@@ -11,6 +14,7 @@ import {
   PersonaResearchRecord,
   Project,
   ScriptBlock,
+  ScriptTextSelection,
   Speaker,
   SupportedLanguage,
   TtsEngineProvider,
@@ -71,6 +75,7 @@ export interface StoriaStoreState {
   projects: Project[];
   appSettings: AppSettings;
   selectedBlockId: string | null;
+  selectedTextRange: ScriptTextSelection | null;
   editingSpeakerId: string | null;
   editingSpeakerInitialTab?: 'voice' | 'dsp' | 'persona';
   isApiKeyModalOpen: boolean;
@@ -106,6 +111,10 @@ export interface StoriaStoreState {
   // UI & Modal Actions
   setUiLanguage: (lang: SupportedLanguage) => void;
   selectBlock: (blockId: string | null) => void;
+  setSelectedTextRange: (range: ScriptTextSelection | null) => void;
+  addChatMessage: (message: AgentChatMessage) => void;
+  clearChatHistory: (agentMode?: AIAgentMode) => void;
+  executeAgentToolActions: (actions: AgentToolAction[]) => AgentToolAction[];
   openSpeakerModal: (
     speakerId: string | null,
     initialTab?: 'voice' | 'dsp' | 'persona'

@@ -1,9 +1,14 @@
 import os
 import sys
-from huggingface_hub import HfFolder, hf_hub_download
+from huggingface_hub import hf_hub_download
+try:
+    from huggingface_hub import get_token as hf_get_token
+except ImportError:
+    from huggingface_hub import HfFolder
+    hf_get_token = HfFolder.get_token
 
 def download():
-    token = HfFolder.get_token()
+    token = os.environ.get("HF_TOKEN") or hf_get_token()
     if not token:
         print("ERROR: No Hugging Face token found in cache!")
         sys.exit(1)

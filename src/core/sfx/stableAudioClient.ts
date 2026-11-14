@@ -1,6 +1,6 @@
 /**
- * Client interface for the local Stable Audio 3 background daemon.
- * Connects to http://localhost:8000 (or custom configured daemon host).
+ * Client interface for the local Stable Audio 3 background daemon and Vite Service Bridge.
+ * Connects via Vite reverse proxy (/api/stable-audio) or direct daemon host (http://127.0.0.1:8000).
  */
 
 export interface StableAudioStatus {
@@ -54,19 +54,68 @@ export interface GenerateAudioResponse {
   vramAllocatedMb: number;
 }
 
-export class StableAudioClient {
-  private baseUrl: string;
+export interface ServiceBridgeStatus {
+  status: 'stopped' | 'starting' | 'running' | 'error';
+  isPortActive: boolean;
+  pid: number | null;
+  uptimeSec: number;
+  lastExitCode: number | null;
+  pythonExe: string;
+}
 
-  constructor(baseUrl: string = 'http://127.0.0.1:8000') {
-    this.baseUrl = baseUrl.replace(/\/+$/, '');
+export class StableAudioClient {
+  private primaryUrl: string;
+  private fallbackUrl: string;
+  private resolvedUrl: string | null = null;
+
+  constructor(primaryUrl: string = '/api/stable-audio', fallbackUrl: string = 'http://127.0.0.1:8000') {
+    this.primaryUrl = primaryUrl.replace(/\/+$/, '');
+    this.fallbackUrl = fallbackUrl.replace(/\/+$/, '');
+  }
+
+  private async getWorkingBaseUrl(): Promise<string> {
+    if (this.resolvedUrl) return this.resolvedUrl;
+
+    // Probe primary proxy URL first with a fast timeout
+    try {
+      const res = await fetch(`${this.primaryUrl}/health`, { signal: AbortSignal.timeout(800) });
+      if (res.ok) {
+        this.resolvedUrl = this.primaryUrl;
+        return this.primaryUrl;
+      }
+    } catch {
+      // ignore
+    }
+
+    // Probe direct fallback URL
+    try {
+      const res = await fetch(`${this.fallbackUrl}/health`, { credentials: 'omit', signal: AbortSignal.timeout(800) });
+      if (res.ok) {
+        this.resolvedUrl = this.fallbackUrl;
+        return this.fallbackUrl;
+      }
+    } catch {
+      // ignore
+    }
+
+    throw new Error('Stable Audio daemon offline');
+  }
+
+  /**
+   * Reset resolved URL cache (e.g. after restarting the daemon).
+   */
+  resetConnectionCache(): void {
+    this.resolvedUrl = null;
   }
 
   /**
    * Query the health and VRAM status of the Stable Audio daemon.
    */
   async getStatus(): Promise<StableAudioStatus> {
-    const res = await fetch(`${this.baseUrl}/v1/system/status`);
+    const base = await this.getWorkingBaseUrl();
+    const res = await fetch(`${base}/v1/system/status`, { signal: AbortSignal.timeout(1200) });
     if (!res.ok) {
+      this.resetConnectionCache();
       throw new Error(`Failed to fetch status from Stable Audio daemon: ${res.statusText}`);
     }
     return res.json();
@@ -76,7 +125,8 @@ export class StableAudioClient {
    * List all models supported by the daemon and their local installation state.
    */
   async getModels(): Promise<ModelStatusInfo[]> {
-    const res = await fetch(`${this.baseUrl}/v1/system/models`);
+    const base = await this.getWorkingBaseUrl();
+    const res = await fetch(`${base}/v1/system/models`, { signal: AbortSignal.timeout(1200) });
     if (!res.ok) {
       throw new Error(`Failed to query model list: ${res.statusText}`);
     }
@@ -87,7 +137,8 @@ export class StableAudioClient {
    * Query active model download progress.
    */
   async getDownloadProgress(): Promise<DownloadProgressInfo> {
-    const res = await fetch(`${this.baseUrl}/v1/system/models/progress`);
+    const base = await this.getWorkingBaseUrl();
+    const res = await fetch(`${base}/v1/system/models/progress`);
     if (!res.ok) {
       throw new Error(`Failed to query download progress: ${res.statusText}`);
     }
@@ -98,7 +149,8 @@ export class StableAudioClient {
    * Trigger background download of a model ('small-sfx', 'small-music', 'small-music-base', or 'all').
    */
   async downloadModel(modelName: string): Promise<{ status: string; model_name: string; message: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/system/models/download`, {
+    const base = await this.getWorkingBaseUrl();
+    const res = await fetch(`${base}/v1/system/models/download`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -119,7 +171,8 @@ export class StableAudioClient {
     req: GenerateAudioRequest,
     audioContext?: AudioContext
   ): Promise<GenerateAudioResponse> {
-    return this.postGenerate(`${this.baseUrl}/v1/sfx/generate`, req, audioContext);
+    const base = await this.getWorkingBaseUrl();
+    return this.postGenerate(`${base}/v1/sfx/generate`, req, audioContext);
   }
 
   /**
@@ -130,7 +183,8 @@ export class StableAudioClient {
     modelVariant: 'small-music' | 'small-music-base' = 'small-music',
     audioContext?: AudioContext
   ): Promise<GenerateAudioResponse> {
-    const url = `${this.baseUrl}/v1/music/generate?model_variant=${modelVariant}`;
+    const base = await this.getWorkingBaseUrl();
+    const url = `${base}/v1/music/generate?model_variant=${modelVariant}`;
     return this.postGenerate(url, req, audioContext);
   }
 
@@ -138,7 +192,8 @@ export class StableAudioClient {
    * Put the model to sleep, releasing 100% of GPU VRAM to system host RAM.
    */
   async hibernate(): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/v1/system/hibernate`, { method: 'POST' });
+    const base = await this.getWorkingBaseUrl();
+    const res = await fetch(`${base}/v1/system/hibernate`, { method: 'POST' });
     if (!res.ok) {
       throw new Error(`Hibernation request failed: ${res.statusText}`);
     }
@@ -148,10 +203,66 @@ export class StableAudioClient {
    * Pre-warm and restore the model from host RAM back to GPU VRAM.
    */
   async wake(): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/v1/system/wake`, { method: 'POST' });
+    const base = await this.getWorkingBaseUrl();
+    const res = await fetch(`${base}/v1/system/wake`, { method: 'POST' });
     if (!res.ok) {
       throw new Error(`Wake request failed: ${res.statusText}`);
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // Vite Node.js Service Bridge (Process Lifecycle Management)
+  // --------------------------------------------------------------------------
+
+  async getBridgeStatus(): Promise<ServiceBridgeStatus> {
+    const res = await fetch('/api/service-bridge/status');
+    if (!res.ok) {
+      throw new Error(`Service bridge unavailable (${res.status}): ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async startService(): Promise<{ success: boolean; message: string }> {
+    this.resetConnectionCache();
+    const res = await fetch('/api/service-bridge/start', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to start service: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async stopService(): Promise<{ success: boolean; message: string }> {
+    this.resetConnectionCache();
+    const res = await fetch('/api/service-bridge/stop', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to stop service: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async restartService(): Promise<{ success: boolean; message: string }> {
+    this.resetConnectionCache();
+    const res = await fetch('/api/service-bridge/restart', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to restart service: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async getBridgeLogs(): Promise<{ logs: string[] }> {
+    const res = await fetch('/api/service-bridge/logs');
+    if (!res.ok) {
+      throw new Error(`Failed to retrieve logs: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async clearBridgeLogs(): Promise<{ success: boolean }> {
+    const res = await fetch('/api/service-bridge/clear-logs', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to clear logs: ${res.statusText}`);
+    }
+    return res.json();
   }
 
   private async postGenerate(
@@ -201,4 +312,3 @@ export class StableAudioClient {
 }
 
 export const stableAudioClient = new StableAudioClient();
-

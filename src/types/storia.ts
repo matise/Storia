@@ -162,6 +162,8 @@ export interface Speaker {
 
 export type BlockType = 'dialogue' | 'narration' | 'direction' | 'sound_effect';
 
+export type SfxEngineType = 'auto' | 'stable_audio' | 'procedural' | 'custom_upload';
+
 export type SfxCategoryPreset =
   | 'auto'
   | 'tram_rail'
@@ -210,6 +212,13 @@ export interface ScriptBlock {
   ttsStatus?: TtsBlockStatus; // Cached synthesis status
   renderedWithProvider?: TtsEngineProvider; // 'gemini_tts' | 'browser_tts'
   cacheKey?: string; // SHA-256 content key of last rendered audio
+  sfxEngine?: SfxEngineType; // Synthesis engine: 'auto' | 'stable_audio' | 'procedural' | 'custom_upload'
+  sfxModelVariant?: 'small-sfx' | 'small-music' | 'small-music-base'; // Stable Audio 3 model checkpoint
+  sfxPrompt?: string; // Explicit prompt override for AI diffusion
+  sfxNegativePrompt?: string; // Negative prompt for diffusion (default: distortion, low quality, noise)
+  sfxSteps?: number; // Diffusion steps (default 8)
+  sfxCfgScale?: number; // Classifier-free guidance scale (default 1.0 - 2.5)
+  sfxSeed?: number; // Random seed (-1 for random)
   sfxCategory?: SfxCategoryPreset; // Optional SFX preset category for sound_effect blocks
   sfxDurationSec?: number; // Target duration in seconds for sound_effect synthesis
   sfxIntensity?: number; // Intensity / gain [0.1, 1.0] for sound_effect synthesis

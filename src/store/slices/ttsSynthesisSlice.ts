@@ -15,7 +15,10 @@ import {
 import {
   synthesizeSfxAudio,
   decodeUploadedAudioFileToSfxResult,
+  SfxSynthesisResult,
 } from '../../services/sfxGeneratorService';
+import { stableAudioClient } from '../../core/sfx/stableAudioClient';
+import { studioTransportEngine } from '../../core/dsp/StudioTransportEngine';
 import { recalculateProjectTimeline } from '../../core/pacing/pacingCalculator';
 import {
   computeBlockCacheKey,
@@ -166,13 +169,86 @@ export function createTtsSynthesisSlice({
         };
 
         if (block.type === 'sound_effect') {
-          const sfxResult = await synthesizeSfxAudio({
-            block,
-            language,
-            apiKey: effectiveProvider === 'gemini_tts' ? apiKey : null,
-            useAiCompiler: effectiveProvider === 'gemini_tts' && hasValidApiKey(),
-            abortSignal: blockAbortController.signal,
-          });
+          const isStableRequested =
+            block.sfxEngine === 'stable_audio' ||
+            (block.sfxEngine !== 'procedural' &&
+              get().isStableAudioDaemonOnline &&
+              get().stableAudioModels.some(
+                (m) => m.model_name === (block.sfxModelVariant ?? 'small-sfx') && m.is_installed
+              ));
+
+          let sfxResult: SfxSynthesisResult;
+
+          if (isStableRequested) {
+            try {
+              const variant = block.sfxModelVariant ?? 'small-sfx';
+              const durationSec = block.sfxDurationSec ?? 3.5;
+              const prompt = block.text.trim() || 'Atmospheric sound effect';
+              const steps = block.sfxSteps ?? 8;
+              const seed = block.sfxSeed ?? -1;
+
+              const audioContext = studioTransportEngine.getAudioContext() ?? undefined;
+              const genRes =
+                variant === 'small-music' || variant === 'small-music-base'
+                  ? await stableAudioClient.generateMusic(
+                      { prompt, duration_seconds: durationSec, steps, seed },
+                      variant,
+                      audioContext
+                    )
+                  : await stableAudioClient.generateSfx(
+                      { prompt, duration_seconds: durationSec, steps, seed },
+                      audioContext
+                    );
+
+              const extractedPeaks = await extractWaveformPeaksFromWavBlob(genRes.audioBlob);
+              const waveformPeaks = extractedPeaks ?? {
+                sampleRate: 24000,
+                length: 100,
+                minPeaks: new Float32Array(100),
+                maxPeaks: new Float32Array(100),
+                rmsLevels: new Float32Array(100),
+              };
+              const actualDuration = genRes.audioBuffer
+                ? Number(genRes.audioBuffer.duration.toFixed(2))
+                : durationSec;
+
+              const words = prompt.split(/\s+/).filter(Boolean);
+              const timepoints = words.map((_, idx) => ({
+                markName: `blk_${block.id}_w_${idx}`,
+                timeSeconds: Number(((idx / Math.max(1, words.length)) * actualDuration).toFixed(3)),
+              }));
+
+              sfxResult = {
+                audioBlob: genRes.audioBlob,
+                waveformPeaks,
+                timepoints,
+                durationSec: actualDuration,
+                tokensUsed: 0,
+                ssmlPayload: `<sfx engine="stable-audio-3" model="${variant}" duration="${actualDuration}s">${prompt}</sfx>`,
+              };
+            } catch (stableErr) {
+              console.warn(
+                '[TTS Slice] Stable Audio generation failed, falling back to procedural physical modeling:',
+                stableErr
+              );
+              sfxResult = await synthesizeSfxAudio({
+                block,
+                language,
+                apiKey: effectiveProvider === 'gemini_tts' ? apiKey : null,
+                useAiCompiler: effectiveProvider === 'gemini_tts' && hasValidApiKey(),
+                abortSignal: blockAbortController.signal,
+              });
+            }
+          } else {
+            sfxResult = await synthesizeSfxAudio({
+              block,
+              language,
+              apiKey: effectiveProvider === 'gemini_tts' ? apiKey : null,
+              useAiCompiler: effectiveProvider === 'gemini_tts' && hasValidApiKey(),
+              abortSignal: blockAbortController.signal,
+            });
+          }
+
           result = {
             ...sfxResult,
             providerUsed: effectiveProvider,
@@ -500,13 +576,83 @@ export function createTtsSynthesisSlice({
         return;
       }
 
-      // 2. If sound_effect block, synthesize physical-modeling SFX waveform & WAV blob
+      // 2. If sound_effect block, synthesize via Stable Audio 3 (if active) or physical-modeling SFX
       if (block.type === 'sound_effect') {
-        const sfxResult = await synthesizeSfxAudio({
-          block,
-          language: project.defaultLanguage,
-          useAiCompiler: false,
-        });
+        const isStableRequested =
+          block.sfxEngine === 'stable_audio' ||
+          (block.sfxEngine !== 'procedural' &&
+            get().isStableAudioDaemonOnline &&
+            get().stableAudioModels.some(
+              (m) => m.model_name === (block.sfxModelVariant ?? 'small-sfx') && m.is_installed
+            ));
+
+        let sfxResult: SfxSynthesisResult;
+
+        if (isStableRequested) {
+          try {
+            const variant = block.sfxModelVariant ?? 'small-sfx';
+            const durationSec = block.sfxDurationSec ?? 3.5;
+            const prompt = block.text.trim() || 'Atmospheric sound effect';
+            const steps = block.sfxSteps ?? 8;
+            const seed = block.sfxSeed ?? -1;
+
+            const audioContext = studioTransportEngine.getAudioContext() ?? undefined;
+            const genRes =
+              variant === 'small-music' || variant === 'small-music-base'
+                ? await stableAudioClient.generateMusic(
+                    { prompt, duration_seconds: durationSec, steps, seed },
+                    variant,
+                    audioContext
+                  )
+                : await stableAudioClient.generateSfx(
+                    { prompt, duration_seconds: durationSec, steps, seed },
+                    audioContext
+                  );
+
+            const extractedPeaks = await extractWaveformPeaksFromWavBlob(genRes.audioBlob);
+            const waveformPeaks = extractedPeaks ?? {
+              sampleRate: 24000,
+              length: 100,
+              minPeaks: new Float32Array(100),
+              maxPeaks: new Float32Array(100),
+              rmsLevels: new Float32Array(100),
+            };
+            const actualDuration = genRes.audioBuffer
+              ? Number(genRes.audioBuffer.duration.toFixed(2))
+              : durationSec;
+
+            const words = prompt.split(/\s+/).filter(Boolean);
+            const timepoints = words.map((_, idx) => ({
+              markName: `blk_${block.id}_w_${idx}`,
+              timeSeconds: Number(((idx / Math.max(1, words.length)) * actualDuration).toFixed(3)),
+            }));
+
+            sfxResult = {
+              audioBlob: genRes.audioBlob,
+              waveformPeaks,
+              timepoints,
+              durationSec: actualDuration,
+              tokensUsed: 0,
+              ssmlPayload: `<sfx engine="stable-audio-3" model="${variant}" duration="${actualDuration}s">${prompt}</sfx>`,
+            };
+          } catch (stableErr) {
+            console.warn(
+              '[TTS Slice] Stable Audio generation failed, falling back to procedural physical modeling:',
+              stableErr
+            );
+            sfxResult = await synthesizeSfxAudio({
+              block,
+              language: project.defaultLanguage,
+              useAiCompiler: false,
+            });
+          }
+        } else {
+          sfxResult = await synthesizeSfxAudio({
+            block,
+            language: project.defaultLanguage,
+            useAiCompiler: false,
+          });
+        }
         const cacheKey = await computeBlockCacheKey(
           block,
           undefined,

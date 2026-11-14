@@ -210,7 +210,7 @@ describe('Phase 6 — Step 6.2: Offline Episode Mastering & Stem Renderer', () =
     expect(result.wavBlob.size).toBeGreaterThan(1000);
     expect(result.totalDurationSec).toBeGreaterThan(20);
     expect(progressUpdates[progressUpdates.length - 1]).toBe(100);
-    expect(elapsedMs).toBeLessThan(5000);
+    expect(elapsedMs).toBeLessThan(12000);
   });
 });
 

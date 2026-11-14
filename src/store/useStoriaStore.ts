@@ -21,6 +21,7 @@ import { createProjectLibrarySlice } from './slices/projectLibrarySlice';
 import { createScriptAndCastSlice } from './slices/scriptAndCastSlice';
 import { createDspAndAuditionSlice } from './slices/dspAndAuditionSlice';
 import { createTtsSynthesisSlice } from './slices/ttsSynthesisSlice';
+import { createStableAudioSlice } from './slices/stableAudioSlice';
 
 export { transientPlaybackRef };
 export type { TransientPlaybackState, ProjectPropertiesPatch, StoriaStoreState };
@@ -66,6 +67,7 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
     isEpisodePropertiesModalOpen: false,
     isExportMasterModalOpen: false,
     isAuxBusModalOpen: false,
+    isBackgroundServicesModalOpen: false,
     hasConfiguredApiKey: hasValidApiKey(),
     ttsProvider: initialProvider,
     useProceduralFallback: initialProvider === 'browser_tts',
@@ -79,10 +81,18 @@ export const useStoriaStore = create<StoriaStoreState>((set, get) => {
     redoCount: 0,
     historyManager: singletonHistory,
 
+    stableAudioStatus: null,
+    stableAudioBridgeStatus: null,
+    stableAudioModels: [],
+    isStableAudioDaemonOnline: false,
+    isStartingOrStoppingDaemon: false,
+    stableAudioError: null,
+
     ...createUiAndSettingsSlice(ctx),
     ...createProjectLibrarySlice(ctx),
     ...createScriptAndCastSlice(ctx),
     ...createDspAndAuditionSlice(ctx),
     ...createTtsSynthesisSlice(ctx),
+    ...createStableAudioSlice(ctx),
   };
 });

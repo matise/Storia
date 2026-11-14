@@ -215,6 +215,21 @@ export interface TranslationDictionary {
   saveApiSettings: string;
   clearKeyLabel: string;
 
+  // Background AI Services & Daemon
+  bgServicesTitle: string;
+  bgServicesSubtitle: string;
+  bgServicesOnline: string;
+  bgServicesOffline: string;
+  bgServicesHibernating: string;
+  bgServicesStart: string;
+  bgServicesStop: string;
+  bgServicesRestart: string;
+  bgServicesHibernate: string;
+  bgServicesWake: string;
+  bgServicesModelsTitle: string;
+  bgServicesLogsTitle: string;
+  bgServicesDownloadBtn: string;
+
   // Gender options
   genderMale: string;
   genderFemale: string;
@@ -605,6 +620,21 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     saveApiSettings: 'Save Engine Settings',
     clearKeyLabel: 'Clear Key',
 
+    // Background AI Services & Daemon
+    bgServicesTitle: 'Background AI Services & Hardware Accelerators',
+    bgServicesSubtitle: 'Manage local Stable Audio 3 CUDA daemon, VRAM allocation, and models',
+    bgServicesOnline: 'Online (CUDA Active)',
+    bgServicesOffline: 'Offline (Daemon Stopped)',
+    bgServicesHibernating: 'Hibernating (VRAM Released)',
+    bgServicesStart: 'Start Service',
+    bgServicesStop: 'Stop Service',
+    bgServicesRestart: 'Restart Service',
+    bgServicesHibernate: 'Deep Hibernate (0 MB VRAM)',
+    bgServicesWake: 'Wake GPU',
+    bgServicesModelsTitle: 'Stable Audio 3 Model Checkpoints',
+    bgServicesLogsTitle: 'Daemon Process Logs & Console',
+    bgServicesDownloadBtn: 'Download Model',
+
     genderMale: 'Male',
     genderFemale: 'Female',
     genderNonBinary: 'Non-binary',
@@ -986,6 +1016,21 @@ export const DICTIONARY: Record<SupportedLanguage, TranslationDictionary> = {
     clearCacheLabel: 'Očisti IndexedDB Audio predmemoriju',
     saveApiSettings: 'Spremi postavke',
     clearKeyLabel: 'Obriši ključ',
+
+    // Background AI Services & Daemon
+    bgServicesTitle: 'Pozadinski AI servisi i hardverski akceleratori',
+    bgServicesSubtitle: 'Upravljanje lokalnim Stable Audio 3 CUDA servisom, VRAM-om i modelima',
+    bgServicesOnline: 'Na mreži (CUDA aktivan)',
+    bgServicesOffline: 'Izvan mreže (Servis zaustavljen)',
+    bgServicesHibernating: 'Hibernacija (VRAM oslobođen)',
+    bgServicesStart: 'Pokreni servis',
+    bgServicesStop: 'Zaustavi servis',
+    bgServicesRestart: 'Ponovno pokreni',
+    bgServicesHibernate: 'Duboka hibernacija (0 MB VRAM)',
+    bgServicesWake: 'Probudi GPU',
+    bgServicesModelsTitle: 'Stable Audio 3 modeli',
+    bgServicesLogsTitle: 'Zapisnici procesa i konzola',
+    bgServicesDownloadBtn: 'Preuzmi model',
 
     genderMale: 'Muški',
     genderFemale: 'Ženski',

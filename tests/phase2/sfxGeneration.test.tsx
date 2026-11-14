@@ -11,6 +11,7 @@ import { ScriptWorkbench } from '../../src/components/layout/ScriptWorkbench';
 describe('Hybrid SFX Generation Engine (Procedural Physical-Modeling + AI Compiler + File Import)', () => {
   beforeEach(async () => {
     useStoriaStore.getState().resetToSampleProject();
+    useStoriaStore.setState({ isStableAudioDaemonOnline: false });
     useStoriaStore.getState().setActiveTtsProvider('browser_tts');
     await useStoriaStore.getState().purgeAudioCache();
   });

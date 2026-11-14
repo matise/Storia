@@ -77,6 +77,7 @@ export interface StoriaStoreState {
   isEpisodePropertiesModalOpen: boolean;
   isExportMasterModalOpen: boolean;
   isAuxBusModalOpen: boolean;
+  isBackgroundServicesModalOpen: boolean;
   hasConfiguredApiKey: boolean;
   ttsProvider: TtsEngineProvider;
   useProceduralFallback: boolean;
@@ -94,6 +95,14 @@ export interface StoriaStoreState {
   redoCount: number;
   historyManager: HistoryManager;
 
+  // Background Services & Stable Audio 3 Telemetry & Lifecycle
+  stableAudioStatus: import('../core/sfx/stableAudioClient').StableAudioStatus | null;
+  stableAudioBridgeStatus: import('../core/sfx/stableAudioClient').ServiceBridgeStatus | null;
+  stableAudioModels: import('../core/sfx/stableAudioClient').ModelStatusInfo[];
+  isStableAudioDaemonOnline: boolean;
+  isStartingOrStoppingDaemon: boolean;
+  stableAudioError: string | null;
+
   // UI & Modal Actions
   setUiLanguage: (lang: SupportedLanguage) => void;
   selectBlock: (blockId: string | null) => void;
@@ -105,6 +114,14 @@ export interface StoriaStoreState {
   setEpisodePropertiesModalOpen: (open: boolean) => void;
   setExportMasterModalOpen: (open: boolean) => void;
   setAuxBusModalOpen: (open: boolean) => void;
+  setBackgroundServicesModalOpen: (open: boolean) => void;
+  refreshStableAudioStatus: () => Promise<void>;
+  startStableAudioDaemon: () => Promise<void>;
+  stopStableAudioDaemon: () => Promise<void>;
+  restartStableAudioDaemon: () => Promise<void>;
+  hibernateStableAudioDaemon: () => Promise<void>;
+  wakeStableAudioDaemon: () => Promise<void>;
+  downloadStableAudioModel: (modelName: string) => Promise<void>;
   importProjectFromBundle: (bundle: Project) => void;
   setActiveTtsProvider: (provider: TtsEngineProvider) => void;
   setGeminiTextModel: (modelId: GeminiTextModelId) => void;

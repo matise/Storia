@@ -19,11 +19,14 @@ import {
   Upload,
   Volume2,
   XCircle,
+  Zap,
+  Dices,
 } from 'lucide-react';
 import {
   BlockType,
   ScriptBlock,
   SfxCategoryPreset,
+  SfxEngineType,
   Speaker,
 } from '../../types/storia';
 import { useStoriaStore } from '../../store/useStoriaStore';
@@ -42,7 +45,7 @@ interface ScriptBlockCardProps {
   block: ScriptBlock;
   index: number;
   totalBlocks: number;
-  speakers: Speaker[];
+  speakers?: Speaker[];
   isSelected: boolean;
   isActivePlayheadBlock?: boolean;
   blockPlayheadProgress?: number; // 0.0 to 1.0
@@ -82,6 +85,11 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
   const previewingSpeakerId = useStoriaStore((s) => s.previewingSpeakerId);
   const toggleSpeakerEq = useStoriaStore((s) => s.toggleSpeakerEq);
   const toggleSpeakerDynamics = useStoriaStore((s) => s.toggleSpeakerDynamics);
+  const isStableAudioDaemonOnline = useStoriaStore((s) => s.isStableAudioDaemonOnline);
+  const stableAudioModels = useStoriaStore((s) => s.stableAudioModels);
+  const setBackgroundServicesModalOpen = useStoriaStore(
+    (s) => s.setBackgroundServicesModalOpen
+  );
   const sfxFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [localScrubProgress, setLocalScrubProgress] = React.useState(0);
   const [isLocalScrubbing, setIsLocalScrubbing] = React.useState(false);
@@ -114,7 +122,9 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
     }
   }, [blockPlayheadProgress, isLocalScrubbing, isSelected, isActivePlayheadBlock]);
 
-  const activeSpeaker = speakers.find((s) => s.id === block.speakerId);
+  const storeSpeakers = useStoriaStore((s) => s.project.speakers);
+  const resolvedSpeakers = speakers ?? storeSpeakers;
+  const activeSpeaker = resolvedSpeakers.find((s) => s.id === block.speakerId);
   const durationSec = block.estimatedDurationSec ?? 0;
   const tokens = block.audioTokenEstimate ?? 0;
 
@@ -284,9 +294,8 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
         borderLeftWidth: '3.5px',
         boxShadow: themeStyle.boxShadow,
       }}
-      className={`rounded-md border transition-all ${
-        isCollapsed ? 'px-2.5 py-1.5' : 'px-2.5 py-2'
-      }`}
+      className={`rounded-md border transition-all ${isCollapsed ? 'px-2.5 py-1.5' : 'px-2.5 py-2'
+        }`}
     >
       {/* 1. Collapsed Mode: Single Clean Compact Summary Strip */}
       {isCollapsed ? (
@@ -389,11 +398,10 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                       ? t('pause')
                       : t('blockWaveformPlayTooltip')
                   }
-                  className={`p-1 rounded text-xs transition-colors cursor-pointer ${
-                    isPlayingThisBlock || Boolean(isActivePlayheadBlock)
-                      ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-950/40'
-                      : 'hover:bg-slate-800 text-emerald-400 hover:text-emerald-300'
-                  }`}
+                  className={`p-1 rounded text-xs transition-colors cursor-pointer ${isPlayingThisBlock || Boolean(isActivePlayheadBlock)
+                    ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-950/40'
+                    : 'hover:bg-slate-800 text-emerald-400 hover:text-emerald-300'
+                    }`}
                 >
                   {isPlayingThisBlock || Boolean(isActivePlayheadBlock) ? (
                     <Pause className="w-2.5 h-2.5 fill-current" />
@@ -433,22 +441,20 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                   className="w-14 sm:w-20 h-2.5 bg-slate-900 border border-slate-800/80 rounded-xs relative overflow-hidden cursor-pointer shrink-0 select-none group/scrubber"
                 >
                   <div
-                    className={`h-full bg-emerald-500/85 ${
-                      isPlayingThisBlock || Boolean(isActivePlayheadBlock)
-                        ? 'transition-none'
-                        : 'transition-[width] duration-75'
-                    }`}
+                    className={`h-full bg-emerald-500/85 ${isPlayingThisBlock || Boolean(isActivePlayheadBlock)
+                      ? 'transition-none'
+                      : 'transition-[width] duration-75'
+                      }`}
                     style={{
                       width: `${Math.max(0, Math.min(100, effectiveProgress * 100))}%`,
                     }}
                   />
                   {/* Scrubber Playhead Needle Thumb */}
                   <div
-                    className={`absolute top-0 bottom-0 w-1 bg-white shadow-xs rounded-full pointer-events-none transition-opacity ${
-                      effectiveProgress > 0 && effectiveProgress < 1
-                        ? 'opacity-100'
-                        : 'opacity-0 group-hover/scrubber:opacity-100'
-                    }`}
+                    className={`absolute top-0 bottom-0 w-1 bg-white shadow-xs rounded-full pointer-events-none transition-opacity ${effectiveProgress > 0 && effectiveProgress < 1
+                      ? 'opacity-100'
+                      : 'opacity-0 group-hover/scrubber:opacity-100'
+                      }`}
                     style={{
                       left: `calc(${Math.max(0, Math.min(100, effectiveProgress * 100))}% - 2px)`,
                     }}
@@ -458,11 +464,10 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             )}
 
             <span
-              className={`font-mono text-[11px] tabular-nums shrink-0 ${
-                isActivePlayheadBlock || isPlayingThisBlock
-                  ? 'text-emerald-400 font-semibold'
-                  : 'text-slate-400'
-              }`}
+              className={`font-mono text-[11px] tabular-nums shrink-0 ${isActivePlayheadBlock || isPlayingThisBlock
+                ? 'text-emerald-400 font-semibold'
+                : 'text-slate-400'
+                }`}
               title={`Position: ${formatDurationReadout(effectiveProgress * durationSec, true)} / ${formatDurationReadout(durationSec, true)}`}
             >
               {isActivePlayheadBlock || isPlayingThisBlock
@@ -567,7 +572,7 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                     }
                     className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500"
                   >
-                    {speakers.map((s) => (
+                    {resolvedSpeakers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
                       </option>
@@ -582,11 +587,10 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                       void previewSpeakerVoice(activeSpeaker.id, block.text);
                     }}
                     title={`${t('previewSpeakerVoice')}: ${activeSpeaker.name}`}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-1 transition-colors cursor-pointer ${
-                      isPreviewingThisSpeaker
-                        ? 'bg-emerald-600 border-emerald-500 text-white'
-                        : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300'
-                    }`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-1 transition-colors cursor-pointer ${isPreviewingThisSpeaker
+                      ? 'bg-emerald-600 border-emerald-500 text-white'
+                      : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300'
+                      }`}
                   >
                     <Headphones className="w-3 h-3 text-indigo-400" />
                     <span>{activeSpeaker.voice.baseVoice}</span>
@@ -600,11 +604,10 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                       toggleSpeakerEq(activeSpeaker.id);
                     }}
                     title="Toggle Speaker 3-Band Biquad EQ"
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
-                      eqEnabled
-                        ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
-                    }`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${eqEnabled
+                      ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300'
+                      : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
+                      }`}
                   >
                     {t('eqToggleLabel')}:{eqEnabled ? 'ON' : 'OFF'}
                   </button>
@@ -617,11 +620,10 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
                       toggleSpeakerDynamics(activeSpeaker.id);
                     }}
                     title="Toggle Speaker Dynamics Compressor"
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${
-                      dynEnabled
-                        ? 'bg-emerald-950/70 border-emerald-700/60 text-emerald-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
-                    }`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border transition-colors cursor-pointer ${dynEnabled
+                      ? 'bg-emerald-950/70 border-emerald-700/60 text-emerald-300'
+                      : 'bg-slate-950 border-slate-800 text-slate-500 line-through'
+                      }`}
                   >
                     {t('dynToggleLabel')}:{dynEnabled ? 'ON' : 'OFF'}
                   </button>
@@ -630,51 +632,155 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
 
               {/* Inline SFX Studio Controls for sound_effect Blocks */}
               {block.type === 'sound_effect' && (
-                <div className="flex flex-wrap items-center gap-1.5 bg-amber-950/30 border border-amber-700/40 rounded px-2 py-0.5">
+                <div className="flex flex-wrap items-center gap-1.5 bg-amber-950/30 border border-amber-700/40 rounded px-2 py-1">
                   <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+
+                  {/* Engine Selector */}
                   <select
-                    aria-label="SFX Category Preset"
-                    data-testid={`sfx-category-select-${block.id}`}
-                    value={block.sfxCategory ?? 'auto'}
+                    aria-label="SFX Engine"
+                    data-testid={`sfx-engine-select-${block.id}`}
+                    value={block.sfxEngine ?? 'auto'}
                     onChange={(e) =>
                       updateBlock(block.id, {
-                        sfxCategory: e.target.value as SfxCategoryPreset,
+                        sfxEngine: e.target.value as SfxEngineType,
                       })
                     }
                     className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-200 focus:outline-none focus:border-amber-500"
                   >
-                    <option value="auto">{t('sfxPresetAuto')}</option>
-                    <option value="tram_rail">{t('sfxPresetTramRail')}</option>
-                    <option value="footsteps">{t('sfxPresetFootsteps')}</option>
-                    <option value="weather_rain">{t('sfxPresetWeatherRain')}</option>
-                    <option value="wind_storm">{t('sfxPresetWindStorm')}</option>
-                    <option value="thunder">{t('sfxPresetThunder')}</option>
-                    <option value="door_creak">{t('sfxPresetDoorCreak')}</option>
-                    <option value="impact_knock">{t('sfxPresetImpactKnock')}</option>
-                    <option value="cinematic_drone">{t('sfxPresetCinematicDrone')}</option>
-                    <option value="radio_static">{t('sfxPresetRadioStatic')}</option>
-                    {block.sfxCategory === 'custom_upload' && (
-                      <option value="custom_upload">
-                        {t('sfxPresetCustomUpload')}{' '}
-                        {block.customAudioFileName ? `(${block.customAudioFileName})` : ''}
-                      </option>
-                    )}
+                    <option value="auto">Auto (AI Diffusion if available)</option>
+                    <option value="stable_audio">Stable Audio 3 (AI Diffusion)</option>
+                    <option value="procedural">Procedural Engine (Physical)</option>
+                    <option value="custom_upload">Custom Audio File</option>
                   </select>
+
+                  {/* Stable Audio 3 Controls */}
+                  {(block.sfxEngine === 'stable_audio' ||
+                    ((block.sfxEngine === 'auto' || !block.sfxEngine) && isStableAudioDaemonOnline)) ? (
+                    <>
+                      <select
+                        aria-label="Stable Audio Model Variant"
+                        value={block.sfxModelVariant ?? 'small-sfx'}
+                        onChange={(e) =>
+                          updateBlock(block.id, {
+                            sfxModelVariant: e.target.value as 'small-sfx' | 'small-music' | 'small-music-base',
+                          })
+                        }
+                        className="bg-slate-950 border border-violet-900/60 rounded px-1.5 py-0.5 text-[11px] font-medium text-violet-300 focus:outline-none focus:border-violet-500"
+                      >
+                        <option value="small-sfx">Model: small-sfx (Foley & SFX)</option>
+                        <option value="small-music">Model: small-music (Score & Stems)</option>
+                        <option value="small-music-base">Model: small-music-base</option>
+                      </select>
+
+                      <label className="flex items-center gap-1 text-[10px] font-mono text-violet-300">
+                        <span>Steps:</span>
+                        <input
+                          type="number"
+                          min={2}
+                          max={30}
+                          step={1}
+                          value={block.sfxSteps ?? 8}
+                          onChange={(e) =>
+                            updateBlock(block.id, {
+                              sfxSteps: Math.min(30, Math.max(2, Number(e.target.value) || 8)),
+                            })
+                          }
+                          className="w-10 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-violet-200 focus:outline-none focus:border-violet-500"
+                        />
+                      </label>
+
+                      {/* Randomize Seed Button */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateBlock(block.id, {
+                            sfxSeed: Math.floor(Math.random() * 1000000),
+                          })
+                        }
+                        title={`Seed: ${block.sfxSeed ?? 'Random (-1)'}. Click to randomize.`}
+                        className="p-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-violet-300 cursor-pointer"
+                      >
+                        <Dices className="w-3 h-3" />
+                      </button>
+
+                      {/* Status indicator / Modal trigger */}
+                      {isStableAudioDaemonOnline ? (
+                        stableAudioModels.some(
+                          (m) =>
+                            m.model_name === (block.sfxModelVariant ?? 'small-sfx') &&
+                            m.is_installed
+                        ) ? (
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-1.5 py-0.5 rounded">
+                            <Zap className="w-3 h-3 text-emerald-400" />
+                            <span>CUDA Ready</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setBackgroundServicesModalOpen(true)}
+                            className="flex items-center gap-1 text-[10px] font-medium text-violet-300 hover:text-violet-200 bg-violet-950/60 hover:bg-violet-900/60 border border-violet-800/50 px-1.5 py-0.5 rounded cursor-pointer"
+                          >
+                            <Zap className="w-3 h-3 text-violet-400" />
+                            <span>Download Model</span>
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setBackgroundServicesModalOpen(true)}
+                          className="flex items-center gap-1 text-[10px] font-medium text-amber-300 hover:text-amber-200 bg-amber-950/60 hover:bg-amber-900/60 border border-amber-800/50 px-1.5 py-0.5 rounded cursor-pointer"
+                        >
+                          <Zap className="w-3 h-3 text-amber-400" />
+                          <span>Start Daemon</span>
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    /* Procedural Engine Controls */
+                    <select
+                      aria-label="SFX Category Preset"
+                      data-testid={`sfx-category-select-${block.id}`}
+                      value={block.sfxCategory ?? 'auto'}
+                      onChange={(e) =>
+                        updateBlock(block.id, {
+                          sfxCategory: e.target.value as SfxCategoryPreset,
+                        })
+                      }
+                      className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-200 focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="auto">{t('sfxPresetAuto')}</option>
+                      <option value="tram_rail">{t('sfxPresetTramRail')}</option>
+                      <option value="footsteps">{t('sfxPresetFootsteps')}</option>
+                      <option value="weather_rain">{t('sfxPresetWeatherRain')}</option>
+                      <option value="wind_storm">{t('sfxPresetWindStorm')}</option>
+                      <option value="thunder">{t('sfxPresetThunder')}</option>
+                      <option value="door_creak">{t('sfxPresetDoorCreak')}</option>
+                      <option value="impact_knock">{t('sfxPresetImpactKnock')}</option>
+                      <option value="cinematic_drone">{t('sfxPresetCinematicDrone')}</option>
+                      <option value="radio_static">{t('sfxPresetRadioStatic')}</option>
+                      {block.sfxCategory === 'custom_upload' && (
+                        <option value="custom_upload">
+                          {t('sfxPresetCustomUpload')}{' '}
+                          {block.customAudioFileName ? `(${block.customAudioFileName})` : ''}
+                        </option>
+                      )}
+                    </select>
+                  )}
 
                   <label className="flex items-center gap-1 text-[10px] font-mono text-amber-300/90">
                     <span>{t('sfxDurationLabel')}:</span>
                     <input
                       type="number"
                       data-testid={`sfx-duration-input-${block.id}`}
-                      min={1.0}
-                      max={15.0}
+                      min={0.5}
+                      max={60.0}
                       step={0.5}
                       value={block.sfxDurationSec ?? 3.5}
                       onChange={(e) =>
                         updateBlock(block.id, {
                           sfxDurationSec: Math.min(
-                            15.0,
-                            Math.max(1.0, Number(e.target.value) || 3.5)
+                            60.0,
+                            Math.max(0.5, Number(e.target.value) || 3.5)
                           ),
                         })
                       }
@@ -851,166 +957,164 @@ export const ScriptBlockCard: React.FC<ScriptBlockCardProps> = ({
             </div>
           </div>
 
-      {/* Script Textarea + Live Karaoke Word Synchronizer Strip */}
-      <div className="mb-1.5">
-        <UnifiedScriptEditor
-          blockId={block.id}
-          text={block.text}
-          placeholder={placeholder}
-          isPlaying={isPlayingThisBlock || Boolean(isActivePlayheadBlock)}
-          playheadProgress={effectiveProgress}
-          activeWordIndex={isPlayingThisBlock || isLocalScrubbing ? undefined : activeWordIndex}
-          durationSec={durationSec}
-          onChangeText={(val) => updateBlock(block.id, { text: val })}
-          onAddNextBlock={() => addBlock('dialogue', block.id)}
-          onSeekWord={(prog) => {
-            setLocalScrubProgress(prog);
-            onSeekWithinBlock?.(block, prog);
-            if (isPlayingThisBlock) {
-              void auditionBlock(block.id, prog * durationSec);
-            }
-          }}
-          onStopPlayback={stopAudioPreview}
-        />
-      </div>
-
-      {/* Bottom Strip: DOD Canvas 2D SoA Waveform, Audition/Render, Regenerate/Waveform/Delete Audio Tools, Pause & Timing */}
-      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pt-1.5 border-t border-slate-800/60 text-xs">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <WaveformCanvas
-            peaks={block.waveformPeaks}
-            fallbackSeed={`${block.id}_${block.text}`}
-            playheadProgress={
-              isActivePlayheadBlock || isPlayingThisBlock
-                ? effectiveProgress
-                : localScrubProgress
-            }
-            accentColor={
-              block.type === 'sound_effect'
-                ? '#f59e0b'
-                : (activeSpeaker?.color ?? '#6366f1')
-            }
-            isRenderedAudio={hasGeneratedAudioOrPeaks}
-            blockId={block.id}
-            durationSec={durationSec}
-            height={44}
-            isPlaying={isPlayingThisBlock || isActivePlayheadBlock}
-            showTransportControls={true}
-            playTooltip={t('blockWaveformPlayTooltip')}
-            restartTooltip={t('blockWaveformRestartTooltip')}
-            volumeGainDb={block.volumeGainDb ?? 0}
-            onChangeGainDb={(gainDb) => updateBlock(block.id, { volumeGainDb: gainDb })}
-            gainKnobLabel={t('gainKnobLabel')}
-            auxSendDb={block.auxSendDb ?? 0}
-            onChangeAuxSendDb={(sendDb) => updateBlock(block.id, { auxSendDb: sendDb })}
-            auxKnobLabel={t('auxKnobLabel')}
-            fadeInMs={block.fadeInMs ?? 0}
-            fadeOutMs={block.fadeOutMs ?? 0}
-            fadeInCurve={block.fadeInCurve ?? 0}
-            fadeOutCurve={block.fadeOutCurve ?? 0}
-            onUpdateFade={(fades) => updateBlock(block.id, fades)}
-            onTogglePlay={() => {
-              selectBlock(block.id);
-              const startOffset =
-                effectiveProgress >= 0.98 ? 0 : effectiveProgress * durationSec;
-              if (effectiveProgress >= 0.98) {
-                setLocalScrubProgress(0);
-                onSeekWithinBlock?.(block, 0);
-              } else {
-                onSeekWithinBlock?.(block, effectiveProgress);
-              }
-              void auditionBlock(block.id, startOffset);
-            }}
-            onRestart={() => {
-              selectBlock(block.id);
-              setLocalScrubProgress(0);
-              onSeekWithinBlock?.(block, 0);
-            }}
-            onSeekProgress={(prog) => {
-              setLocalScrubProgress(prog);
-              onSeekWithinBlock?.(block, prog);
-              if (isPlayingThisBlock) {
-                void auditionBlock(block.id, prog * durationSec);
-              }
-            }}
-            onScrubStateChange={onScrubStateChange}
-          />
-
-          {/* Primary Generation / Synthesis Button (shown when unrendered, stale, or rendering) */}
-          {block.ttsStatus === 'rendering' ? (
-            <button
-              type="button"
-              data-testid={`abort-block-btn-${block.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                abortBlockSynthesis(block.id);
+          {/* Script Textarea + Live Karaoke Word Synchronizer Strip */}
+          <div className="mb-1.5">
+            <UnifiedScriptEditor
+              blockId={block.id}
+              text={block.text}
+              placeholder={placeholder}
+              isPlaying={isPlayingThisBlock || Boolean(isActivePlayheadBlock)}
+              playheadProgress={effectiveProgress}
+              activeWordIndex={isPlayingThisBlock || isLocalScrubbing ? undefined : activeWordIndex}
+              durationSec={durationSec}
+              onChangeText={(val) => updateBlock(block.id, { text: val })}
+              onAddNextBlock={() => addBlock('dialogue', block.id)}
+              onSeekWord={(prog) => {
+                setLocalScrubProgress(prog);
+                onSeekWithinBlock?.(block, prog);
+                if (isPlayingThisBlock) {
+                  void auditionBlock(block.id, prog * durationSec);
+                }
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[11px] shrink-0 bg-rose-950/90 hover:bg-rose-900 border border-rose-700/60 text-rose-200 transition-colors cursor-pointer animate-pulse"
-              title={t('stopGeneration')}
-            >
-              <Square className="w-3 h-3 fill-current text-rose-400" />
-              <span>{t('stopGeneration')}</span>
-            </button>
-          ) : block.ttsStatus !== 'ok' ? (
-            <button
-              type="button"
-              data-testid={`generate-block-btn-${block.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                void synthesizeBlock(block.id);
-              }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[11px] shrink-0 disabled:opacity-50 transition-colors cursor-pointer ${
-                block.type === 'sound_effect'
-                  ? 'bg-amber-950/70 hover:bg-amber-900/80 border border-amber-700/50 text-amber-200'
-                  : 'bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-200'
-              }`}
-            >
-              <Sparkles
-                className={`w-3 h-3 ${
-                  block.type === 'sound_effect' ? 'text-amber-400' : 'text-indigo-400'
-                }`}
-              />
-              <span>
-                ▶{' '}
-                {block.type === 'sound_effect'
-                  ? block.ttsStatus === 'stale'
-                    ? t('reGenerateSfxBtn')
-                    : t('generateSfxBtn')
-                  : block.ttsStatus === 'stale'
-                    ? t('reRenderLine')
-                    : t('renderLine')}{' '}
-                ({tokens} {t('tokensAbbrev')})
-              </span>
-            </button>
-          ) : null}
-        </div>
-
-        {/* Trailing Pause & Timeline Interval Metadata */}
-        <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
-          <label className="flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-500" />
-            <span>{t('pauseMsLabel')}:</span>
-            <input
-              type="number"
-              min={0}
-              max={10000}
-              step={50}
-              value={block.pauseAfterMs ?? 0}
-              onChange={(e) =>
-                updateBlock(block.id, {
-                  pauseAfterMs: Math.max(0, Number(e.target.value) || 0),
-                })
-              }
-              className="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-right text-slate-200 focus:outline-none focus:border-indigo-500"
+              onStopPlayback={stopAudioPreview}
             />
-          </label>
+          </div>
 
-          <span className="text-slate-500">
-            {formatDurationReadout(block.startTimeSec ?? 0, true)} –{' '}
-            {formatDurationReadout(block.endTimeSec ?? 0, true)}
-          </span>
-        </div>
-      </div>
+          {/* Bottom Strip: DOD Canvas 2D SoA Waveform, Audition/Render, Regenerate/Waveform/Delete Audio Tools, Pause & Timing */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pt-1.5 border-t border-slate-800/60 text-xs">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <WaveformCanvas
+                peaks={block.waveformPeaks}
+                fallbackSeed={`${block.id}_${block.text}`}
+                playheadProgress={
+                  isActivePlayheadBlock || isPlayingThisBlock
+                    ? effectiveProgress
+                    : localScrubProgress
+                }
+                accentColor={
+                  block.type === 'sound_effect'
+                    ? '#f59e0b'
+                    : (activeSpeaker?.color ?? '#6366f1')
+                }
+                isRenderedAudio={hasGeneratedAudioOrPeaks}
+                blockId={block.id}
+                durationSec={durationSec}
+                height={44}
+                isPlaying={isPlayingThisBlock || isActivePlayheadBlock}
+                showTransportControls={true}
+                playTooltip={t('blockWaveformPlayTooltip')}
+                restartTooltip={t('blockWaveformRestartTooltip')}
+                volumeGainDb={block.volumeGainDb ?? 0}
+                onChangeGainDb={(gainDb) => updateBlock(block.id, { volumeGainDb: gainDb })}
+                gainKnobLabel={t('gainKnobLabel')}
+                auxSendDb={block.auxSendDb ?? 0}
+                onChangeAuxSendDb={(sendDb) => updateBlock(block.id, { auxSendDb: sendDb })}
+                auxKnobLabel={t('auxKnobLabel')}
+                fadeInMs={block.fadeInMs ?? 0}
+                fadeOutMs={block.fadeOutMs ?? 0}
+                fadeInCurve={block.fadeInCurve ?? 0}
+                fadeOutCurve={block.fadeOutCurve ?? 0}
+                onUpdateFade={(fades) => updateBlock(block.id, fades)}
+                onTogglePlay={() => {
+                  selectBlock(block.id);
+                  const startOffset =
+                    effectiveProgress >= 0.98 ? 0 : effectiveProgress * durationSec;
+                  if (effectiveProgress >= 0.98) {
+                    setLocalScrubProgress(0);
+                    onSeekWithinBlock?.(block, 0);
+                  } else {
+                    onSeekWithinBlock?.(block, effectiveProgress);
+                  }
+                  void auditionBlock(block.id, startOffset);
+                }}
+                onRestart={() => {
+                  selectBlock(block.id);
+                  setLocalScrubProgress(0);
+                  onSeekWithinBlock?.(block, 0);
+                }}
+                onSeekProgress={(prog) => {
+                  setLocalScrubProgress(prog);
+                  onSeekWithinBlock?.(block, prog);
+                  if (isPlayingThisBlock) {
+                    void auditionBlock(block.id, prog * durationSec);
+                  }
+                }}
+                onScrubStateChange={onScrubStateChange}
+              />
+
+              {/* Primary Generation / Synthesis Button (shown when unrendered, stale, or rendering) */}
+              {block.ttsStatus === 'rendering' ? (
+                <button
+                  type="button"
+                  data-testid={`abort-block-btn-${block.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abortBlockSynthesis(block.id);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[11px] shrink-0 bg-rose-950/90 hover:bg-rose-900 border border-rose-700/60 text-rose-200 transition-colors cursor-pointer animate-pulse"
+                  title={t('stopGeneration')}
+                >
+                  <Square className="w-3 h-3 fill-current text-rose-400" />
+                  <span>{t('stopGeneration')}</span>
+                </button>
+              ) : block.ttsStatus !== 'ok' ? (
+                <button
+                  type="button"
+                  data-testid={`generate-block-btn-${block.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void synthesizeBlock(block.id);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[11px] shrink-0 disabled:opacity-50 transition-colors cursor-pointer ${block.type === 'sound_effect'
+                    ? 'bg-amber-950/70 hover:bg-amber-900/80 border border-amber-700/50 text-amber-200'
+                    : 'bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-200'
+                    }`}
+                >
+                  <Sparkles
+                    className={`w-3 h-3 ${block.type === 'sound_effect' ? 'text-amber-400' : 'text-indigo-400'
+                      }`}
+                  />
+                  <span>
+                    ▶{' '}
+                    {block.type === 'sound_effect'
+                      ? block.ttsStatus === 'stale'
+                        ? t('reGenerateSfxBtn')
+                        : t('generateSfxBtn')
+                      : block.ttsStatus === 'stale'
+                        ? t('reRenderLine')
+                        : t('renderLine')}{' '}
+                    ({tokens} {t('tokensAbbrev')})
+                  </span>
+                </button>
+              ) : null}
+            </div>
+
+            {/* Trailing Pause & Timeline Interval Metadata */}
+            <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
+              <label className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-500" />
+                <span>{t('pauseMsLabel')}:</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={10000}
+                  step={50}
+                  value={block.pauseAfterMs ?? 0}
+                  onChange={(e) =>
+                    updateBlock(block.id, {
+                      pauseAfterMs: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                  className="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-right text-slate-200 focus:outline-none focus:border-indigo-500"
+                />
+              </label>
+
+              <span className="text-slate-500">
+                {formatDurationReadout(block.startTimeSec ?? 0, true)} –{' '}
+                {formatDurationReadout(block.endTimeSec ?? 0, true)}
+              </span>
+            </div>
+          </div>
         </>
       )}
     </div>

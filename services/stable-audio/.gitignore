@@ -31,6 +31,7 @@ blobs/
 *.log
 .env
 .env.*
+.python_env
 hf_token.txt
 *.token
 

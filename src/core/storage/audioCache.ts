@@ -119,6 +119,10 @@ export async function computeBlockCacheKey(
     | 'sfxDurationSec'
     | 'sfxIntensity'
     | 'customAudioFileName'
+    | 'sfxEngine'
+    | 'sfxModelVariant'
+    | 'sfxSteps'
+    | 'sfxSeed'
   >,
   speaker?: Speaker,
   language: SupportedLanguage = 'hr'
@@ -132,6 +136,10 @@ export async function computeBlockCacheKey(
     sfxCategory: block.type === 'sound_effect' ? (block.sfxCategory ?? 'auto') : undefined,
     sfxDurationSec: block.type === 'sound_effect' ? (block.sfxDurationSec ?? null) : undefined,
     sfxIntensity: block.type === 'sound_effect' ? (block.sfxIntensity ?? null) : undefined,
+    sfxEngine: block.type === 'sound_effect' ? (block.sfxEngine ?? 'auto') : undefined,
+    sfxModelVariant: block.type === 'sound_effect' ? (block.sfxModelVariant ?? 'small-sfx') : undefined,
+    sfxSteps: block.type === 'sound_effect' ? (block.sfxSteps ?? 8) : undefined,
+    sfxSeed: block.type === 'sound_effect' ? (block.sfxSeed ?? -1) : undefined,
     customAudioFileName:
       block.type === 'sound_effect' ? (block.customAudioFileName ?? null) : undefined,
     language,

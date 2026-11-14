@@ -1,9 +1,5 @@
 import os
 import sys
-
-# Ensure user site packages don't override conda dependencies
-sys.path = [p for p in sys.path if "AppData\\Roaming\\Python" not in p]
-
 import io
 import time
 import asyncio
@@ -26,14 +22,17 @@ IDLE_HIBERNATE_TIMEOUT_SEC = 300  # Auto-hibernate after 5 minutes of inactivity
 
 # Background idle watcher task
 async def idle_watcher():
-    while True:
-        await asyncio.sleep(30)
-        async with gpu_lock:
-            if not engine.is_hibernating and engine.current_model is not None:
-                idle_time = time.time() - engine.last_active_timestamp
-                if idle_time >= IDLE_HIBERNATE_TIMEOUT_SEC:
-                    print(f"[Watcher] Inactivity detected ({idle_time:.0f}s >= {IDLE_HIBERNATE_TIMEOUT_SEC}s). Auto-hibernating...")
-                    engine.hibernate()
+    try:
+        while True:
+            await asyncio.sleep(30)
+            async with gpu_lock:
+                if not engine.is_hibernating and engine.current_model is not None:
+                    idle_time = time.time() - engine.last_active_timestamp
+                    if idle_time >= IDLE_HIBERNATE_TIMEOUT_SEC:
+                        print(f"[Watcher] Inactivity detected ({idle_time:.0f}s >= {IDLE_HIBERNATE_TIMEOUT_SEC}s). Auto-hibernating...")
+                        await asyncio.to_thread(engine.hibernate)
+    except (asyncio.CancelledError, GeneratorExit):
+        pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,11 +49,23 @@ async def lifespan(app: FastAPI):
     # Launch idle watcher
     watcher_task = asyncio.create_task(idle_watcher())
     print("[Server] Stable Audio 3 Service initialized. Idle watcher active.\n")
-    yield
-    # Shutdown
-    watcher_task.cancel()
-    async with gpu_lock:
-        engine.hibernate()
+
+    try:
+        yield
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        pass
+    finally:
+        # Graceful shutdown: cancel and drain idle watcher
+        watcher_task.cancel()
+        try:
+            await asyncio.gather(watcher_task, return_exceptions=True)
+        except Exception:
+            pass
+        # Offload GPU weights on exit
+        try:
+            engine.hibernate()
+        except Exception as e:
+            print(f"[Server] Notice during shutdown cleanup: {e}")
 
 app = FastAPI(
     title="Storia Stable Audio 3 Daemon",
@@ -139,12 +150,12 @@ async def trigger_model_download(req: DownloadModelRequest, background_tasks: Ba
 @app.post("/v1/system/hibernate")
 async def trigger_hibernate():
     async with gpu_lock:
-        return engine.hibernate()
+        return await asyncio.to_thread(engine.hibernate)
 
 @app.post("/v1/system/wake")
 async def trigger_wake():
     async with gpu_lock:
-        return engine.wake()
+        return await asyncio.to_thread(engine.wake)
 
 @app.post("/v1/sfx/generate")
 async def generate_sfx(req: GenerateRequest):
@@ -153,7 +164,8 @@ async def generate_sfx(req: GenerateRequest):
     """
     async with gpu_lock:
         try:
-            audio_tensor, sr, gen_time = engine.generate(
+            audio_tensor, sr, gen_time = await asyncio.to_thread(
+                engine.generate,
                 prompt=req.prompt,
                 negative_prompt=req.negative_prompt,
                 duration=req.duration_seconds,
@@ -186,7 +198,8 @@ async def generate_music(req: GenerateRequest, model_variant: str = "small-music
 
     async with gpu_lock:
         try:
-            audio_tensor, sr, gen_time = engine.generate(
+            audio_tensor, sr, gen_time = await asyncio.to_thread(
+                engine.generate,
                 prompt=req.prompt,
                 negative_prompt=req.negative_prompt,
                 duration=req.duration_seconds,
@@ -211,5 +224,28 @@ async def generate_music(req: GenerateRequest, model_variant: str = "small-music
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=False, log_level="info")
+    import sys
+
+    # On Windows, use SelectorEventLoopPolicy to prevent IOCP signal handler deadlock on Ctrl+C
+    if sys.platform == "win32":
+        try:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except Exception:
+            pass
+
+    config = uvicorn.Config(
+        "server:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=False,
+        log_level="info",
+        loop="asyncio",
+    )
+    server = uvicorn.Server(config)
+    try:
+        server.run()
+    except KeyboardInterrupt:
+        print("\n[Server] Shutdown requested via Ctrl+C. Exiting cleanly...")
+    except Exception as e:
+        print(f"\n[Server] Daemon terminated: {e}")
 

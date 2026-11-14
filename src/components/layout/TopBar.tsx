@@ -12,6 +12,7 @@ import {
   Undo2,
   Volume2,
   X,
+  Zap,
 } from 'lucide-react';
 import {
   StoriaAppBrandIcon,
@@ -46,6 +47,20 @@ export const TopBar: React.FC = () => {
   const loadGeodesicFlameDemo = useStoriaStore((s) => s.loadGeodesicFlameDemo);
   const setApiKeyModalOpen = useStoriaStore((s) => s.setApiKeyModalOpen);
   const hasConfiguredApiKey = useStoriaStore((s) => s.hasConfiguredApiKey);
+  const isStableAudioDaemonOnline = useStoriaStore((s) => s.isStableAudioDaemonOnline);
+  const stableAudioStatus = useStoriaStore((s) => s.stableAudioStatus);
+  const setBackgroundServicesModalOpen = useStoriaStore(
+    (s) => s.setBackgroundServicesModalOpen
+  );
+  const refreshStableAudioStatus = useStoriaStore((s) => s.refreshStableAudioStatus);
+
+  React.useEffect(() => {
+    void refreshStableAudioStatus();
+    const interval = setInterval(() => {
+      void refreshStableAudioStatus();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [refreshStableAudioStatus]);
   const ttsProvider = useStoriaStore((s) => s.ttsProvider);
   const setActiveTtsProvider = useStoriaStore((s) => s.setActiveTtsProvider);
   const setGeminiTextModel = useStoriaStore((s) => s.setGeminiTextModel);
@@ -289,6 +304,38 @@ export const TopBar: React.FC = () => {
               <KeyRound className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             )}
             <span>{apiKeyBadgeText}</span>
+          </button>
+
+          {/* Background AI Services & Hardware Telemetry Pill */}
+          <button
+            type="button"
+            data-testid="topbar-bg-services-btn"
+            onClick={() => setBackgroundServicesModalOpen(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+              isStableAudioDaemonOnline
+                ? stableAudioStatus?.is_hibernating
+                  ? 'bg-amber-950/50 hover:bg-amber-900/60 border-amber-800/60 text-amber-300'
+                  : 'bg-violet-950/50 hover:bg-violet-900/60 border-violet-800/60 text-violet-300'
+                : 'bg-slate-900 hover:bg-slate-800 border-slate-700/80 text-slate-400'
+            }`}
+            title="Manage Background AI Services & Stable Audio 3 Daemon"
+          >
+            <Zap
+              className={`w-3.5 h-3.5 shrink-0 ${
+                isStableAudioDaemonOnline
+                  ? stableAudioStatus?.is_hibernating
+                    ? 'text-amber-400'
+                    : 'text-violet-400'
+                  : 'text-slate-500'
+              }`}
+            />
+            <span>
+              {isStableAudioDaemonOnline
+                ? stableAudioStatus?.is_hibernating
+                  ? 'GPU: Hibernated'
+                  : `GPU: ${stableAudioStatus?.vram_allocated_mb ?? 0} MB`
+                : 'Daemon: Offline'}
+            </span>
           </button>
 
           {isBatchSynthesizing && (

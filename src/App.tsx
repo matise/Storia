@@ -8,6 +8,7 @@ import { ApiKeyModal } from './components/modals/ApiKeyModal';
 import { ProjectPropertiesModal } from './components/modals/ProjectPropertiesModal';
 import { ExportMasterModal } from './components/modals/ExportMasterModal';
 import { AuxBusRackModal } from './components/modals/AuxBusRackModal';
+import { BackgroundServicesModal } from './components/modals/BackgroundServicesModal';
 import { FolderKanban, FolderPlus, Plus, RotateCcw } from 'lucide-react';
 import { useStoriaStore } from './store/useStoriaStore';
 import { useTranslation } from './i18n/useTranslation';
@@ -346,6 +347,7 @@ export const App: React.FC = () => {
       <ProjectPropertiesModal />
       <ExportMasterModal />
       <AuxBusRackModal />
+      <BackgroundServicesModal />
     </div>
   );
 };

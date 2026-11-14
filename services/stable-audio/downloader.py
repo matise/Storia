@@ -6,7 +6,26 @@ import argparse
 import requests
 from typing import Dict, Any, List, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from huggingface_hub import HfFolder, hf_hub_download, hf_hub_url
+from huggingface_hub import hf_hub_download, hf_hub_url, login as hf_login
+try:
+    from huggingface_hub import get_token as hf_get_token
+except ImportError:
+    from huggingface_hub import HfFolder
+    hf_get_token = HfFolder.get_token
+
+LOCAL_TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hf_token.txt")
+
+
+def _read_local_token() -> Optional[str]:
+    if os.path.exists(LOCAL_TOKEN_FILE):
+        try:
+            with open(LOCAL_TOKEN_FILE, "r", encoding="utf-8") as f:
+                t = f.read().strip()
+                if t:
+                    return t
+        except Exception:
+            pass
+    return None
 
 MODEL_REGISTRY = {
     "small-sfx": {
@@ -46,7 +65,7 @@ T5GEMMA_FILES = [
 
 class ModelDownloader:
     def __init__(self, token: Optional[str] = None, num_workers: int = 8):
-        self.token = token or os.environ.get("HF_TOKEN") or HfFolder.get_token()
+        self.token = token or os.environ.get("HF_TOKEN") or _read_local_token() or hf_get_token()
         self.num_workers = num_workers
         self.current_download_state: Dict[str, Any] = {
             "is_downloading": False,
@@ -59,13 +78,27 @@ class ModelDownloader:
             "error": None,
         }
 
+    def set_token(self, token: str) -> None:
+        token = token.strip()
+        self.token = token
+        os.environ["HF_TOKEN"] = token
+        try:
+            with open(LOCAL_TOKEN_FILE, "w", encoding="utf-8") as f:
+                f.write(token + "\n")
+        except Exception:
+            pass
+        try:
+            hf_login(token=token, add_to_git_credential=False)
+        except Exception:
+            pass
+
     def get_token(self) -> str:
         if not self.token:
-            self.token = os.environ.get("HF_TOKEN") or HfFolder.get_token()
+            self.token = os.environ.get("HF_TOKEN") or _read_local_token() or hf_get_token()
         if not self.token:
             raise RuntimeError(
-                "No Hugging Face token found. Please set the HF_TOKEN environment variable "
-                "or run 'huggingface-cli login' with an authorized Hugging Face account."
+                "No Hugging Face token found. Please set the HF_TOKEN environment variable, "
+                "save your token to services/stable-audio/hf_token.txt, or enter it when prompted."
             )
         return self.token
 
@@ -349,6 +382,9 @@ def main():
 
     downloader = ModelDownloader(token=args.token)
 
+    if args.token:
+        downloader.set_token(args.token)
+
     if args.status or args.model == "status":
         print("\n--- Stable Audio 3 Models Installation Status ---")
         statuses = downloader.list_all_models_status()
@@ -360,10 +396,41 @@ def main():
         print("")
         return
 
-    if args.model == "all":
-        downloader.download_all()
-    else:
-        downloader.download_model(args.model)
+    # Prompt for token before starting if none is configured
+    if not downloader.token and sys.stdin.isatty():
+        print("\n[AUTH] Stable Audio 3 models are gated repositories on Hugging Face.")
+        print("  1. Accept the model license at: https://huggingface.co/stabilityai/stable-audio-3-small-sfx")
+        print("  2. Create a Read access token at: https://huggingface.co/settings/tokens")
+        user_token = input("Paste your Hugging Face token (hf_...): ").strip()
+        if user_token:
+            downloader.set_token(user_token)
+
+    try:
+        if args.model == "all":
+            downloader.download_all()
+        else:
+            downloader.download_model(args.model)
+    except Exception as exc:
+        err_msg = str(exc)
+        if ("401" in err_msg or "403" in err_msg or "GatedRepoError" in type(exc).__name__) and sys.stdin.isatty():
+            print("\n-----------------------------------------------------------------------")
+            print("[AUTH REQUIRED] Hugging Face rejected the request (401/403 Gated Repo).")
+            print("Please make sure you have:")
+            print("  1. Accepted the license on Hugging Face for:")
+            print("     - https://huggingface.co/stabilityai/stable-audio-3-small-sfx")
+            print("     - https://huggingface.co/stabilityai/stable-audio-3-small-music")
+            print("     - https://huggingface.co/stabilityai/stable-audio-3-small-music-base")
+            print("  2. Generated a valid Hugging Face Read Token (https://huggingface.co/settings/tokens)")
+            print("-----------------------------------------------------------------------")
+            new_token = input("Paste a valid Hugging Face token (hf_...) to retry, or press ENTER to exit: ").strip()
+            if new_token:
+                downloader.set_token(new_token)
+                if args.model == "all":
+                    downloader.download_all()
+                else:
+                    downloader.download_model(args.model)
+                return
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

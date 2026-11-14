@@ -3,10 +3,15 @@ import sys
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from huggingface_hub import HfFolder, hf_hub_url
+from huggingface_hub import hf_hub_url
+try:
+    from huggingface_hub import get_token as hf_get_token
+except ImportError:
+    from huggingface_hub import HfFolder
+    hf_get_token = HfFolder.get_token
 
 def fast_download(repo_id, filename, target_path, num_workers=8):
-    token = HfFolder.get_token()
+    token = os.environ.get("HF_TOKEN") or hf_get_token()
     url = hf_hub_url(repo_id=repo_id, filename=filename)
     headers = {"authorization": f"Bearer {token}"}
 

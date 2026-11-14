@@ -9,6 +9,40 @@ from safetensors.torch import load_file
 from stable_audio_3.model import all_models, StableAudioModel
 from stable_audio_3.loading_utils import load_diffusion_cond, copy_state_dict
 
+# Transformers 4.54+ compatibility patch for T5Gemma bidirectional attention masking on PyTorch < 2.6
+try:
+    import transformers.models.t5gemma.modeling_t5gemma as _t5_mod
+
+    def _patched_create_causal_mask(config, input_embeds, attention_mask, **kwargs):
+        device = input_embeds.device
+        dtype = input_embeds.dtype
+        min_val = torch.finfo(dtype).min
+        if attention_mask is None:
+            mask_2d = torch.ones(input_embeds.shape[:2], dtype=torch.bool, device=device)
+        else:
+            mask_2d = attention_mask.to(torch.bool)
+        return torch.where(mask_2d[:, None, None, :], torch.zeros(1, dtype=dtype, device=device), min_val)
+
+    def _patched_create_sliding_window_causal_mask(config, input_embeds, attention_mask, **kwargs):
+        device = input_embeds.device
+        dtype = input_embeds.dtype
+        min_val = torch.finfo(dtype).min
+        seq_len = input_embeds.shape[1]
+        if attention_mask is None:
+            mask_2d = torch.ones(input_embeds.shape[:2], dtype=torch.bool, device=device)
+        else:
+            mask_2d = attention_mask.to(torch.bool)
+        sw = getattr(config, 'sliding_window', 4096) or 4096
+        q_pos = torch.arange(seq_len, device=device).unsqueeze(1)
+        kv_pos = torch.arange(seq_len, device=device).unsqueeze(0)
+        band = (torch.abs(q_pos - kv_pos) <= sw).unsqueeze(0).unsqueeze(0)
+        return torch.where(mask_2d[:, None, None, :] & band, torch.zeros(1, dtype=dtype, device=device), min_val)
+
+    _t5_mod.create_causal_mask = _patched_create_causal_mask
+    _t5_mod.create_sliding_window_causal_mask = _patched_create_sliding_window_causal_mask
+except Exception as _patch_err:
+    print(f"[Engine] Notice: T5Gemma mask compatibility patch not applied: {_patch_err}")
+
 class StableAudioServiceEngine:
     """
     Unified high-performance runtime for Stable Audio 3 Small models.

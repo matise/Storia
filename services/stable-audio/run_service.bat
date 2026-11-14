@@ -6,18 +6,35 @@ echo  Models: small-sfx, small-music, small-music-base
 echo  Device: CUDA (FP16, Low-VRAM Shared Engine)
 echo =======================================================
 
-set PYTHON_EXE=C:\Users\matij\.conda\envs\ComfyNew\python.exe
-set PYTHONNOUSERSITE=1
-set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+cd /d "%~dp0"
+call "%~dp0resolve_python.bat"
 
-if not exist "%PYTHON_EXE%" (
-    echo [ERROR] Conda python environment not found at: %PYTHON_EXE%
+if not defined PYTHON_EXE (
+    echo [ERROR] Standard Python environment not found.
+    echo Please run install_service.bat first to set up Python and PyTorch.
     pause
     exit /b 1
 )
 
-cd /d "%~dp0"
-echo Starting FastAPI daemon on http://127.0.0.1:8000...
-"%PYTHON_EXE%" -s server.py
-pause
+set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
+echo Using Python: %PYTHON_EXE% (v%PYTHON_VER%)
+echo Starting FastAPI daemon on http://127.0.0.1:8000...
+echo (Press Ctrl+C to stop the daemon at any time)
+echo.
+
+"%PYTHON_EXE%" server.py
+set EXIT_CODE=%ERRORLEVEL%
+
+if %EXIT_CODE% equ 0 (
+    echo.
+    echo [Server] Daemon stopped cleanly.
+) else if %EXIT_CODE% equ 130 (
+    echo.
+    echo [Server] Daemon stopped by user.
+) else (
+    echo.
+    echo [ERROR] Service exited with code %EXIT_CODE%.
+    echo If dependencies are missing or damaged, run: install_service.bat
+    pause
+)
